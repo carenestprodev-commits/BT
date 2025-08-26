@@ -10,6 +10,7 @@ import pattern from "../../../../public/pattern.svg";
 import folder from "../../../../public/folder.svg";
 import calender from "../../../../public/calender.svg";
 import provider from "../../../../public/provider.png";
+import { Link } from "react-router-dom";
 
 
 
@@ -82,9 +83,11 @@ function Home() {
             </p>
           </div>
         </div>
+        <Link to="/careseekers/dashboard/verify-identity">
         <button className="bg-[#0093d1] text-white text-[14px] font-medium px-6 py-2 rounded-md">
           Verify ID
         </button>
+        </Link>
       </div>
 
       {/* What would you like to do */}
@@ -94,7 +97,8 @@ function Home() {
 
 <div className="grid grid-cols-2 gap-4">
   {/* Book a Service Card */}
-  <div className="bg-[#f3f9fc] rounded-xl px-4 py-10 flex items-center space-x-3 shadow-sm border border-gray-100">
+  <Link to="/careseekers/signup">
+  <div className="bg-[#f3f9fc] rounded-xl px-4 py-10 flex items-center space-x-3 shadow-sm border border-gray-100 hover:shadow-lg transition">
     <div className="p-2 rounded-md flex-shrink-0">
       <img src={calender} alt="Calendar Icon"className="h-15 w-15" />
     </div>
@@ -107,9 +111,11 @@ function Home() {
       </p>
     </div>
   </div>
+  </Link>
 
   {/* Become a Care Provider Card */}
-  <div className="bg-[#f2faf8] rounded-xl px-4 py-10 flex items-center space-x-3 shadow-sm border border-gray-100">
+  <a href="https://www.google.com">
+  <div className="bg-[#f2faf8] rounded-xl px-4 py-10 flex items-center space-x-3 shadow-sm border border-gray-100 hover:shadow-lg transition">
     <div className="p-2 rounded-md flex-shrink-0">
       <img src={provider} alt="Provider Icon" className="h-15 w-15" />
     </div>
@@ -122,16 +128,17 @@ function Home() {
       </p>
     </div>
   </div>
+</a>
 </div>
 
 
       {/* Appointment */}
-      <h2 className="mt-8 mb-3 text-[15px] font-medium text-gray-800">
+      <h2 className="mt-8 mb-3 text-[15px] font-medium text-gray-800 ">
         What would you like to do today
       </h2>
 
 
-      <div className="bg-[#f5f5f5] rounded-md flex items-center overflow-hidden py-3">
+      <div className="bg-[#f5f5f5] rounded-md flex items-center overflow-hidden py-3 hover:shadow-lg transition">
   {/* Date Column */}
   <div className="w-14 flex flex-col items-center justify-center py-3 border-r-[5px] border-[#0d99c9] rounded-l-lg">
 
@@ -141,7 +148,7 @@ function Home() {
   </div>
 
   {/* Vertical Blue Line */}
-  <div className="w-[2px] h-full bg-[#0093d1]" />
+  <div className="w-[2px] h-full bg-[#0093d1] " />
 
   {/* Content */}
   <div className="flex items-center px-4 py-3 space-x-3 flex-1">
