@@ -27,57 +27,7 @@ function CareProvidersNearYou() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar active="Home" />
       <div className="flex-1 font-sfpro px-8 py-8 ml-64">
-        {/* Signup Blur Overlay
-        {showSignupPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 font-sfpro">
-            <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-full p-8 dark:bg-white">
-              <img
-                src={Girl}
-                alt="Signup Illustration"
-                className="w-32 h-32 mx-auto mb-4"
-              />
-              <h2 className="text-xl font-semibold text-center text-gray-800 mb-1">
-                Sign Up to View Care Providers near you
-              </h2>
-              <p className="text-sm text-gray-500 text-center mb-6">
-                Kindly enter your email address below to view care providers near you.
-              </p>
-              <input
-                type="email"
-                placeholder="Email"
-                value={signupForm.email}
-                onChange={(e) =>
-                  setSignupForm({ ...signupForm, email: e.target.value })
-                }
-                className="w-full mb-3 p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={signupForm.password}
-                onChange={(e) =>
-                  setSignupForm({ ...signupForm, password: e.target.value })
-                }
-                className="w-full mb-3 p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
-              />
-              <input
-                type="password"
-                placeholder="Confirm Password"
-                value={signupForm.confirmPassword}
-                onChange={(e) =>
-                  setSignupForm({ ...signupForm, confirmPassword: e.target.value })
-                }
-                className="w-full mb-6 p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
-              />
-              <button
-                className="w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition"
-                onClick={() => setShowSignupPopup(false)}
-              >
-                Sign Up
-              </button>
-            </div>
-          </div>
-        )} */}
+        
 
         {/* Main Content (Blurred when signup popup is active) */}
         <div

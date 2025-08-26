@@ -33,7 +33,7 @@ function CareProvidersNearYou() {
               className="w-32 h-32 mx-auto mb-4"
             />
             <h2 className="text-xl font-semibold text-center text-gray-800 mb-1">
-              Sign Up to View Care Providers near you
+              Sign Up to View Care Providers near you 
             </h2>
             <p className="text-sm text-gray-500 text-center mb-6">
               Kindly enter your email address below to view care providers near you.
@@ -70,7 +70,11 @@ function CareProvidersNearYou() {
             />
             <button
               className="w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition"
-              onClick={() => setShowSignupPopup(false)}
+              onClick={() => {
+                // close signup modal and show subscribe popup before navigating
+                setShowSignupPopup(false);
+                setShowSubscribePopup(true);
+              }}
             >
               Sign Up
             </button>
@@ -82,13 +86,13 @@ function CareProvidersNearYou() {
       {/* Main Content (Blurred when signup popup is active) */}
       <div
         className={`font-sfpro w-full bg-white min-h-screen transition ${
-          showSignupPopup ? "blur-sm pointer-events-none" : ""
+          showSignupPopup || showSubscribePopup || showPaymentPopup ? "blur-sm pointer-events-none" : ""
         }`}
       >
         {/* Header */}
         <div className="flex justify-between items-center px-8 pt-8">
           <h2 className="text-3xl font-semibold text-gray-800">
-            Care Providers near you
+            Care Providers near you 
           </h2>
           <div className="flex items-center">
             <span className="text-lg text-[#0093d1] font-bold">Step 8</span>
