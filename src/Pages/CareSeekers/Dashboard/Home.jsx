@@ -148,7 +148,7 @@ function Home() {
     <img
       src="https://randomuser.me/api/portraits/women/1.jpg"
       alt="Avatar"
-      className="w-8 h-8 rounded-full object-cover"
+      className="w-10 h-10 rounded-full object-cover"
     />
     <div className="flex flex-col">
       <p className="text-lg font-medium text-gray-800 leading-tight">
