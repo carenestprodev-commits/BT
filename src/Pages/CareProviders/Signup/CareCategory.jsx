@@ -1,6 +1,15 @@
-import React from "react";
+// React import not required with automatic JSX transform
+import { useDispatch } from 'react-redux';
+import { saveStep } from '../../../Redux/CareProviderAuth';
 
 function CareCategory({ selectedCategory, setSelectedCategory, updateFormData, handleNext, handleBack }) {
+  const dispatch = useDispatch();
+  const categoryKeyMap = {
+    'Childcare': 'childcare',
+    'Elderly Care': 'elderlycare',
+    'Tutoring': 'tutoring',
+    'Housekeeping': 'housekeeping'
+  }
   const categories = [
     {
       name: "Childcare",
@@ -44,6 +53,8 @@ function CareCategory({ selectedCategory, setSelectedCategory, updateFormData, h
             onClick={() => {
               setSelectedCategory(cat.name);
               updateFormData('careCategory', cat.name);
+              const key = categoryKeyMap[cat.name] || cat.name.toLowerCase();
+              dispatch(saveStep({ stepName: 'careCategory', data: key }))
             }}
             className={`border rounded-2xl cursor-pointer transition shadow-sm hover:shadow-md flex flex-col items-center justify-center text-center aspect-square ${
               selectedCategory === cat.name
@@ -63,7 +74,12 @@ function CareCategory({ selectedCategory, setSelectedCategory, updateFormData, h
       </div>
 
       <button 
-        onClick={handleNext}
+        onClick={() => {
+          // ensure saved
+          const key = categoryKeyMap[selectedCategory] || (selectedCategory && selectedCategory.toLowerCase())
+          if (key) dispatch(saveStep({ stepName: 'careCategory', data: key }))
+          handleNext()
+        }}
         disabled={!selectedCategory}
         className={`w-full text-lg font-medium py-3 rounded-md transition ${
           selectedCategory

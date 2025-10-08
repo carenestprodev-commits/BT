@@ -1,50 +1,47 @@
-import React, { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FaSearch, FaDownload } from 'react-icons/fa'
 import dayjs from 'dayjs'
-
-const makeRow = (i) => ({
-  id: i + 1,
-  title: 'Unable to view requests of Care Providers',
-  name: 'Olasibile Peter',
-  status: ['Open', 'In Review', 'Resolved'][i % 3],
-  date: dayjs().subtract(i, 'day').format('DD-MM-YYYY'),
-  complaint:
-    "I am filing this complaint regarding unpaid overtime hours and unsafe working conditions at my current placement. Over the past month, I have consistently worked 12-hour shifts caring for Mrs. Johnson (elderly client with mobility issues) but have only been compensated for 8 hours per day as originally agreed.",
-})
-
-const INITIAL = new Array(18).fill(0).map((_, i) => makeRow(i))
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchSupportTickets, fetchSupportTicketById, clearCurrentTicket } from '../../Redux/AdminSupport'
 
 function Support() {
-  const [rows] = useState(INITIAL)
+  const dispatch = useDispatch()
+  const { tickets, loading, error, current, currentLoading } = useSelector((s) => s.adminSupport || {})
+
   const [query, setQuery] = useState('')
   const [role, setRole] = useState('')
   const [status, setStatus] = useState('')
   const [date, setDate] = useState('')
   const [page, setPage] = useState(1)
-  const [detail, setDetail] = useState(null)
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
 
   const pageSize = 8
 
+  useEffect(() => {
+    dispatch(fetchSupportTickets())
+    return () => dispatch(clearCurrentTicket())
+  }, [dispatch])
+
   const filtered = useMemo(() => {
-    let list = rows
+    const list = tickets || []
+    let list2 = list
     if (query) {
       const q = query.toLowerCase()
-      list = list.filter((r) => r.title.toLowerCase().includes(q) || r.name.toLowerCase().includes(q))
+      list2 = list2.filter((r) => (r.dispute || '').toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q))
     }
-    if (status) list = list.filter((r) => r.status === status)
-    if (date) list = list.filter((r) => r.date === date)
-    return list
-  }, [rows, query, status, date])
+    if (status) list2 = list2.filter((r) => r.status === status)
+    if (date) list2 = list2.filter((r) => dayjs(r.date || r.start_date).format('YYYY-MM-DD') === date)
+    return list2
+  }, [tickets, query, status, date])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const current = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const currentPage = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   const downloadCSV = () => {
-    const header = ['Title', 'Name', 'Status', 'Date']
+    const header = ['Dispute', 'Name', 'Status', 'Date']
     const csv = [header.join(',')]
-    filtered.forEach((r) => csv.push([`"${r.title}"`, r.name, r.status, r.date].join(',')))
+    filtered.forEach((r) => csv.push([`"${r.dispute || ''}"`, r.name || '', r.status || '', (r.date || r.start_date) || ''].join(',')))
     const blob = new Blob([csv.join('\n')], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -79,7 +76,7 @@ function Support() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="search care provider"
+              placeholder="search tickets"
               className="pl-10 pr-3 py-2 w-full rounded border border-gray-200 bg-white text-sm text-black"
             />
           </div>
@@ -115,19 +112,33 @@ function Support() {
             </tr>
           </thead>
           <tbody>
-            {current.map((r) => (
-              <tr key={r.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => setDetail(r)}>
-                <td className="p-3 align-top"><input type="checkbox" onClick={(e) => e.stopPropagation()} /></td>
-                <td className="p-3 align-top text-gray-700">{r.title}</td>
-                <td className="p-3 align-top text-gray-700">{r.name}</td>
-                <td className="p-3 align-top">
-                  <span className={`px-3 py-1 rounded-full text-xs ${r.status === 'Open' ? 'bg-red-50 text-red-600' : r.status === 'Resolved' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
-                    {r.status}
-                  </span>
-                </td>
-                <td className="p-3 align-top text-gray-700">{r.date}</td>
-              </tr>
-            ))}
+            {loading ? (
+              <tr><td colSpan={5} className="p-6 text-center">Loading...</td></tr>
+            ) : error ? (
+              <tr><td colSpan={5} className="p-6 text-center text-red-600">Error loading tickets</td></tr>
+            ) : currentPage.length === 0 ? (
+              <tr><td colSpan={5} className="p-6 text-center">No tickets</td></tr>
+            ) : (
+              currentPage.map((r) => {
+                const statusRaw = (r.status || '').toLowerCase()
+                const statusLabel = statusRaw === 'open' ? 'Open' : statusRaw === 'in_review' ? 'In Review' : statusRaw === 'resolved' ? 'Resolved' : (statusRaw || '')
+                const statusClass = statusRaw === 'open' ? 'bg-red-50 text-red-600' : statusRaw === 'resolved' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
+                const formattedDate = r.date || r.start_date ? dayjs(r.date || r.start_date).format('DD-MM-YYYY') : ''
+                return (
+                  <tr key={r.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => dispatch(fetchSupportTicketById(r.id))}>
+                    <td className="p-3 align-top"><input type="checkbox" onClick={(e) => e.stopPropagation()} /></td>
+                    <td className="p-3 align-top text-gray-700">{r.dispute}</td>
+                    <td className="p-3 align-top text-gray-700">{r.name}</td>
+                    <td className="p-3 align-top">
+                      <span className={`px-3 py-1 rounded-full text-xs ${statusClass}`}>
+                        {statusLabel}
+                      </span>
+                    </td>
+                    <td className="p-3 align-top text-gray-700">{formattedDate}</td>
+                  </tr>
+                )
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -178,47 +189,44 @@ function Support() {
       </div>
 
       {/* Details Modal */}
-      {detail && (
-        <div className="fixed inset-0 z-40 flex items-start justify-center p-6">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setDetail(null)} />
+      {(current || currentLoading) && (
+        <div className={`fixed inset-0 z-40 flex items-start justify-center p-6 ${current ? '' : 'pointer-events-none'}`}>
+          <div className="absolute inset-0 bg-black/30" onClick={() => dispatch(clearCurrentTicket())} />
           <div className="relative z-50 bg-white max-w-md w-full rounded shadow-lg overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-5 border-b flex justify-between items-start">
               <h3 className="text-lg font-medium text-black">Details</h3>
-              <button onClick={() => setDetail(null)} className="text-gray-400">✕</button>
+              <button onClick={() => dispatch(clearCurrentTicket())} className="text-gray-400">✕</button>
             </div>
             <div className="p-5 overflow-y-auto text-sm flex-1">
-              <div className="mb-3">
-                <div className="text-gray-500 text-xs">Name</div>
-                <div className="text-gray-900">{detail.name}</div>
-              </div>
-              <div className="mb-3">
-                <div className="text-gray-500 text-xs">Role</div>
-                <div className="text-gray-900">Care provider</div>
-              </div>
-              <div className="mb-3">
-                <div className="text-gray-500 text-xs">Plan</div>
-                <div className="text-gray-900">Free</div>
-              </div>
-              <div className="mb-3">
-                <div className="text-gray-500 text-xs">Amount</div>
-                <div className="text-gray-900">₦53,589.00</div>
-              </div>
-              <div className="mb-3">
-                <div className="text-gray-500 text-xs">Status</div>
-                <div className="text-gray-900">{detail.status}</div>
-              </div>
-              <div className="mb-3">
-                <div className="text-gray-500 text-xs">Start Date</div>
-                <div className="text-gray-900">{detail.date}</div>
-              </div>
-              <div className="mb-3">
-                <div className="text-gray-500 text-xs">Client's Name</div>
-                <div className="text-gray-900">Adelenike Silas</div>
-              </div>
-              <div className="mb-3">
-                <div className="text-gray-500 text-xs">Complaint</div>
-                <div className="mt-2 p-3 border border-gray-100 rounded bg-gray-50 text-gray-800">{detail.complaint}</div>
-              </div>
+              {currentLoading && <div>Loading...</div>}
+              {current && (
+                <>
+                  <div className="mb-3">
+                    <div className="text-gray-500 text-xs">Name</div>
+                    <div className="text-gray-900">{current.name}</div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-gray-500 text-xs">Role</div>
+                    <div className="text-gray-900">{current.role || 'N/A'}</div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-gray-500 text-xs">Plan</div>
+                    <div className="text-gray-900">{current.plan || 'N/A'}</div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-gray-500 text-xs">Status</div>
+                    <div className="text-gray-900">{(current.status || '').replace('_', ' ')}</div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-gray-500 text-xs">Start Date</div>
+                    <div className="text-gray-900">{current.start_date ? dayjs(current.start_date).format('DD-MM-YYYY') : ''}</div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-gray-500 text-xs">Complaint</div>
+                    <div className="mt-2 p-3 border border-gray-100 rounded bg-gray-50 text-gray-800">{current.complaint}</div>
+                  </div>
+                </>
+              )}
             </div>
             <div className="p-4 border-t flex flex-col gap-3">
               <button

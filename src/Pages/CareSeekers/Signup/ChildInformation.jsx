@@ -1,6 +1,13 @@
-import React, { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useDispatch } from 'react-redux';
+import { saveStep } from '../../../Redux/CareSeekerAuth';
+import { reverseGeocode } from '../../../Redux/Location'
 
 function ChildInformation({ formData, updateFormData, handleNext, handleBack, showLocationPopup, setShowLocationPopup, currentStep = 2, totalSteps = 5 }) {
+  const dispatch = useDispatch();
+  const [countryOptions, setCountryOptions] = useState(["United States", "Canada", "United Kingdom"])
+  const [stateOptions, setStateOptions] = useState(["California", "New York", "Texas"])
+  const [languageOptions, setLanguageOptions] = useState(["English", "Spanish", "French"])
   
   // Parse the number of children from the selection
   const getChildCount = () => {
@@ -26,7 +33,7 @@ function ChildInformation({ formData, updateFormData, handleNext, handleBack, sh
     if (newDetails.length !== currentDetails.length) {
       updateFormData('childrenDetails', newDetails);
     }
-  }, [childCount]);
+  }, [childCount, formData.childrenDetails, updateFormData]);
 
   // Update child detail
   const updateChildDetail = (index, field, value) => {
@@ -85,6 +92,30 @@ function ChildInformation({ formData, updateFormData, handleNext, handleBack, sh
                   onClick={() => {
                     setShowLocationPopup(false);
                     // Trigger location permission logic here
+                    dispatch(reverseGeocode()).then(res => {
+                      if (res && res.payload && !res.error) {
+                        const d = res.payload
+                        if (d.country) {
+                          updateFormData('country', d.country)
+                          if (!countryOptions.includes(d.country)) setCountryOptions(prev => [d.country, ...prev])
+                        }
+                        if (d.state) {
+                          updateFormData('state', d.state)
+                          if (!stateOptions.includes(d.state)) setStateOptions(prev => [d.state, ...prev])
+                        }
+                        updateFormData('city', d.city || formData.city)
+                        updateFormData('zipCode', d.postcode || formData.zipCode)
+                        updateFormData('nationality', d.nationality || formData.nationality)
+                        // set preferred language if available
+                        if (d.common_languages && d.common_languages.length > 0) {
+                          const code = d.common_languages[0]
+                          const map = { en: 'English', es: 'Spanish', fr: 'French', bn: 'Bengali' }
+                          const lang = map[code] || (code === 'en' ? 'English' : code)
+                          updateFormData('preferredLanguage', lang)
+                          if (!languageOptions.includes(lang)) setLanguageOptions(prev => [lang, ...prev])
+                        }
+                      }
+                    })
                   }}
                 >
                   Allow only while using this App
@@ -93,7 +124,7 @@ function ChildInformation({ formData, updateFormData, handleNext, handleBack, sh
                   className="w-full py-3 rounded-md border border-[#0093d1] text-[#0093d1] text-lg font-medium bg-white hover:bg-[#f0fbf9] transition"
                   onClick={() => setShowLocationPopup(false)}
                 >
-                  Don't allow this App
+                  Don&apos;t allow this App
                 </button>
               </div>
             </div>
@@ -139,10 +170,8 @@ function ChildInformation({ formData, updateFormData, handleNext, handleBack, sh
                 value={formData.preferredLanguage}
                 onChange={(e) => updateFormData('preferredLanguage', e.target.value)}
               >
-                <option>Select language</option>
-                <option>English</option>
-                <option>Spanish</option>
-                <option>French</option>
+                <option value="">Select language</option>
+                {languageOptions.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
             <div>
@@ -152,10 +181,8 @@ function ChildInformation({ formData, updateFormData, handleNext, handleBack, sh
                 value={formData.country}
                 onChange={(e) => updateFormData('country', e.target.value)}
               >
-                <option>Select country</option>
-                <option>United States</option>
-                <option>Canada</option>
-                <option>United Kingdom</option>
+                <option value="">Select country</option>
+                {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>
@@ -168,10 +195,8 @@ function ChildInformation({ formData, updateFormData, handleNext, handleBack, sh
                 value={formData.state}
                 onChange={(e) => updateFormData('state', e.target.value)}
               >
-                <option>Select state</option>
-                <option>California</option>
-                <option>New York</option>
-                <option>Texas</option>
+                <option value="">Select state</option>
+                {stateOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
@@ -295,7 +320,30 @@ function ChildInformation({ formData, updateFormData, handleNext, handleBack, sh
         </div>
 
         <button 
-          onClick={handleNext}
+          onClick={() => {
+            // Save location and child info to Redux before moving next
+            dispatch(saveStep({ 
+              stepName: 'location', 
+              data: {
+                useCurrentLocation: formData.useCurrentLocation,
+                preferredLanguage: formData.preferredLanguage,
+                country: formData.country,
+                state: formData.state,
+                city: formData.city,
+                zipCode: formData.zipCode,
+                nationality: formData.nationality
+              }
+            }));
+            dispatch(saveStep({ 
+              stepName: 'childInfo', 
+              data: {
+                childcareType: formData.childcareType,
+                numberOfChildren: formData.numberOfChildren || formData.childCount,
+                childrenDetails: formData.childrenDetails
+              }
+            }));
+            handleNext();
+          }}
           disabled={!isFormComplete()}
           className={`w-full text-lg font-medium py-3 rounded-md transition mt-8 ${
             isFormComplete() 

@@ -1,60 +1,109 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate } from "react-router-dom";
 
 const tabs = ["Active", "Closed", "Pending"];
 
-const activeRequests = [
-  {
-    day: "Wed",
-    date: "12",
-    title: "Child care with Aleem Sarah",
-    time: "06:45 AM - 13:00 PM",
-    avatar: "https://ui-avatars.com/api/?name=Aleem+Sarah&background=E5E7EB&color=374151&size=64"
-  }
-];
+const API_BASE = 'http://10.10.13.75:8088'
 
-const closedRequests = [
-  {
-    name: "Aleem Sarah",
-    dateRange: "Jan 20, 2025 - Mar 6, 2025",
-    rating: 5,
-    review: `The family was very organized with clear instructions for medications and routines, which made my job much easier. They were always respectful of my time and paid promptly. The only minor issue was that sometimes the adult children would change care schedules last minute, which made it a bit challenging to plan my week. I genuinely looked forward to each visit and felt like I was making a real difference in their daily lives. I would definitely recommend this family to other caregivers - they truly appreciate the work we do.`,
-    avatar: "https://ui-avatars.com/api/?name=Aleem+Sarah&background=E5E7EB&color=374151&size=64"
-  },
-  // Repeat for demo
-  {
-    name: "Aleem Sarah",
-    dateRange: "Jan 20, 2025 - Mar 6, 2025",
-    rating: 5,
-    review: `The family was very organized with clear instructions for medications and routines, which made my job much easier. They were always respectful of my time and paid promptly. The only minor issue was that sometimes the adult children would change care schedules last minute, which made it a bit challenging to plan my week. I genuinely looked forward to each visit and felt like I was making a real difference in their daily lives. I would definitely recommend this family to other caregivers - they truly appreciate the work we do.`,
-    avatar: "https://ui-avatars.com/api/?name=Aleem+Sarah&background=E5E7EB&color=374151&size=64"
-  },
-  {
-    name: "Aleem Sarah",
-    dateRange: "Jan 20, 2025 - Mar 6, 2025",
-    rating: 5,
-    review: `The family was very organized with clear instructions for medications and routines, which made my job much easier. They were always respectful of my time and paid promptly. The only minor issue was that sometimes the adult children would change care schedules last minute, which made it a bit challenging to plan my week. I genuinely looked forward to each visit and felt like I was making a real difference in their daily lives. I would definitely recommend this family to other caregivers - they truly appreciate the work we do.`,
-    avatar: "https://ui-avatars.com/api/?name=Aleem+Sarah&background=E5E7EB&color=374151&size=64"
-  }
-];
+function formatDateShort(iso) {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  } catch { return '' }
+}
 
-const pendingRequests = [
-  {
-    posted: "Posted 5 minutes ago",
-    title: "Professional nanny to care for two kids over 10 days consecutively",
-    desc: "Professional nanny needed in Lagos to care for two kids over 10 consecutive days. Looking for trustworthy individual with childcare background, clean record, and own transportation. Must be patient, creative, and capable of handling emergencies responsibly"
-  },
-  {
-    posted: "Posted 5 minutes ago",
-    title: "Professional nanny to care for two kids over 10 days consecutively",
-    desc: "Professional nanny needed in Lagos to care for two kids over 10 consecutive days. Looking for trustworthy individual with childcare background, clean record, and own transportation. Must be patient, creative, and capable of handling emergencies responsibly"
-  }
-];
+function formatTimeRange(startIso, endIso) {
+  try {
+    const s = startIso ? new Date(startIso) : null
+    const e = endIso ? new Date(endIso) : null
+    const opts = { hour: '2-digit', minute: '2-digit' }
+    const sStr = s ? s.toLocaleTimeString([], opts) : ''
+    const eStr = e ? e.toLocaleTimeString([], opts) : ''
+    if (sStr && eStr) return `${sStr} - ${eStr}`
+    if (sStr) return sStr
+    return ''
+  } catch { return '' }
+}
+
+function avatarFromName(name) {
+  const safe = encodeURIComponent(name || 'User')
+  return `https://ui-avatars.com/api/?name=${safe}&background=E5E7EB&color=374151&size=64`
+}
 
 function Requests() {
   const [selectedTab, setSelectedTab] = useState(0);
   const navigate = useNavigate();
+
+  const [pendingRequests, setPendingRequests] = useState([])
+  const [activeRequests, setActiveRequests] = useState([])
+  const [closedRequests, setClosedRequests] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+    const access = localStorage.getItem('access')
+    const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
+
+    async function fetchAll() {
+      setLoading(true)
+      setFetchError(null)
+      try {
+        // pending
+        const pRes = await fetch(`${API_BASE}/api/seeker/requests/pending/`, { headers })
+        const pJson = await pRes.json()
+        const pending = (Array.isArray(pJson) ? pJson : []).map(item => ({
+          id: item.id,
+          posted: item.posted_ago || item.posted || 'Posted just now',
+          title: item.title || item.summary || '',
+          desc: item.summary || item.message_to_provider || '',
+          price_min: item.price_min,
+          price_max: item.price_max,
+        }))
+
+        // active
+        const aRes = await fetch(`${API_BASE}/api/seeker/requests/active/`, { headers })
+        const aJson = await aRes.json()
+        const active = (Array.isArray(aJson) ? aJson : []).map(item => ({
+          id: item.id,
+          day: formatDateShort(item.created_at),
+          date: (item.created_at ? new Date(item.created_at).getDate() : ''),
+          title: item.job_title || (item.job && item.job.title) || '',
+          time: formatTimeRange(item.hired_at, item.completed_at) || '',
+          avatar: item.provider?.user?.full_name ? avatarFromName(item.provider.user.full_name) : avatarFromName('Provider'),
+          provider: item.provider,
+        }))
+
+        // closed
+        const cRes = await fetch(`${API_BASE}/api/seeker/requests/closed/`, { headers })
+        const cJson = await cRes.json()
+        const closed = (Array.isArray(cJson) ? cJson : []).map(item => ({
+          id: item.id,
+          name: item.provider?.user?.full_name || 'Provider',
+          dateRange: `${formatDateShort(item.hired_at)} - ${formatDateShort(item.completed_at)}`,
+          rating: item.provider?.average_rating || (item.review?.rating ?? 0),
+          review: item.review?.text || item.provider?.about_me || '',
+          avatar: item.provider?.user?.full_name ? avatarFromName(item.provider.user.full_name) : avatarFromName('Provider'),
+          provider: item.provider,
+        }))
+
+        if (mounted) {
+          setPendingRequests(pending)
+          setActiveRequests(active)
+          setClosedRequests(closed)
+        }
+      } catch {
+        if (mounted) setFetchError('Failed to load requests')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    fetchAll()
+    return () => { mounted = false }
+  }, [])
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -87,6 +136,12 @@ function Requests() {
         </div>
         {/* Tab Content */}
         <div className="pt-6">
+          {loading && (
+            <div className="mb-4 text-sm text-gray-500">Loading requests…</div>
+          )}
+          {fetchError && (
+            <div className="mb-4 text-sm text-red-600">{fetchError}</div>
+          )}
           {selectedTab === 0 && (
             <div>
               {activeRequests.map((req, i) => (

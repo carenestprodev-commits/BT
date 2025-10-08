@@ -1,9 +1,31 @@
-import React from "react";
+import { useEffect } from 'react';
 import Sidebar from "./Sidebar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchJobById, clearSelectedJob, submitBooking } from '../../../Redux/JobsFeed'
 
 function JobDetails() {
   const navigate = useNavigate();
+  const location = useLocation()
+  const dispatch = useDispatch()
+  const { selectedJob: job, loading, error, bookingLoading, bookingError } = useSelector(s => s.jobsFeed || { selectedJob: null, loading: false, error: null, bookingLoading: false, bookingError: null })
+
+  useEffect(() => {
+    const jobFromState = location?.state?.job
+    const jobId = location?.state?.jobId || jobFromState?.id
+    if (jobFromState) {
+      // if job object was provided in navigation state, use it by setting selectedJob via the store thunk is optional
+      // we still clear previous selection
+      dispatch(clearSelectedJob())
+      // set via fetchJobById to keep a single source (lightweight)
+      dispatch(fetchJobById(jobFromState.id))
+    } else if (jobId) {
+      dispatch(fetchJobById(jobId))
+    }
+
+    return () => { dispatch(clearSelectedJob()) }
+  }, [dispatch, location])
+
   return (
     <div className="flex min-h-screen bg-white">
       <Sidebar active="Home" />
@@ -12,24 +34,62 @@ function JobDetails() {
           ←
         </button>
         <h2 className="text-2xl font-semibold text-gray-800 mb-8">Details</h2>
-        <div className="font-semibold text-lg text-gray-800 mb-1">Professional nanny to care for two kids over 10 days consecutively</div>
-        <div className="text-gray-400 text-xs mb-4">Posted 5 minutes ago</div>
-        <div className="text-gray-700 text-base mb-6">
-          We are seeking an experienced, trustworthy professional nanny to provide exceptional care for two children over 10 consecutive days in Lagos. This is an excellent opportunity for a dedicated childcare professional looking for temporary, intensive placement.<br /><br />
-          The ideal candidate must possess proven childcare experience with verifiable references, a clean criminal background check, and medical clearance. Reliable personal transportation is essential for school runs and activities, while first aid and CPR certification is strongly preferred. Excellent communication skills in English are mandatory for effective interaction with both children and parents.<br /><br />
-          Responsibilities include full-time supervision and care for both children, meal preparation and feeding assistance, organizing educational activities and creative play sessions, maintaining established daily routines and schedules, and providing emergency response and safety management. Light housekeeping duties related to the children's care are also expected.<br /><br />
-          The successful candidate must demonstrate exceptional patience, creativity, and problem-solving abilities. Previous experience caring for multiple children simultaneously is essential, along with the ability to handle emergencies calmly and responsibly. Flexibility regarding schedule adjustments and sleeping arrangements is required for this live-in position.<br /><br />
-          We offer competitive daily compensation commensurate with experience and qualifications. A live-in arrangement is strongly preferred to ensure continuous care coverage. Immediate start is available for qualified candidates who successfully complete our verification process. Comprehensive references and thorough background verification are mandatory requirements before final placement confirmation.
-        </div>
-        <div className="mb-6">
-          <div className="text-gray-700 font-medium mb-2">Skills and expertise</div>
-          <div className="flex flex-wrap gap-2">
-            {['sleep-in', 'Non-smoker', 'Experience with twins', 'help with homework', 'Sign language', 'Special needs experience', 'cook basic meals', 'Experience with speech delay', 'live-in', 'Behavioral support', 'Speaks Igbo Fluently', 'Speaks Hausa Fluently', 'Speaks Yoruba Fluently', 'Experience with autism', 'Speaks French Fluently'].map((skill, i) => (
-              <span key={i} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">{skill}</span>
-            ))}
-          </div>
-        </div>
-        <button className="w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition" onClick={() => navigate('/careproviders/dashboard/requests', { state: { tab: 2 } })}>Apply Now</button>
+
+        {loading && <div className="text-gray-500">Loading job details…</div>}
+        {error && <div className="text-red-600">Failed to load job: {error.error || error?.message || 'Unknown'}</div>}
+
+        {job && (
+          <>
+            <div className="font-semibold text-lg text-gray-800 mb-1">{job.title}</div>
+            <div className="text-gray-400 text-xs mb-4">{job.posted_ago}</div>
+            <div className="text-gray-700 text-base mb-6">{job.summary}</div>
+
+            <div className="mb-6">
+              <div className="text-gray-700 font-medium mb-2">Location</div>
+              <div className="text-sm text-gray-600">{job.details?.location_information?.city || ''} {job.details?.location_information?.state ? `, ${job.details.location_information.state}` : ''} {job.details?.location_information?.country ? `, ${job.details.location_information.country}` : ''}</div>
+            </div>
+
+            <div className="mb-6">
+              <div className="text-gray-700 font-medium mb-2">Service category</div>
+              <div className="text-sm text-gray-600">{job.service_category}</div>
+            </div>
+
+            <div className="mb-6">
+              <div className="text-gray-700 font-medium mb-2">Job type</div>
+              <div className="text-sm text-gray-600">{job.job_type} {job.start_date ? `· starts ${job.start_date}` : ''}</div>
+            </div>
+
+            <div className="mb-6">
+              <div className="text-gray-700 font-medium mb-2">Languages</div>
+              <div className="text-sm text-gray-600">{Array.isArray(job.details?.provider_experience?.languages) ? job.details.provider_experience.languages.join(', ') : 'Not specified'}</div>
+            </div>
+
+            <button
+              className={`w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition ${bookingLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={async () => {
+                if (!job?.id) return
+                try {
+                  const resAction = await dispatch(submitBooking(job.id))
+                  if (submitBooking.fulfilled.match(resAction)) {
+                    // show response message then navigate
+                    const payload = resAction.payload || {}
+                    alert(payload.message || 'Application submitted')
+                    navigate('/careproviders/dashboard/requests', { state: { tab: 2 } })
+                  } else {
+                    const payload = resAction.payload || resAction.error
+                    alert((payload && (payload.error || payload.message)) || 'Failed to submit application')
+                  }
+                } catch {
+                  alert('Failed to submit application')
+                }
+              }}
+              disabled={bookingLoading}
+            >
+              {bookingLoading ? 'Applying…' : 'Apply Now'}
+            </button>
+            {bookingError && <div className="text-red-600 mt-2">{bookingError.error || bookingError?.message || 'Failed to submit application'}</div>}
+          </>
+        )}
       </div>
     </div>
   );

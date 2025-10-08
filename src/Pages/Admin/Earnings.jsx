@@ -1,32 +1,35 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { FaSearch, FaDownload, FaCalendarAlt } from 'react-icons/fa';
 import dayjs from 'dayjs';
-
-const makeTx = (i) => ({
-  id: `ASE${34454 + i}F`,
-  user: ['Stephen Adejare', 'Mary Johnson', 'Samuel Green', 'Priya Patel'][i % 4],
-  amount: `#${(34000 + (i * 100)).toLocaleString()}.00`,
-  time: dayjs().hour(19).minute(34).format('hh:mm A'),
-  date: dayjs().subtract(i % 10, 'day').format('DD-MM-YYYY'),
-  source: i % 2 === 0 ? 'careSeekers' : 'platform',
-});
-
-const INITIAL = [...Array.from({ length: 10 }).map((_, i) => makeTx(i))];
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchEarningsStats, fetchSeekerTransactions, fetchPlatformTransactions, fetchTransactionById } from '../../Redux/AdminEarning'
 
 function Earnings() {
-  const [rows, setRows] = useState(INITIAL);
+  const dispatch = useDispatch()
+  const { stats, seekerTransactions, platformTransactions, currentTransaction } = useSelector(s => s.adminEarning || { stats: {}, seekerTransactions: [], platformTransactions: [], currentTransaction: null })
+  const [rows, setRows] = useState([]);
   const [activeStat, setActiveStat] = useState('all');
   const [detailRow, setDetailRow] = useState(null);
   const [q, setQ] = useState('');
   const [date, setDate] = useState('');
+  
 
-  const stats = useMemo(() => ({
-    careSeekers: '#38,038.00',
-    platform: '#38,038.00',
-    allCount: rows.length,
-    careCount: rows.filter(r => r.source === 'careSeekers').length,
-    platformCount: rows.filter(r => r.source === 'platform').length,
-  }), []);
+  useEffect(() => {
+    dispatch(fetchEarningsStats())
+    // preload both lists (optional); can be lazy loaded when tile clicked
+    dispatch(fetchSeekerTransactions())
+    dispatch(fetchPlatformTransactions())
+  }, [dispatch])
+
+  useEffect(() => {
+    // refresh rows whenever seeker/platform arrays change and activeStat changes
+    if (activeStat === 'careSeekers') setRows(seekerTransactions.map(t => ({ id: t.transaction_id, user: t.user_name, amount: t.amount, time: t.time, date: t.date, source: 'careSeekers' })))
+    else if (activeStat === 'platform') setRows(platformTransactions.map(t => ({ id: t.transaction_id, user: t.user_name, amount: t.amount, time: t.time, date: t.date, source: 'platform' })))
+    else setRows([
+      ...seekerTransactions.map(t => ({ id: t.transaction_id, user: t.user_name, amount: t.amount, time: t.time, date: t.date, source: 'careSeekers' })),
+      ...platformTransactions.map(t => ({ id: t.transaction_id, user: t.user_name, amount: t.amount, time: t.time, date: t.date, source: 'platform' })),
+    ])
+  }, [seekerTransactions, platformTransactions, activeStat])
 
   const filtered = useMemo(() => {
     let data = [...rows];
@@ -41,7 +44,7 @@ function Earnings() {
       data = data.filter(r => r.date === dayjs(date).format('DD-MM-YYYY'));
     }
     return data;
-  }, [rows, q, date]);
+  }, [rows, q, date, activeStat]);
 
   function downloadCSV() {
     const csv = [
@@ -73,20 +76,28 @@ function Earnings() {
     URL.revokeObjectURL(url);
   }
 
+  // when a single transaction is fetched, open modal
+  useEffect(() => {
+    if (currentTransaction) {
+      const t = currentTransaction
+      setDetailRow({ id: t.transaction_id, user: t.user_name, amount: t.amount, time: t.time, date: t.date })
+    }
+  }, [currentTransaction])
+
   return (
     <div className="p-6 text-black bg-white">
       <div className="grid grid-cols-2 gap-4 mb-6">
         {[
-          { key: 'careSeekers', label: 'Care Seekers Earnings', value: stats.careSeekers },
-          { key: 'platform', label: 'Platform Earnings', value: stats.platform },
+          { key: 'careSeekers', label: 'Care Seekers Earnings', value: stats?.care_seekers_earnings ?? stats?.careSeekers ?? 0 },
+          { key: 'platform', label: 'Platform Earnings', value: stats?.platform_earnings ?? stats?.platform ?? 0 },
         ].map(s => {
           const active = activeStat === s.key;
           return (
-            <div key={s.key} onClick={() => setActiveStat(active ? 'all' : s.key)} className={`p-6 rounded-lg cursor-pointer ${active ? 'bg-[#0e2f43] text-white' : 'bg-white text-black border'} flex items-center gap-4`}>
+            <div key={s.key} onClick={() => { setActiveStat(active ? 'all' : s.key); if (s.key === 'careSeekers') dispatch(fetchSeekerTransactions()); if (s.key === 'platform') dispatch(fetchPlatformTransactions()); }} className={`p-6 rounded-lg cursor-pointer ${active ? 'bg-[#0e2f43] text-white' : 'bg-white text-black border'} flex items-center gap-4`}>
               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${active ? 'bg-white/10' : 'bg-slate-100'}`}>💼</div>
               <div>
                 <div className="text-sm opacity-80">{s.label}</div>
-                <div className="text-2xl font-semibold mt-2">{s.value}</div>
+                <div className="text-2xl font-semibold mt-2">{typeof s.value === 'number' ? `₦${Number(s.value).toLocaleString()}` : s.value}</div>
               </div>
             </div>
           );
@@ -126,7 +137,7 @@ function Earnings() {
           </thead>
           <tbody>
             {filtered.map(r => (
-              <tr key={r.id} onClick={() => setDetailRow(r)} className="border-b last:border-b-0 hover:bg-slate-50 cursor-pointer">
+                <tr key={r.id} onClick={() => { setDetailRow({ id: r.id, user: 'Loading...' }); dispatch(fetchTransactionById(r.id)) }} className="border-b last:border-b-0 hover:bg-slate-50 cursor-pointer">
                 <td className="p-3"><input onClick={e => e.stopPropagation()} type="checkbox" /></td>
                 <td className="p-3 font-semibold">{r.id}</td>
                 <td className="p-3">{r.user}</td>

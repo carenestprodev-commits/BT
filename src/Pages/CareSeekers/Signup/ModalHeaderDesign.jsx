@@ -8,7 +8,7 @@ function ModalHeaderDesign() {
         Sign Up to View Care Providers<br />near you
       </h2>
       <p className="text-sm text-gray-500 text-center">
-        Kindly enter your email address below to view care providers near you.
+        Kindly enter your email address below to view care providers near you. 
       </p>
     </div>
   );

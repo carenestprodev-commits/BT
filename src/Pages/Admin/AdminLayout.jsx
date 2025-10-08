@@ -1,5 +1,5 @@
-import React from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+// ...existing code...
+import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
@@ -20,6 +20,16 @@ function AdminLayout() {
     'messages': 'Notifications & Messages',
   };
   const pageTitle = titleMap[path] || 'Admin';
+
+  const access = typeof window !== 'undefined' ? localStorage.getItem('access') : null
+  console.log('AdminLayout check - Access token:', access)
+  
+  if (!access) {
+    console.log('No access token, redirecting to /admin/login')
+    return <Navigate to="/admin/login" replace />
+  }
+
+  console.log('Access token found, rendering admin layout')
 
   return (
     <div className="flex h-screen bg-[#f5f7f9]">

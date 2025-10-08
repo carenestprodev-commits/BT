@@ -1,6 +1,14 @@
-import React from "react";
+import { useDispatch } from 'react-redux';
+import { useState } from 'react'
+import { saveStep } from '../../../Redux/CareProviderAuth';
+import { reverseGeocode } from '../../../Redux/Location'
+
 
 function ChildCareDetails({ formData, updateFormData, handleNext, handleBack, showLocationPopup, setShowLocationPopup }) {
+  const dispatch = useDispatch();
+  const [countryOptions, setCountryOptions] = useState(["United States", "Canada", "United Kingdom"])
+  const [stateOptions, setStateOptions] = useState(["California", "New York", "Texas"])
+  const [languageOptions, setLanguageOptions] = useState(["English", "Spanish", "French", "Bengali"])
   return (
     <>
       {showLocationPopup && (
@@ -24,6 +32,31 @@ function ChildCareDetails({ formData, updateFormData, handleNext, handleBack, sh
                   className="w-full py-3 rounded-md bg-[#0093d1] text-white text-lg font-medium hover:bg-[#007bb0] transition"
                   onClick={() => {
                     setShowLocationPopup(false);
+                    dispatch(reverseGeocode())
+                      .then(res => {
+                        if (res && res.payload) {
+                          const d = res.payload
+                          if (d.country) {
+                            updateFormData('country', d.country)
+                            if (!countryOptions.includes(d.country)) setCountryOptions(prev => [d.country, ...prev])
+                          }
+                          if (d.state) {
+                            updateFormData('state', d.state)
+                            if (!stateOptions.includes(d.state)) setStateOptions(prev => [d.state, ...prev])
+                          }
+                          updateFormData('city', d.city || formData.city)
+                          updateFormData('zipCode', d.postcode || formData.zipCode)
+                          updateFormData('nationality', d.nationality || formData.nationality)
+                          if (d.common_languages && d.common_languages.length > 0) {
+                            const code = d.common_languages[0]
+                            const map = { en: 'English', es: 'Spanish', fr: 'French', bn: 'Bengali' }
+                            const lang = map[code] || code
+                            updateFormData('language', lang)
+                            if (!languageOptions.includes(lang)) setLanguageOptions(prev => [lang, ...prev])
+                          }
+                        }
+                      })
+                      .catch(() => {})
                   }}
                 >
                   Allow only while using this App
@@ -32,7 +65,7 @@ function ChildCareDetails({ formData, updateFormData, handleNext, handleBack, sh
                   className="w-full py-3 rounded-md border border-[#0093d1] text-[#0093d1] text-lg font-medium bg-white hover:bg-[#f0fbf9] transition"
                   onClick={() => setShowLocationPopup(false)}
                 >
-                  Don't allow this App
+                  Don&apos;t allow this App
                 </button>
               </div>
             </div>
@@ -68,9 +101,9 @@ function ChildCareDetails({ formData, updateFormData, handleNext, handleBack, sh
 
         {/* 2-column grid */}
         <div className="grid grid-cols-2 gap-6">
-          <SelectField label="Country" value={formData.country} onChange={(val) => updateFormData("country", val)} options={[]} />
-          <SelectField label="Preferred Language" value={formData.language} onChange={(val) => updateFormData("language", val)} options={[]} />
-          <SelectField label="State" value={formData.state} onChange={(val) => updateFormData("state", val)} options={[]} />
+          <SelectField label="Country" value={formData.country} onChange={(val) => updateFormData("country", val)} options={countryOptions} />
+          <SelectField label="Preferred Language" value={formData.language} onChange={(val) => updateFormData("language", val)} options={languageOptions} />
+          <SelectField label="State" value={formData.state} onChange={(val) => updateFormData("state", val)} options={stateOptions} />
           <TextField label="City" value={formData.city} onChange={(val) => updateFormData("city", val)} />
           <TextField label="Nationality" value={formData.nationality} onChange={(val) => updateFormData("nationality", val)} />
           <TextField label="Zip Code" value={formData.zipCode} onChange={(val) => updateFormData("zipCode", val)} />
@@ -126,7 +159,24 @@ function ChildCareDetails({ formData, updateFormData, handleNext, handleBack, sh
           <label htmlFor="autoSend" className="text-sm text-gray-700">I would like to automatically send the above application to potential caretakers</label>
         </div>
 
-        <button onClick={handleNext} className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8">
+        <button onClick={() => {
+            const childPayload = {
+              country: formData.country,
+              city: formData.city,
+              providerType: formData.providerType,
+              experienceLevel: formData.experienceLevel,
+              nativeLanguage: formData.nativeLanguage,
+              otherLanguage: formData.otherLanguage,
+              otherServices: formData.otherServices,
+              hourlyRate: formData.hourlyRate,
+              servicesProvided: formData.servicesProvided,
+              agePreference: formData.agePreference,
+              aboutYou: formData.aboutYou,
+              title: formData.title
+            }
+            dispatch(saveStep({ stepName: 'child_profile', data: childPayload }))
+            handleNext()
+          }} className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8">
           Save
         </button>
       </div>

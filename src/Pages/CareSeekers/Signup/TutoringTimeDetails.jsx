@@ -1,7 +1,10 @@
-import React from "react";
+import { useDispatch, useSelector } from 'react-redux';
+import { saveStep, generatePreview, buildPayloadFromSteps } from '../../../Redux/CareSeekerAuth';
 import DualRangeSlider from "./DualRangeSlider";
 
 function TutoringTimeDetails({ formData, updateFormData, handleNext, handleBack, currentStep = 3, totalSteps = 7 }) {
+  const dispatch = useDispatch();
+  const onboardingSteps = useSelector(state => state.careSeeker.steps);
   return (
     <div className="w-full max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
       <div className="flex items-center mb-6">
@@ -158,7 +161,33 @@ function TutoringTimeDetails({ formData, updateFormData, handleNext, handleBack,
       </div>
 
       <button 
-        onClick={handleNext}
+        onClick={async () => {
+          const timeDetailsData = {
+            scheduleType: formData.scheduleType,
+            startDate: formData.startDate,
+            endDate: formData.endDate,
+            repeatEvery: formData.repeatEvery,
+            repeatFrequency: formData.repeatFrequency,
+            repeatDays: formData.repeatDays,
+            startTime: formData.startTime,
+            endTime: formData.endTime,
+            priceMin: formData.hourlyRateStart ? (formData.hourlyRateStart / 10).toString() : "35.00",
+            priceMax: formData.hourlyRateEnd ? (formData.hourlyRateEnd / 10).toString() : "55.00"
+          };
+
+          dispatch(saveStep({ stepName: 'timeDetails', data: timeDetailsData }));
+
+          const allSteps = { ...onboardingSteps, timeDetails: timeDetailsData };
+          const payload = buildPayloadFromSteps(allSteps);
+
+          try {
+            await dispatch(generatePreview(payload));
+          } catch (error) {
+            console.log('Preview generation failed:', error);
+          }
+
+          handleNext();
+        }}
         className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8"
       >
         Next

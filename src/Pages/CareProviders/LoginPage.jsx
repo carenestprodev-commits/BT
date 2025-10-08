@@ -1,9 +1,37 @@
 import React, { useState } from "react";
 import CareLogo from "../../../public/CareLogo.png";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from 'react-redux'
+import { loginUser } from '../../Redux/Login'
 
 function LoginPage(handleBack) {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(null)
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    const result = await dispatch(loginUser({ email, password }))
+    if (result && result.payload && result.payload.access) {
+      // success
+      navigate('/careproviders/dashboard')
+    } else {
+      setError(result.error?.message || JSON.stringify(result.payload) || 'Invalid credentials')
+    }
+  }
+
+  // quick auto-logout check: if tokens missing, ensure user is logged out
+  React.useEffect(() => {
+    const access = localStorage.getItem('access')
+    const refresh = localStorage.getItem('refresh')
+    if (!access || !refresh) {
+      // automatic logout behavior: redirect to provider login page
+      navigate('/careproviders/login')
+    }
+  }, [navigate])
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white">
@@ -28,16 +56,23 @@ function LoginPage(handleBack) {
           </Link>
         </div>
         <h2 className="text-2xl font-semibold text-gray-800 font-tomato">Log In</h2>
+        {error && (
+          <div className="bg-red-100 text-red-800 px-4 py-2 rounded mb-4 text-sm">
+            {error}
+          </div>
+        )}
         <p className="text-gray-500 text-md mt-1 mb-6 font-sfpro">
           Welcome back, Please enter your login details
         </p>
 
         {/* Form */}
-        <form className="space-y-4 font-sfpro">
+  <form className="space-y-4 font-sfpro" onSubmit={handleSubmit}>
           {/* Email */}
           <div>
             <label className="block text-sm font-medium  mb-1 text-gray-700">Email Address</label>
             <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="Input email address"
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-white dark:text-gray-700"
@@ -49,6 +84,8 @@ function LoginPage(handleBack) {
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <div className="relative">
               <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 type={showPassword ? "text" : "password"}
                 placeholder="Input password"
                 className="dark:bg-white dark:text-gray-700 w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -73,20 +110,18 @@ function LoginPage(handleBack) {
                 )}
               </button>
             </div>
-            <a href="#" className="text-xs text-[#0093d1] mt-1 inline-block mt-5 mb-5">
+            <a href="#" className="text-xs text-[#0093d1] inline-block mt-5 mb-5">
               Forgot password?
             </a>
           </div>
 
           {/* Login Button */}
-          <Link to="/careproviders/dashboard">
-            <button
-              type="submit"
-              className="w-full bg-[#0093d1] text-white font-medium py-2 rounded-md hover:bg-[#007bb0] transition"
-            >
-              Log In
-            </button>
-          </Link>
+          <button
+            type="submit"
+            className="w-full bg-[#0093d1] text-white font-medium py-2 rounded-md hover:bg-[#007bb0] transition"
+          >
+            Log In
+          </button>
         </form>
 
         {/* Sign Up */}

@@ -1,36 +1,17 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { FaSearch, FaDownload, FaTrashAlt, FaEdit, FaChevronDown } from 'react-icons/fa';
 import CubeIcon from '../../../public/3dcube.svg?react';
 import CubeIconGreen from '../../../public/3dcubeGreen.svg?react';
 import CubeIconPink from '../../../public/3dcubePink.svg?react';
 import CubeIconOrange from '../../../public/3dcubeOrange.svg?react';
 import dayjs from 'dayjs';
-
-// Sample users data shaped for the Users table in the screenshot
-const makeUser = (i, type = 'Care Provider') => ({
-  id: `USR${1000 + i}`,
-  name: ['Orodele Jomiloju', 'Phoenix Baker', 'Lana Steiner', 'Demi Wilkinson', 'Candice Wu', 'Natali Craig', 'Drew Cano', 'Orlando Diggs'][i % 8],
-  userType: type,
-  email: `${['olivia','phoenix','lana','demi','candice','natali','drew','orlando'][i % 8]}@untitledui.com`,
-  phone: `+23412345678${90 + i}`,
-  onboard: dayjs().subtract(i % 30, 'day').format('DD-MM-YYYY'),
-  lastLogin: dayjs().subtract((i + 2) % 10, 'day').format('DD-MM-YYYY'),
-  avatar: encodeURI(`/profilepic (${(i % 3) + 1}).png`),
-  requestHistory: (i % 10) + 1,
-  requestsMade: (i % 6) + 1,
-  country: 'Nigeria',
-  city: ['Alimosho','Ikeja','Victoria Island'][i % 3],
-  nationality: 'Nigeria',
-  subscriptionStatus: (i % 4),
-  earnings: '₦53,589.00',
-});
-
-const INITIAL_ROWS = [
-  ...Array.from({ length: 12 }).map((_, i) => makeUser(i, i % 3 === 0 ? 'Care seeker' : 'Care Provider')),
-];
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchAdminStats, fetchAllUsers, fetchUserById, deleteUser, suspendUser, activateUser } from '../../Redux/AdminUsers'
 
 function Users() {
-  const [rows, setRows] = useState(INITIAL_ROWS);
+  const dispatch = useDispatch()
+  const { stats, users } = useSelector(s => s.adminUsers || { stats: {}, users: [] })
+  const [rows, setRows] = useState([]);
   const [query, setQuery] = useState('');
   const [locationFilter, setLocationFilter] = useState('All');
   const [sortBy, setSortBy] = useState({ key: 'onboard', dir: 'desc' });
@@ -38,13 +19,72 @@ function Users() {
   const [activeStat, setActiveStat] = useState('all');
   const [editRow, setEditRow] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
+  const [alert, setAlert] = useState(null) // { type: 'success'|'error', text }
+  const alertTimerRef = useRef(null)
+
+  useEffect(() => {
+    dispatch(fetchAdminStats())
+    dispatch(fetchAllUsers())
+  }, [dispatch])
+
+  // populate editRow when currentUser is fetched
+  const { currentUser } = useSelector(s => s.adminUsers || { currentUser: null })
+
+  useEffect(() => {
+    // when currentUser is loaded populate editRow
+    if (currentUser) {
+      const u = currentUser
+      setEditRow({
+        id: u.id,
+        name: u.full_name || `User ${u.id}`,
+        userType: u.user_type === 'provider' ? 'Care Provider' : 'Care seeker',
+        email: u.email,
+        phone: u.phone_number || '',
+        onboard: u.date_joined ? dayjs(u.date_joined).format('DD-MM-YYYY') : '',
+        lastLogin: u.last_login ? dayjs(u.last_login).format('DD-MM-YYYY') : '',
+        avatar: `/profilepic (1).png`,
+        requestHistory: u.request_count ?? 0,
+        requestsMade: u.request_count ?? 0,
+        country: u.location_details?.country || '',
+        city: u.location_details?.city || '',
+        nationality: u.location_details?.nationality || '',
+        subscriptionStatus: u.subscription_status || (u.is_active ? 'Active' : 'Inactive'),
+        is_suspend: u.is_suspend ?? false,
+        earnings: u.earnings || '-',
+      })
+    }
+  }, [currentUser])
+
+  useEffect(() => {
+    // Map backend users into the shape expected by the table
+    if (Array.isArray(users)) {
+      const mapped = users.map(u => ({
+        id: u.id,
+        name: u.full_name || `User ${u.id}`,
+        userType: u.user_type === 'provider' ? 'Care Provider' : 'Care seeker',
+        email: u.email,
+        phone: u.phone_number || '',
+        onboard: u.date_joined ? dayjs(u.date_joined).format('DD-MM-YYYY') : '',
+        lastLogin: u.last_login ? dayjs(u.last_login).format('DD-MM-YYYY') : '',
+        avatar: `/profilepic (1).png`,
+        requestHistory: 0,
+        requestsMade: 0,
+        country: '',
+        city: '',
+        nationality: '',
+        subscriptionStatus: u.is_active ? 'Active' : 'Inactive',
+        earnings: '-',
+      }))
+      setRows(mapped)
+    }
+  }, [users])
 
   const statsCounts = useMemo(() => ({
-    users: rows.length,
-    providers: rows.filter(r => r.userType === 'Care Provider').length,
-    seekers: rows.filter(r => r.userType === 'Care seeker').length,
-    signups: 78,
-  }), [rows]);
+    users: stats?.total_users ?? 0,
+    providers: stats?.total_providers ?? 0,
+    seekers: stats?.total_seekers ?? 0,
+    signups: stats?.new_sign_ups ?? 0,
+  }), [stats])
 
   const statsConfig = [
     { key: 'all', label: 'Users', value: statsCounts.users, icon: CubeIcon },
@@ -105,6 +145,15 @@ function Users() {
 
   return (
     <div className="p-6 text-black bg-white">
+      {/* success/error alert */}
+      {alert && (
+        <div className={`mb-4 px-4 py-3 rounded-md ${alert.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'}`} role="alert">
+          <div className="flex items-start justify-between gap-3">
+            <div className="text-sm">{alert.text}</div>
+            <button onClick={() => { setAlert(null); if (alertTimerRef.current) { clearTimeout(alertTimerRef.current); alertTimerRef.current = null } }} className="text-sm font-medium">Close</button>
+          </div>
+        </div>
+      )}
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {statsConfig.map(s => {
@@ -148,7 +197,35 @@ function Users() {
 
             <div className="mt-4">
               <button className="w-full bg-[#0b93c6] text-white py-2 rounded-md mb-3">Message</button>
-              <button className="w-full border border-[#0b93c6] text-[#0b93c6] py-2 rounded-md" onClick={() => setEditRow(null)}>Close</button>
+              <button className="w-full border border-[#0b93c6] text-[#0b93c6] py-2 rounded-md" onClick={async () => {
+                if (!editRow?.id) return
+                try {
+                  if (editRow.is_suspend) {
+                    const payload = await dispatch(activateUser(editRow.id)).unwrap()
+                    const message = payload?.data?.status || 'User activated'
+                    // update local rows to reflect activation
+                    setRows(prev => prev.map(r => r.id === editRow.id ? { ...r, subscriptionStatus: 'Active', } : r))
+                    setEditRow(null)
+                    if (alertTimerRef.current) { clearTimeout(alertTimerRef.current); alertTimerRef.current = null }
+                    setAlert({ type: 'success', text: message })
+                    alertTimerRef.current = setTimeout(() => setAlert(null), 3000)
+                  } else {
+                    const payload = await dispatch(suspendUser(editRow.id)).unwrap()
+                    const message = payload?.data?.status || 'User suspended'
+                    // update local rows to reflect suspension
+                    setRows(prev => prev.map(r => r.id === editRow.id ? { ...r, subscriptionStatus: 'Suspended', } : r))
+                    setEditRow(null)
+                    if (alertTimerRef.current) { clearTimeout(alertTimerRef.current); alertTimerRef.current = null }
+                    setAlert({ type: 'success', text: message })
+                    alertTimerRef.current = setTimeout(() => setAlert(null), 3000)
+                  }
+                } catch (e) {
+                  console.error('Action failed', e)
+                  if (alertTimerRef.current) { clearTimeout(alertTimerRef.current); alertTimerRef.current = null }
+                  setAlert({ type: 'error', text: 'Failed to update user status' })
+                  alertTimerRef.current = setTimeout(() => setAlert(null), 3000)
+                }
+              }}>{editRow.is_suspend ? 'Activate' : 'Suspend'}</button>
             </div>
           </div>
         </div>
@@ -163,7 +240,18 @@ function Users() {
             <h4 className="text-lg font-medium mb-2">Remove User</h4>
             <p className="text-sm text-slate-600 mb-4">Are you sure you want to remove this user?</p>
             <div className="flex items-center justify-center gap-3">
-              <button className="px-4 py-2 bg-red-600 text-white rounded-md" onClick={() => { setRows(rows.filter(x => x.id !== deleteRow.id)); setDeleteRow(null); }}>Delete</button>
+              <button className="px-4 py-2 bg-red-600 text-white rounded-md" onClick={async () => {
+                // call delete API via redux thunk
+                try {
+                  await dispatch(deleteUser(deleteRow.id)).unwrap()
+                  // on success remove local row
+                  setRows(rows.filter(x => x.id !== deleteRow.id))
+                } catch (e) {
+                  console.error('Delete failed', e)
+                } finally {
+                  setDeleteRow(null)
+                }
+              }}>Delete</button>
               <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md" onClick={() => setDeleteRow(null)}>Cancel</button>
             </div>
           </div>
@@ -227,7 +315,11 @@ function Users() {
                 <td className="p-3">{r.lastLogin}</td>
                 <td className="p-3 flex items-center justify-end gap-3 text-slate-500">
                   <button title="delete" onClick={() => setDeleteRow(r)}><FaTrashAlt /></button>
-                  <button title="edit" onClick={() => setEditRow(r)}><FaEdit /></button>
+                  <button title="edit" onClick={() => {
+                    // open modal immediately and fetch user data
+                    setEditRow({ id: r.id, name: 'Loading...' })
+                    dispatch(fetchUserById(r.id))
+                  }}><FaEdit /></button>
                 </td>
               </tr>
             ))}

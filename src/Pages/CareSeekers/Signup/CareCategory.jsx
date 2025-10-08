@@ -1,6 +1,16 @@
 import React from "react";
+import { useDispatch } from 'react-redux';
+import { saveStep } from '../../../Redux/CareSeekerAuth';
 
 function CareCategory({ selectedCategory, setSelectedCategory, updateFormData, handleNext, currentStep = 1, totalSteps = 5 }) {
+  const dispatch = useDispatch();
+  const categoryKeyMap = {
+    'Childcare': 'childcare',
+    'Elderly Care': 'elderlycare',
+    'Tutoring': 'tutoring',
+    'Housekeeping': 'housekeeping'
+  }
+  
   const categories = [
     {
       name: "Childcare",
@@ -43,6 +53,8 @@ function CareCategory({ selectedCategory, setSelectedCategory, updateFormData, h
             onClick={() => {
               setSelectedCategory(cat.name);
               updateFormData('careCategory', cat.name);
+              const key = categoryKeyMap[cat.name] || cat.name.toLowerCase().replace(/\s+/g, '')
+              dispatch(saveStep({ stepName: 'careCategory', data: key }));
             }}
             className={`border rounded-2xl cursor-pointer transition shadow-sm hover:shadow-md flex flex-col items-center justify-center text-center aspect-square ${
               selectedCategory === cat.name
@@ -62,7 +74,12 @@ function CareCategory({ selectedCategory, setSelectedCategory, updateFormData, h
       </div>
 
       <button 
-        onClick={handleNext}
+        onClick={() => {
+          // Save care category keyword to Redux before moving next
+          const selectedKey = categoryKeyMap[selectedCategory] || selectedCategory.toLowerCase().replace(/\s+/g, '')
+          dispatch(saveStep({ stepName: 'careCategory', data: selectedKey }));
+          handleNext();
+        }}
         disabled={!isNextEnabled}
         className={`w-full text-lg font-medium py-3 rounded-md transition ${
           isNextEnabled 

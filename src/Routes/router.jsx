@@ -29,8 +29,9 @@ import PasswordProvider from "../Pages/CareProviders/Dashboard/Password";
 import WalletProvider from "../Pages/CareProviders/Dashboard/Wallet";
 import Summary from "../Pages/CareSeekers/Dashboard/Summary";
 import AdminLayout from "../Pages/Admin/AdminLayout";
-import Users from "../Pages/Admin/Activities";
-import Activities from "../Pages/Admin/Users";
+import AdminLoginPage from "../Pages/Admin/LoginPage";
+import Users from "../Pages/Admin/Users";
+import Activities from "../Pages/Admin/Activities";
 import Earnings from "../Pages/Admin/Earnings";
 import Subscription from "../Pages/Admin/Subscription";
 import Support from "../Pages/Admin/Support";
@@ -157,6 +158,10 @@ export const router = createBrowserRouter([
   {
     path: "/careseekers/dashboard/summary",
     element: <Summary />,
+  },
+  {
+    path: "/admin/login",
+    element: <AdminLoginPage />,
   },
   // Admin routes
   {

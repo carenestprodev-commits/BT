@@ -1,6 +1,13 @@
-import React from "react";
+// React not directly referenced
+import { useDispatch } from 'react-redux'
+import { useState } from 'react'
+import { reverseGeocode } from '../../../Redux/Location'
 
 function TutoringInformation({ formData, updateFormData, handleNext, handleBack, showLocationPopup, setShowLocationPopup }) {
+  const dispatch = useDispatch()
+  const [countryOptions, setCountryOptions] = useState(["United States", "Canada", "United Kingdom"])
+  const [stateOptions, setStateOptions] = useState(["California", "New York", "Texas"])
+  const [languageOptions, setLanguageOptions] = useState(["English", "Spanish", "French", "Bengali"])
   return (
     <>
       {/* Location Popup */}
@@ -29,6 +36,31 @@ function TutoringInformation({ formData, updateFormData, handleNext, handleBack,
                   onClick={() => {
                     setShowLocationPopup(false);
                     // trigger location permission logic here
+                    dispatch(reverseGeocode())
+                      .then(res => {
+                        if (res && res.payload) {
+                          const d = res.payload
+                          if (d.country) {
+                            updateFormData('country', d.country)
+                            if (!countryOptions.includes(d.country)) setCountryOptions(prev => [d.country, ...prev])
+                          }
+                          if (d.state) {
+                            updateFormData('state', d.state)
+                            if (!stateOptions.includes(d.state)) setStateOptions(prev => [d.state, ...prev])
+                          }
+                          updateFormData('city', d.city || formData.city)
+                          updateFormData('zipCode', d.postcode || formData.zipCode)
+                          updateFormData('nationality', d.nationality || formData.nationality)
+                          if (d.common_languages && d.common_languages.length > 0) {
+                            const code = d.common_languages[0]
+                            const map = { en: 'English', es: 'Spanish', fr: 'French', bn: 'Bengali' }
+                            const lang = map[code] || (code === 'en' ? 'English' : code)
+                            updateFormData('preferredLanguage', lang)
+                            if (!languageOptions.includes(lang)) setLanguageOptions(prev => [lang, ...prev])
+                          }
+                        }
+                      })
+                      .catch(() => {})
                   }}
                 >
                   Allow only while using this App
@@ -37,7 +69,7 @@ function TutoringInformation({ formData, updateFormData, handleNext, handleBack,
                   className="w-full py-3 rounded-md border border-[#0093d1] text-[#0093d1] text-lg font-medium bg-white hover:bg-[#f0fbf9] transition"
                   onClick={() => setShowLocationPopup(false)}
                 >
-                  Don't allow this App
+                  Don&apos;t allow this App
                 </button>
               </div>
             </div>
@@ -78,30 +110,29 @@ function TutoringInformation({ formData, updateFormData, handleNext, handleBack,
             </label>
           </div>
 
-          {/* Country & City */}
+          {/* Preferred Language & Country */}
           <div className="grid grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Language</label>
+              <select
+                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
+                value={formData.preferredLanguage || ""}
+                onChange={(e) => updateFormData("preferredLanguage", e.target.value)}
+              >
+                <option value="">Select language</option>
+                {languageOptions.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
-                value={formData.country}
+                value={formData.country || ""}
                 onChange={(e) => updateFormData("country", e.target.value)}
               >
-                <option>Select country</option>
-                <option>United States</option>
-                <option>Canada</option>
-                <option>United Kingdom</option>
+                <option value="">Select country</option>
+                {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-              <input
-                type="text"
-                placeholder="Input city"
-                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
-                value={formData.city}
-                onChange={(e) => updateFormData("city", e.target.value)}
-              />
             </div>
           </div>
 
@@ -114,10 +145,8 @@ function TutoringInformation({ formData, updateFormData, handleNext, handleBack,
                 value={formData.state}
                 onChange={(e) => updateFormData("state", e.target.value)}
               >
-                <option>Select state</option>
-                <option>California</option>
-                <option>New York</option>
-                <option>Texas</option>
+                <option value="">Select state</option>
+                {stateOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
@@ -155,7 +184,7 @@ function TutoringInformation({ formData, updateFormData, handleNext, handleBack,
     <option value="">Select preferred location</option>
     <option value="Home">Home</option>
     <option value="Online">Online</option>
-    <option value="Tutor's Place">Tutor's Place</option>
+  <option value="Tutor&apos;s Place">Tutor&apos;s Place</option>
     <option value="Any Location">Any Location</option>
   </select>
 </div>

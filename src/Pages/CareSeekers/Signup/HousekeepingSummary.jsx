@@ -1,6 +1,10 @@
 import React from "react";
+import { useSelector, useDispatch } from 'react-redux';
+import { saveStep } from '../../../Redux/CareSeekerAuth';
 
 function HousekeepingSummary({ formData, updateFormData, handleNext, handleBack, currentStep = 7, totalSteps = 8 }) {
+  const dispatch = useDispatch();
+  const preview = useSelector((s) => s.careSeeker.preview);
   return (
     <div className="w-full max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
       <div className="flex items-center mb-6">
@@ -20,7 +24,9 @@ function HousekeepingSummary({ formData, updateFormData, handleNext, handleBack,
       </div>
       <div className="bg-gray-50 p-6 rounded-lg mb-6">
         <p className="text-sm text-gray-700 leading-relaxed">
-          Dedicated childcare provider with extensive ways of managing daily routines for multiple children. Skilled in age-appropriate activities, behavioral guidance, and emergency response. Strong communication with parents, maintains detailed care logs, and prioritizes safety above all. Trustworthy, energetic, and passionate about supporting children's emotional and physical development.
+          {preview?.summary || preview?.title || (
+            "This text will be generated after we call the preview API."
+          )}
         </p>
       </div>
       <div>
@@ -50,7 +56,11 @@ function HousekeepingSummary({ formData, updateFormData, handleNext, handleBack,
         </label>
       </div>
       <button 
-        onClick={handleNext}
+        onClick={() => {
+          // Save message and acceptedTerms into redux/localStorage before moving on
+          dispatch(saveStep({ stepName: 'summary', data: { messageToProvider: formData.messageToProvider, acceptedTerms: formData.acceptedTerms } }));
+          handleNext();
+        }}
         className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition"
         disabled={!formData.acceptedTerms}
       >

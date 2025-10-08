@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import CareLogo from "../../../public/CareLogo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from 'react-redux'
@@ -15,18 +15,32 @@ function LoginPage(handleBack) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     const result = await dispatch(loginUser({ email, password }))
-    if (result && result.payload && result.payload.access) {
-      navigate('/careseekers/dashboard/home')
-    } else {
+    
+    // Debug what we got back
+    console.log('Login result:', result)
+    
+    // Small delay to ensure localStorage is written
+    setTimeout(() => {
+      const access = localStorage.getItem('access')
+      console.log('Access in localStorage after delay:', access)
+      console.log('User in localStorage after delay:', localStorage.getItem('user'))
+      
+      if (access) {
+        console.log('Access token found, redirecting to /admin')
+        navigate('/admin')
+        return
+      }
+      
       setError(result.error?.message || JSON.stringify(result.payload) || 'Invalid credentials')
-    }
+    }, 100)
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     const access = localStorage.getItem('access')
-    const refresh = localStorage.getItem('refresh')
-    if (!access || !refresh) {
-      navigate('/careseekers/login')
+    console.log('useEffect check - Access token:', access)
+    if (access) {
+      console.log('Access token found on mount, redirecting to /admin')
+      navigate('/admin')
     }
   }, [navigate])
 

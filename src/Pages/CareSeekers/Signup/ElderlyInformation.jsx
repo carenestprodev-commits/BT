@@ -1,6 +1,13 @@
-import React from "react";
+// React not directly referenced in this file
+import { useDispatch } from 'react-redux'
+import { useState } from 'react'
+import { reverseGeocode } from '../../../Redux/Location'
 
 function ElderlyInformation({ formData, updateFormData, handleNext, handleBack, showLocationPopup, setShowLocationPopup, currentStep = 2, totalSteps = 5 }) {
+  const dispatch = useDispatch()
+  const [countryOptions, setCountryOptions] = useState(["United States", "Canada", "United Kingdom"])
+  const [stateOptions, setStateOptions] = useState(["California", "New York", "Texas"])
+  const [languageOptions, setLanguageOptions] = useState(["English", "Spanish", "French"])
   return (
     <>
       {showLocationPopup && (
@@ -37,6 +44,29 @@ function ElderlyInformation({ formData, updateFormData, handleNext, handleBack, 
                   onClick={() => {
                     setShowLocationPopup(false);
                     // Trigger location permission logic here
+                    dispatch(reverseGeocode()).then(res => {
+                      if (res && res.payload) {
+                        const d = res.payload
+                        if (d.country) {
+                          updateFormData('country', d.country)
+                          if (!countryOptions.includes(d.country)) setCountryOptions(prev => [d.country, ...prev])
+                        }
+                        if (d.state) {
+                          updateFormData('state', d.state)
+                          if (!stateOptions.includes(d.state)) setStateOptions(prev => [d.state, ...prev])
+                        }
+                        updateFormData('city', d.city || formData.city)
+                        updateFormData('zipCode', d.postcode || formData.zipCode)
+                        updateFormData('nationality', d.nationality || formData.nationality)
+                        if (d.common_languages && d.common_languages.length > 0) {
+                          const code = d.common_languages[0]
+                          const map = { en: 'English', es: 'Spanish', fr: 'French', bn: 'Bengali' }
+                          const lang = map[code] || (code === 'en' ? 'English' : code)
+                          updateFormData('preferredLanguage', lang)
+                          if (!languageOptions.includes(lang)) setLanguageOptions(prev => [lang, ...prev])
+                        }
+                      }
+                    })
                   }}
                 >
                   Allow only while using this App
@@ -45,7 +75,7 @@ function ElderlyInformation({ formData, updateFormData, handleNext, handleBack, 
                   className="w-full py-3 rounded-md border border-[#0093d1] text-[#0093d1] text-lg font-medium bg-white hover:bg-[#f0fbf9] transition"
                   onClick={() => setShowLocationPopup(false)}
                 >
-                  Don't allow this App
+                  Don&apos;t allow this App
                 </button>
               </div>
             </div>
@@ -91,10 +121,8 @@ function ElderlyInformation({ formData, updateFormData, handleNext, handleBack, 
                 value={formData.country}
                 onChange={(e) => updateFormData('country', e.target.value)}
               >
-                <option>Select country</option>
-                <option>United States</option>
-                <option>Canada</option>
-                <option>United Kingdom</option>
+                <option value="">Select country</option>
+                {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
@@ -105,10 +133,8 @@ function ElderlyInformation({ formData, updateFormData, handleNext, handleBack, 
                 value={formData.preferredLanguage}
                 onChange={(e) => updateFormData('preferredLanguage', e.target.value)}
               >
-                <option>Select language</option>
-                <option>English</option>
-                <option>Spanish</option>
-                <option>French</option>
+                <option value="">Select language</option>
+                {languageOptions.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
           </div>
@@ -122,10 +148,8 @@ function ElderlyInformation({ formData, updateFormData, handleNext, handleBack, 
                 value={formData.state}
                 onChange={(e) => updateFormData('state', e.target.value)}
               >
-                <option>Select state</option>
-                <option>California</option>
-                <option>New York</option>
-                <option>Texas</option>
+                <option value="">Select state</option>
+                {stateOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>

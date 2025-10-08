@@ -1,27 +1,27 @@
-import React from "react";
 import { FiSearch } from "react-icons/fi";
 import Sidebar from "./Sidebar";
 import { useNavigate } from "react-router-dom";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
 import BudgetFilter from "../../../../public/budget_filter.svg"
+import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchJobsFeed } from '../../../Redux/JobsFeed'
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [search, setSearch] = React.useState("");
-  const [filterOpen, setFilterOpen] = React.useState(false);
-  const [sortOrder, setSortOrder] = React.useState(null); // 'asc' or 'desc'
-  // Dummy jobs data
-  const jobs = [
-    { budget: 23000, title: "Professional nanny to care for two kids over 10 days consecutively", desc: "Professional nanny needed in Lagos to care for two kids over 10 consecutive days. Looking for trustworthy individual with childcare background, clean record, and own transportation. Must be patient, creative, and capable of handling emergencies responsibly", posted: "Posted 5 minutes ago" },
-    { budget: 18000, title: "Weekend babysitter needed for 2 children", desc: "Looking for a reliable babysitter for weekends. Must have experience and references.", posted: "Posted 10 minutes ago" },
-    { budget: 25000, title: "Full-time nanny for newborn", desc: "Seeking a full-time nanny for a newborn. Must be certified and have prior experience.", posted: "Posted 20 minutes ago" },
-    { budget: 21000, title: "After-school care for 3 kids", desc: "Need after-school care for 3 kids. Must be patient and creative.", posted: "Posted 30 minutes ago" },
-    { budget: 20000, title: "Temporary nanny for vacation", desc: "Temporary nanny needed for family vacation. Must be flexible and energetic.", posted: "Posted 1 hour ago" },
-  ];
+  const dispatch = useDispatch()
+  const { jobs, loading, error } = useSelector(s => s.jobsFeed || { jobs: [], loading: false, error: null })
+  const [search, setSearch] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState(null); // 'asc' or 'desc'
+
+  useEffect(() => { dispatch(fetchJobsFeed()) }, [dispatch])
+
   // Filter and sort jobs
-  let filteredJobs = jobs.filter(job => job.title.toLowerCase().includes(search.toLowerCase()) || job.desc.toLowerCase().includes(search.toLowerCase()) || job.budget.toString().includes(search));
-  if (sortOrder === "asc") filteredJobs = filteredJobs.sort((a, b) => a.budget - b.budget);
-  if (sortOrder === "desc") filteredJobs = filteredJobs.sort((a, b) => b.budget - a.budget);
+  let filteredJobs = Array.isArray(jobs) ? jobs.filter(job => (job.title || '').toLowerCase().includes(search.toLowerCase()) || (job.summary_short || '').toLowerCase().includes(search.toLowerCase())) : [];
+  if (sortOrder === "asc") filteredJobs = filteredJobs.sort((a, b) => (a.budget_display || '').localeCompare(b.budget_display || ''));
+  if (sortOrder === "desc") filteredJobs = filteredJobs.sort((a, b) => (b.budget_display || '').localeCompare(a.budget_display || ''));
+
   return (
     <div className="flex min-h-screen bg-white ">
       <Sidebar active="Home" />
@@ -39,7 +39,7 @@ export default function HomePage() {
               <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg" />
               <input
                 type="text"
-                placeholder="Search for amount"
+                placeholder="Search jobs"
                 className="w-full pl-10 pr-4 py-3 rounded-md border border-gray-200 bg-[#f7fcfe] text-gray-700 text-sm focus:outline-none shadow-sm"
                 style={{ background: '#f7fcfe' }}
                 value={search}
@@ -69,19 +69,22 @@ export default function HomePage() {
         </div>
         </div>
  
-        {filteredJobs.map((job, i) => (
+        {loading && <div className="p-6 text-sm text-gray-500">Loading jobs…</div>}
+        {error && <div className="p-6 text-sm text-red-600">{error.error || 'Failed to load jobs'}</div>}
+
+        {filteredJobs.map((job) => (
           <button
-            key={i}
+            key={job.id}
             className="w-full text-left bg-white border border-gray-100 rounded-lg px-6 py-4 mb-4 transition hover:shadow-lg hover:border-[#0093d1] focus:outline-none "
-            onClick={() => navigate("/careproviders/dashboard/job_details")}
+            onClick={() => navigate('/careproviders/dashboard/job_details', { state: { jobId: job.id, job } })}
           >
             <div className="px-5">
             <div className="flex justify-between items-center mb-2 ">
-              <span className="text-gray-400 text-xs">{job.posted}</span>
-              <span className="text-[#436d7b] text-xs font-semibold">Budget - #{job.budget.toLocaleString()}/day</span>
+              <span className="text-gray-400 text-xs">{job.posted_ago}</span>
+              <span className="text-[#436d7b] text-xs font-semibold">{job.budget_display}</span>
             </div>
             <div className="font-semibold text-lg text-gray-800 mb-1">{job.title}</div>
-            <div className="text-gray-500 text-sm">{job.desc}</div>
+            <div className="text-gray-500 text-sm">{job.summary_short}</div>
             </div>
           </button>
         ))}

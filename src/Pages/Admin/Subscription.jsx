@@ -1,27 +1,40 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { FaSearch, FaDownload, FaChevronDown } from 'react-icons/fa';
 import dayjs from 'dayjs';
-
-const makeSub = (i) => ({
-  id: `SUB${2000 + i}`,
-  name: 'Stephen Adejare',
-  role: i % 2 === 0 ? 'Care Providers' : 'Care Seekers',
-  plan: i % 3 === 0 ? 'Free' : 'Premium',
-  amount: i % 3 === 0 ? '0.00' : '#23,450',
-  start: dayjs().subtract(i % 30, 'day').format('DD-MM-YYYY'),
-  end: dayjs().add((i % 5), 'day').format('DD-MM-YYYY'),
-});
-
-const INITIAL = [...Array.from({ length: 12 }).map((_, i) => makeSub(i))];
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchSubscriptions, fetchSubscriptionById, clearCurrentSubscription } from '../../Redux/AdminSubscription';
 
 function Subscription() {
-  const [rows, setRows] = useState(INITIAL);
+  const dispatch = useDispatch();
+  const { subscriptions, current } = useSelector(s => s.adminSubscription || { subscriptions: [], current: null });
+  const [rows, setRows] = useState([]);
   const [q, setQ] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   const [planFilter, setPlanFilter] = useState('All');
   const [date, setDate] = useState('');
   const [page, setPage] = useState(1);
-  const [detailRow, setDetailRow] = useState(null);
+  // detail modal will use `current` from the adminSubscription slice
+
+  useEffect(() => {
+    dispatch(fetchSubscriptions())
+  }, [dispatch])
+
+  useEffect(() => {
+    // map API subscriptions into the local rows shape used by the UI
+    if (Array.isArray(subscriptions)) {
+      const mapped = subscriptions.map(s => ({
+        id: s.id,
+        name: (s.user && (s.user.first_name || s.user.last_name)) ? `${s.user.first_name || ''} ${s.user.last_name || ''}`.trim() : (s.user?.email || s.user?.username || `User-${s.id}`),
+        role: s.user?.is_provider ? 'Care Providers' : 'Care Seekers',
+        plan: s.plan || s.subscription_plan || 'Unknown',
+        amount: s.amount ? String(s.amount) : s.price ? String(s.price) : '0.00',
+        start: s.start_date ? dayjs(s.start_date).format('DD-MM-YYYY') : (s.start ? dayjs(s.start).format('DD-MM-YYYY') : ''),
+        end: s.end_date ? dayjs(s.end_date).format('DD-MM-YYYY') : (s.end ? dayjs(s.end).format('DD-MM-YYYY') : ''),
+        raw: s,
+      }))
+      setRows(mapped)
+    }
+  }, [subscriptions])
 
   const filtered = useMemo(() => {
     let data = [...rows];
@@ -122,7 +135,7 @@ function Subscription() {
           </thead>
           <tbody>
             {visible.map((r) => (
-              <tr key={r.id} className="border-b last:border-b-0 hover:bg-slate-50 cursor-pointer" onClick={() => setDetailRow(r)}>
+              <tr key={r.id} className="border-b last:border-b-0 hover:bg-slate-50 cursor-pointer" onClick={() => { dispatch(fetchSubscriptionById(r.id)); }}>
                 <td className="p-3"><input onClick={e => e.stopPropagation()} type="checkbox" /></td>
                 <td className="p-3 font-medium">{r.name}</td>
                 <td className="p-3">{r.role}</td>
@@ -170,20 +183,20 @@ function Subscription() {
         </div>
       </div>
 
-      {/* Details modal */}
-      {detailRow && (
+      {/* Details modal (driven from Redux current subscription) */}
+      {current && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-24">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setDetailRow(null)} />
+          <div className="absolute inset-0 bg-black/30" onClick={() => dispatch(clearCurrentSubscription())} />
           <div className="relative bg-white w-[340px] rounded-lg shadow-lg p-6 z-50 max-h-[80vh] flex flex-col">
-            <button className="absolute right-3 top-3 text-slate-400 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center" onClick={() => setDetailRow(null)}>✕</button>
+            <button className="absolute right-3 top-3 text-slate-400 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center" onClick={() => dispatch(clearCurrentSubscription())}>✕</button>
             <h3 className="text-lg font-medium mb-4">Details</h3>
             <div className="flex-1 overflow-y-auto text-sm text-slate-700 space-y-3 pr-2">
-              <div className="flex justify-between py-2 border-b"><span className="text-slate-500">Name</span><span className="text-right">{detailRow.name}</span></div>
-              <div className="flex justify-between py-2 border-b"><span className="text-slate-500">Role</span><span className="text-right">{detailRow.role}</span></div>
-              <div className="flex justify-between py-2 border-b"><span className="text-slate-500">Plan</span><span className="text-right">{detailRow.plan}</span></div>
-              <div className="flex justify-between py-2 border-b"><span className="text-slate-500">Amount</span><span className="text-right">{detailRow.amount}</span></div>
-              <div className="flex justify-between py-2 border-b"><span className="text-slate-500">Start Date</span><span className="text-right">{detailRow.start}</span></div>
-              <div className="flex justify-between py-2"><span className="text-slate-500">End Date</span><span className="text-right">{detailRow.end}</span></div>
+              <div className="flex justify-between py-2 border-b"><span className="text-slate-500">Name</span><span className="text-right">{(current.user && (current.user.first_name || current.user.last_name)) ? `${current.user.first_name || ''} ${current.user.last_name || ''}`.trim() : (current.user?.email || current.user?.username || `User-${current.id}`)}</span></div>
+              <div className="flex justify-between py-2 border-b"><span className="text-slate-500">Role</span><span className="text-right">{current.user?.is_provider ? 'Care Providers' : 'Care Seekers'}</span></div>
+              <div className="flex justify-between py-2 border-b"><span className="text-slate-500">Plan</span><span className="text-right">{current.plan || current.subscription_plan || 'Unknown'}</span></div>
+              <div className="flex justify-between py-2 border-b"><span className="text-slate-500">Amount</span><span className="text-right">{current.amount ?? current.price ?? '0.00'}</span></div>
+              <div className="flex justify-between py-2 border-b"><span className="text-slate-500">Start Date</span><span className="text-right">{current.start_date ? dayjs(current.start_date).format('DD-MM-YYYY') : (current.start ? dayjs(current.start).format('DD-MM-YYYY') : '')}</span></div>
+              <div className="flex justify-between py-2"><span className="text-slate-500">End Date</span><span className="text-right">{current.end_date ? dayjs(current.end_date).format('DD-MM-YYYY') : (current.end ? dayjs(current.end).format('DD-MM-YYYY') : '')}</span></div>
             </div>
 
           </div>

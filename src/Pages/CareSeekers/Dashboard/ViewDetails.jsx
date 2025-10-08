@@ -1,12 +1,26 @@
-  // Check plan from localStorage
-  const plan = typeof window !== "undefined" ? localStorage.getItem("careProviderPlan") : null;
-import React from 'react'
+import { useEffect } from 'react'
 import { useNavigate, useLocation } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux'
 import Sidebar from './Sidebar'
+import { fetchProviderDetails, clearProviderDetails } from '../../../Redux/ProvidersDetails'
 
 function ViewDetails() {
   const navigate = useNavigate();
   const location = useLocation();
+  // Check plan from localStorage
+  const plan = typeof window !== "undefined" ? localStorage.getItem("careProviderPlan") : null;
+  const dispatch = useDispatch()
+  const { details, loading, error } = useSelector((s) => s.providersDetails || { details: null, loading: false, error: null })
+  useEffect(() => {
+    // Try to obtain provider id from location.state or fallback to 15 for demo
+    const id = location?.state?.providerId || 15
+    dispatch(fetchProviderDetails(id))
+
+    return () => {
+      dispatch(clearProviderDetails())
+    }
+  }, [dispatch, location])
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar active="Home" />
@@ -21,65 +35,75 @@ function ViewDetails() {
           </button>
           <h2 className="text-2xl font-semibold text-gray-800">Details</h2>
         </div>
-        {/* Profile */}
-        <div className="flex items-center mb-4">
-          <img src="https://randomuser.me/api/portraits/women/1.jpg" alt="Provider" className="w-16 h-16 rounded-full mr-4 object-cover" />
-          <div>
-            <h4 className="font-semibold text-gray-800 text-lg">Aleem Sarah</h4>
-            <p className="text-md text-gray-500 mt-1 mb-2">Old Dallas,Salford,UK</p>
-            <p className="text-xs text-gray-500 max-w-2xl">5 years of experience with extensive ways of managing daily routines for multiple children. Skilled in age-appropriate activities, behavioural guidance, and emergency response. Strong communication with parents</p>
-          </div>
-        </div>
-        {/* Experience/Rate/Rating */}
-        <div className="flex gap-4 mb-6">
-          <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-center">
-            <span className="text-xs text-gray-500">Experience</span>
-            <span className="font-semibold text-gray-800 text-lg">8 years</span>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-left">
-            <span className="text-xs text-gray-500">Rate</span>
-            <span className="font-semibold text-gray-800 text-lg">$135/hr</span>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-left">
-            <span className="text-xs text-gray-500">Rating</span>
-            <div className='flex items-center'>
-              <span className="text-[#cb9e49] text-base mr-2">★★★★★</span>
-              <span className="text-xs text-gray-600 font-bold">5.0</span>
+
+        {loading && <div className="py-8">Loading provider details…</div>}
+        {error && <div className="text-red-500 py-4">Failed to load provider: {typeof error === 'string' ? error : (error?.error || error?.message || 'Unknown')}</div>}
+
+        {details && (
+          <>
+            {/* Profile */}
+            <div className="flex items-center mb-4">
+              <img src={details?.user?.profile_picture || 'https://randomuser.me/api/portraits/women/1.jpg'} alt="Provider" className="w-16 h-16 rounded-full mr-4 object-cover" />
+              <div>
+                <h4 className="font-semibold text-gray-800 text-lg">{details?.user?.full_name || details?.profile_title}</h4>
+                <p className="text-md text-gray-500 mt-1 mb-2">{[details?.city, details?.state, details?.country].filter(Boolean).join(', ')}</p>
+                <p className="text-xs text-gray-500 max-w-2xl">{details?.about_me}</p>
+              </div>
             </div>
-          </div>
-        </div>
-        {/* Dedicated Childcare Provider */}
-        <div className="bg-blue-50 rounded-lg p-6 mb-6">
-          <h3 className="font-semibold text-gray-800 mb-2">Dedicated childcare provider</h3>
-          <p className="text-sm text-gray-700">Dedicated childcare provider with extensive ways of managing daily routines for multiple children. Skilled in age-appropriate activities, behavioural guidance, and emergency response. Strong communication with parents, maintains detailed care logs, and prioritizes safety above all. Trustworthy, energetic, and passionate about supporting children's emotional and physical development.</p>
-        </div>
-        {/* Testimonials */}
-        <div className="mb-8">
-          <h3 className="font-semibold text-gray-800 mb-4">Testimonials</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col">
-              <p className="text-sm text-gray-700 mb-2">"Sarah "I had a wonderful experience caring for Mr. and Mrs. Johnson over the past 8 months. They are such a sweet couple who treated me like family from day one. Mrs. Johnson always had interesting stories to share, and Mr. Johnson kept me entertained with his sense of humor during our daily walks."</p>
-              <span className="text-xs text-gray-500 font-semibold">Nora Wilson</span>
+
+            {/* Experience/Rate/Rating */}
+            <div className="flex gap-4 mb-6">
+              <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-center">
+                <span className="text-xs text-gray-500">Experience</span>
+                <span className="font-semibold text-gray-800 text-lg">{details?.experience || 'N/A'}</span>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-left">
+                <span className="text-xs text-gray-500">Rate</span>
+                <span className="font-semibold text-gray-800 text-lg">{details?.rate || 'N/A'}</span>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-left">
+                <span className="text-xs text-gray-500">Rating</span>
+                <div className='flex items-center'>
+                  <span className="text-[#cb9e49] text-base mr-2">{'★★★★★'.repeat(1).slice(0, Math.round(details?.rating || 0))}</span>
+                  <span className="text-xs text-gray-600 font-bold">{details?.rating ?? 'N/A'}</span>
+                </div>
+              </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col">
-              <p className="text-sm text-gray-700 mb-2">The family was very organized with clear instructions for medications and routines, which made my job much easier. They were always respectful of my time and paid promptly. The only minor issue was that sometimes the adult children would change care schedules last minute, which made it a bit challenging to plan my week.</p>
-              <span className="text-xs text-gray-500 font-semibold">Katryn</span>
+
+            {/* Dedicated Childcare Provider */}
+            <div className="bg-blue-50 rounded-lg p-6 mb-6">
+              <h3 className="font-semibold text-gray-800 mb-2">{details?.profile_title || 'Provider'}</h3>
+              <p className="text-sm text-gray-700">{details?.about_me}</p>
             </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col">
-              <p className="text-sm text-gray-700 mb-2">Overall, this was one of my most rewarding assignments. I genuinely looked forward to each visit and felt like I was making a real difference in their daily lives. I would definitely recommend this family to other caregivers - they truly appreciate the work we do."</p>
-              <span className="text-xs text-gray-500 font-semibold">Patricia</span>
+
+            {/* Testimonials */}
+            <div className="mb-8">
+              <h3 className="font-semibold text-gray-800 mb-4">Testimonials</h3>
+              <div className="grid grid-cols-3 gap-4">
+                {Array.isArray(details?.testimonials) && details.testimonials.length > 0 ? (
+                  details.testimonials.map((t) => (
+                    <div key={t.id} className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col">
+                      <p className="text-sm text-gray-700 mb-2">{t.comment}</p>
+                      <span className="text-xs text-gray-500 font-semibold">{t.reviewer?.full_name || t.job_title || 'Anonymous'}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-gray-600">No testimonials yet.</div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-        <button
-          className={`w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold text-lg transition ${plan !== "Free" || (location.state && location.state.messageable) ? "hover:bg-[#007bb0]" : "hover:bg-[#0093d1] opacity-50 cursor-not-allowed"}`}
-          disabled={plan === "Free" && !(location.state && location.state.messageable)}
-        >
-          Message
-        </button>
-        <p className="text-sm text-red-500 mt-2">
-          when it is clicked it will go to message page and open a chat for this person
-        </p>
+
+            <button
+              className={`w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold text-lg transition ${plan !== "Free" || (location.state && location.state.messageable) ? "hover:bg-[#007bb0]" : "hover:bg-[#0093d1] opacity-50 cursor-not-allowed"}`}
+              disabled={plan === "Free" && !(location.state && location.state.messageable)}
+            >
+              Message
+            </button>
+            <p className="text-sm text-red-500 mt-2">
+              when it is clicked it will go to message page and open a chat for this person
+            </p>
+          </>
+        )}
       </div>
     </div>
   )

@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { saveStep } from '../../../Redux/CareProviderAuth';
 function WhyWantWork({ handleNext, handleBack }) {
   const [selectedOption, setSelectedOption] = useState('');
+  const dispatch = useDispatch();
 
   const options = [
     "Grow my Business",
@@ -53,7 +55,10 @@ function WhyWantWork({ handleNext, handleBack }) {
 
       {/* Next Button */}
       <button
-        onClick={() => handleNext(selectedOption)}
+        onClick={() => {
+          dispatch(saveStep({ stepName: 'whyWantWork', data: selectedOption }))
+          handleNext(selectedOption)
+        }}
         disabled={!selectedOption}
         className={`w-full py-3 rounded-md text-white text-md font-medium transition ${
           selectedOption

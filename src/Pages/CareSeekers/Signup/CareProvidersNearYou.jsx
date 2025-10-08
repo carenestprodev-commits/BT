@@ -1,6 +1,8 @@
 import React from "react";
- import Girl from "../../../../public/girl.svg";
+import Girl from "../../../../public/girl.svg";
 import { Link } from "react-router-dom";
+import { useDispatch } from 'react-redux'
+import { registerAndPublish, saveStep } from '../../../Redux/CareSeekerAuth'
 
 
 function CareProvidersNearYou() {
@@ -14,6 +16,97 @@ function CareProvidersNearYou() {
     password: "",
     confirmPassword: "",
   });
+
+  const dispatch = useDispatch()
+
+  const readOnboarding = () => {
+    try {
+      const raw = localStorage.getItem('seeker_onboarding')
+      return raw ? JSON.parse(raw) : { steps: {}, preview: null }
+    } catch (e) { return { steps: {}, preview: null } }
+  }
+
+  const handleRegister = async () => {
+    if (!signupForm.email || !signupForm.password || signupForm.password !== signupForm.confirmPassword) {
+      alert('Please provide a valid email and matching passwords')
+      return
+    }
+
+    const onboarding = readOnboarding()
+
+    // Build the complete job_data payload from all collected steps
+    const job_data = {
+      service_category: (onboarding.steps?.careCategory || "childcare").toLowerCase(),
+      details: {
+        location_information: {
+          use_current_location: onboarding.steps?.location?.useCurrentLocation || false,
+          preferred_language: onboarding.steps?.location?.preferredLanguage || "Select language",
+          country: onboarding.steps?.location?.country || "Select country",
+          state: onboarding.steps?.location?.state || "Select state", 
+          city: onboarding.steps?.location?.city || "Input city",
+          zip_code: onboarding.steps?.location?.zipCode || "Input zip code",
+          nationality: onboarding.steps?.location?.nationality || "Input nationality"
+        }
+      },
+      job_type: onboarding.steps?.timeDetails?.scheduleType?.toLowerCase() === 'one-off' ? 'one-time' : 'recurring',
+      start_date: onboarding.steps?.timeDetails?.startDate || "2025-11-10",
+      end_date: onboarding.steps?.timeDetails?.endDate || "2026-02-10",
+      start_time: onboarding.steps?.timeDetails?.startTime || "09:00:00",
+      end_time: onboarding.steps?.timeDetails?.endTime || "17:00:00",
+      recurrence_pattern: {
+        frequency: (onboarding.steps?.timeDetails?.repeatFrequency || "Weekly").toLowerCase(),
+        days: onboarding.steps?.timeDetails?.repeatDays || ["Monday", "Wednesday", "Friday"]
+      },
+      price_min: onboarding.steps?.timeDetails?.priceMin || "35.00",
+      price_max: onboarding.steps?.timeDetails?.priceMax || "55.00",
+      message_to_provider: onboarding.steps?.summary?.messageToProvider || "We need someone reliable."
+    }
+
+    // Add service-specific details based on category
+    if (onboarding.steps?.careCategory === 'Childcare') {
+      job_data.details.child_information = {
+        care_type: onboarding.steps?.childInfo?.childcareType || "Nanny",
+        number_of_children: onboarding.steps?.childInfo?.numberOfChildren || "1 child",
+        children: (onboarding.steps?.childInfo?.childrenDetails || []).map(child => ({
+          age: parseInt(child.age) || 15,
+          gender: child.gender || "Male"
+        }))
+      }
+      job_data.details.provider_experience = {
+        languages: onboarding.steps?.experience?.communicationLanguage || ["English"],
+        special_preferences: onboarding.steps?.experience?.specialPreferences || [],
+        preferred_option: (onboarding.steps?.experience?.preferredOption || ["Live-Out"])[0] || "Live-Out"
+      }
+    }
+
+    const payload = {
+      user_data: {
+        full_name: signupForm.full_name || '',
+        email: signupForm.email,
+        password: signupForm.password,
+        password2: signupForm.confirmPassword,
+        user_type: 'seeker'
+      },
+      job_data: job_data,
+      title: onboarding.preview?.title || '',
+      summary: onboarding.preview?.summary || ''
+    }
+
+    try {
+      const resAction = await dispatch(registerAndPublish(payload))
+      if (resAction.error) {
+        alert('Registration failed: ' + (resAction.payload || resAction.error.message))
+      } else {
+        alert('Success: ' + JSON.stringify(resAction.payload))
+        dispatch(saveStep({ stepName: 'registered', data: resAction.payload }))
+        setShowPaymentPopup(false)
+        setShowSubscribePopup(false)
+        setShowSignupPopup(false)
+      }
+    } catch (e) {
+      alert('Unexpected error: ' + e.message)
+    }
+  }
 
   const paymentDetails = {
     Free: { rate: 0, hours: 0, fee: 0, total: 0 },
@@ -33,10 +126,10 @@ function CareProvidersNearYou() {
               className="w-32 h-32 mx-auto mb-4"
             />
             <h2 className="text-xl font-semibold text-center text-gray-800 mb-1">
-              Sign Up to View Care Providers near you 
+              Sign Up to View Care Providers near you  
             </h2>
             <p className="text-sm text-gray-500 text-center mb-6">
-              Kindly enter your email address below to view care providers near you.
+              Kindly enter your email address below to view care providers near you. 
             </p>
             <input
               type="email"
@@ -70,11 +163,7 @@ function CareProvidersNearYou() {
             />
             <button
               className="w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition"
-              onClick={() => {
-                // close signup modal and show subscribe popup before navigating
-                setShowSignupPopup(false);
-                setShowSubscribePopup(true);
-              }}
+              onClick={handleRegister}
             >
               Sign Up
             </button>

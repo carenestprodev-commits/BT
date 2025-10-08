@@ -24,7 +24,7 @@ function EmailStep({ formData, updateFormData, onClose, onComplete }) {
           Sign Up to View Care Providers near you
         </h3>
         <p className="text-sm text-gray-500 text-center">
-          Kindly enter your email address below to view care providers near you.
+          Kindly enter your email address below to view care providers near you. 
         </p>
       </div>
       

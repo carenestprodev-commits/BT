@@ -1,6 +1,9 @@
 import React from "react";
+import { useDispatch } from 'react-redux';
+import { saveStep } from '../../../Redux/CareSeekerAuth';
 
 function ChildCareProviderExperience({ formData, updateFormData, handleNext, currentStep = 3, totalSteps = 5 }) {
+  const dispatch = useDispatch();
   return (
     <div className="w-full max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
       <div className="flex items-center mb-6">
@@ -221,7 +224,19 @@ function ChildCareProviderExperience({ formData, updateFormData, handleNext, cur
       </div>
 
       <button 
-        onClick={handleNext}
+        onClick={() => {
+          // Save experience data to Redux before moving next
+          dispatch(saveStep({ 
+            stepName: 'experience', 
+            data: {
+              communicationLanguage: formData.communicationLanguage,
+              specialPreferences: formData.specialPreferences,
+              preferredOption: formData.preferredOption,
+              extraCareCategory: formData.extraCareCategory
+            }
+          }));
+          handleNext();
+        }}
         className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8"
       >
         Next

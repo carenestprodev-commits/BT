@@ -18,19 +18,19 @@ function Summary({ formData, updateFormData, handleNext, handleBack }) {
           ←
         </button>
         <h2 className="text-2xl font-semibold text-gray-800 mb-8">Summary</h2>
-  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 font-medium text-gray-700">
+  {/* <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 font-medium text-gray-700">
         <div className="flex items-start">
           <div className="text-green-600 mr-3">💡</div>
           <p className="text-sm text-green-700">
             This was generated based on the information you gave. This would help care providers understand your preferences.
           </p>
         </div>
-      </div>
-  <div className="bg-gray-50 p-6 rounded-lg mb-6 text-base text-gray-700">
+      </div> */}
+  {/* <div className="bg-gray-50 p-6 rounded-lg mb-6 text-base text-gray-700">
         <p className="text-sm text-gray-700 leading-relaxed">
           Dedicated childcare provider with extensive ways of managing daily routines for multiple children. Skilled in age-appropriate activities, behavioral guidance, and emergency response. Strong communication with parents, maintains detailed care logs, and prioritizes safety above all. Trustworthy, energetic, and passionate about supporting children's emotional and physical development.
         </p>
-      </div>
+      </div> */}
   <div>
   <div className="text-gray-700 font-medium mb-2">Message to Care Provider</div>
         <textarea
