@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { FaSearch, FaDownload } from 'react-icons/fa'
 import dayjs from 'dayjs'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchSupportTickets, fetchSupportTicketById, clearCurrentTicket } from '../../Redux/AdminSupport'
+import { fetchSupportTickets, fetchSupportTicketById, clearCurrentTicket, postSupportAction } from '../../Redux/AdminSupport'
 
 function Support() {
   const dispatch = useDispatch()
@@ -15,6 +15,8 @@ function Support() {
   const [page, setPage] = useState(1)
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
+  const [composeMsg, setComposeMsg] = useState('')
+  const { actionLoading, actionError, actionSuccess } = useSelector((s) => s.adminSupport || {})
 
   const pageSize = 8
 
@@ -199,6 +201,8 @@ function Support() {
             </div>
             <div className="p-5 overflow-y-auto text-sm flex-1">
               {currentLoading && <div>Loading...</div>}
+              {actionError && <div className="text-red-600 mb-3">{actionError?.status || actionError?.error || 'Action failed'}</div>}
+              {actionSuccess && <div className="text-green-700 mb-3">{actionSuccess?.status || 'Success'}</div>}
               {current && (
                 <>
                   <div className="mb-3">
@@ -230,16 +234,58 @@ function Support() {
             </div>
             <div className="p-4 border-t flex flex-col gap-3">
               <button
-                onClick={(e) => {
+                disabled={!current || actionLoading}
+                onClick={async (e) => {
                   e.stopPropagation()
-                  setShowNoteModal(true)
+                  if (!current) return
+                  await dispatch(postSupportAction({ id: current.id, action: 'resolve' }))
                 }}
-                className="w-full bg-[#0ea5d7] hover:bg-[#0c94bf] text-white py-2 rounded"
+                className="w-full bg-[#0ea5d7] hover:bg-[#0c94bf] text-white py-2 rounded disabled:opacity-50"
               >
-                Resolve
+                {actionLoading ? 'Processing...' : 'Resolve'}
               </button>
-              <button className="w-full border border-[#0ea5d7] text-[#0ea5d7] py-2 rounded">Escalate</button>
-              <button className="w-full border border-gray-200 bg-gray-100 text-gray-500 py-2 rounded">Message</button>
+
+              <button
+                disabled={!current || actionLoading}
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  if (!current) return
+                  await dispatch(postSupportAction({ id: current.id, action: 'in_review' }))
+                }}
+                className="w-full border border-[#0ea5d7] text-[#0ea5d7] py-2 rounded disabled:opacity-50"
+              >
+                {actionLoading ? 'Processing...' : 'Escalate'}
+              </button>
+
+              {/* Message flow: show input inline and button to send */}
+              <div className="w-full">
+                <textarea
+                  value={composeMsg}
+                  onChange={(e) => setComposeMsg(e.target.value)}
+                  placeholder="Write a message to the user"
+                  className="w-full h-28 p-3 border border-gray-100 rounded text-sm resize-none bg-white text-black"
+                />
+                <div className="flex gap-3 mt-3">
+                  <button
+                    disabled={!current || !composeMsg.trim() || actionLoading}
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      if (!current) return
+                      await dispatch(postSupportAction({ id: current.id, action: 'message', message: composeMsg.trim() }))
+                      setComposeMsg('')
+                    }}
+                    className="px-4 py-2 bg-[#0ea5d7] hover:bg-[#0c94bf] text-white rounded disabled:opacity-50"
+                  >
+                    {actionLoading ? 'Sending...' : 'Send Message'}
+                  </button>
+                  <button
+                    onClick={() => setComposeMsg('')}
+                    className="px-4 py-2 border rounded bg-white text-gray-700"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

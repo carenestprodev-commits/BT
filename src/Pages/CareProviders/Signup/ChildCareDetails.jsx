@@ -6,6 +6,7 @@ import { reverseGeocode } from '../../../Redux/Location'
 
 function ChildCareDetails({ formData, updateFormData, handleNext, handleBack, showLocationPopup, setShowLocationPopup }) {
   const dispatch = useDispatch();
+  const [errors, setErrors] = useState({});
   const [countryOptions, setCountryOptions] = useState(["United States", "Canada", "United Kingdom"])
   const [stateOptions, setStateOptions] = useState(["California", "New York", "Texas"])
   const [languageOptions, setLanguageOptions] = useState(["English", "Spanish", "French", "Bengali"])
@@ -81,7 +82,18 @@ function ChildCareDetails({ formData, updateFormData, handleNext, handleBack, sh
           <button onClick={handleBack} className="mr-4 text-gray-500 hover:text-gray-700">←</button>
           <h3 className="text-lg text-gray-700 flex-1">Child care details</h3>
         </div>
-        
+        {/* Name fields */}
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <div>
+            <TextField label="First Name" value={formData.firstName || ''} onChange={(val) => updateFormData('firstName', val)} />
+            {errors.firstName && <p className="text-sm text-red-600 mt-1">{errors.firstName}</p>}
+          </div>
+          <div>
+            <TextField label="Last Name" value={formData.lastName || ''} onChange={(val) => updateFormData('lastName', val)} />
+            {errors.lastName && <p className="text-sm text-red-600 mt-1">{errors.lastName}</p>}
+          </div>
+        </div>
+
 
         <p className="text-sm text-gray-500 mb-6">Kindly select options to help us understand your preferences</p>
 
@@ -114,7 +126,7 @@ function ChildCareDetails({ formData, updateFormData, handleNext, handleBack, sh
   onChange={(val) => updateFormData("providerType", val)}
 />
 
-          <SelectField label="Experience Level" value={formData.experienceLevel} onChange={(val) => updateFormData("experienceLevel", val)} options={[]} />
+          <SelectField label="Years of Experience" value={formData.experienceLevel} onChange={(val) => updateFormData("experienceLevel", val)} options={["1-3 Years","4-8 Years","9-12 Years"]} />
           <SelectField label="Native Language" value={formData.nativeLanguage} onChange={(val) => updateFormData("nativeLanguage", val)} options={[]} />
           <SelectField label="Other Language" value={formData.otherLanguage} onChange={(val) => updateFormData("otherLanguage", val)} options={[]} />
           <CheckboxGroup
@@ -143,6 +155,12 @@ function ChildCareDetails({ formData, updateFormData, handleNext, handleBack, sh
         {/* Age Preference */}
         <RadioGroup label="Choose the experience level" name="agePreference" options={["Newborn (Up to 12 months)", "Toddler (1-3 years)", "Early School Age (4-6 years)", "Primary school age (7-12 years)", "Teenager (12+ years)"]} value={formData.agePreference} onChange={(val) => updateFormData("agePreference", val)} />
 
+        {/* Communication and Language (multi-select) */}
+        <CheckboxGroup label="Communication and Language" options={["Fluent in English","Fluent in French","Fluent in Spanish","Fluent in Yoruba","Fluent in Igbo","Fluent in Idoma","Fluent in Edo"]} values={formData.communicationLanguages || []} onChange={(val) => updateFormData('communicationLanguages', val)} />
+
+        {/* Special Preferences (multi-select) */}
+        <CheckboxGroup label="Special Preferences" options={["Experience with Autism","Experience with ADHD","Experience with Cerebral Palsy","Experience with twins or multiples","Experience with special needs","Experience with speech delay"]} values={formData.specialPreferences || []} onChange={(val) => updateFormData('specialPreferences', val)} />
+
         {/* About You */}
         <div className="mt-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">Tell Us about yourself</label>
@@ -160,21 +178,53 @@ function ChildCareDetails({ formData, updateFormData, handleNext, handleBack, sh
         </div>
 
         <button onClick={() => {
-            const childPayload = {
-              country: formData.country,
-              city: formData.city,
-              providerType: formData.providerType,
-              experienceLevel: formData.experienceLevel,
-              nativeLanguage: formData.nativeLanguage,
-              otherLanguage: formData.otherLanguage,
-              otherServices: formData.otherServices,
-              hourlyRate: formData.hourlyRate,
-              servicesProvided: formData.servicesProvided,
-              agePreference: formData.agePreference,
-              aboutYou: formData.aboutYou,
-              title: formData.title
+            const trimmedFirst = (formData.firstName || '').trim();
+            const trimmedLast = (formData.lastName || '').trim();
+            const newErrors = {};
+            if (!trimmedFirst) newErrors.firstName = 'First name is required.';
+            if (!trimmedLast) newErrors.lastName = 'Last name is required.';
+            setErrors(newErrors);
+            if (Object.keys(newErrors).length > 0) {
+              // don't submit
+              return;
             }
-            dispatch(saveStep({ stepName: 'child_profile', data: childPayload }))
+
+            const childPayload = {
+              user_data: {
+                first_name: trimmedFirst,
+                last_name: trimmedLast,
+                full_name: (trimmedFirst + ' ' + trimmedLast).trim()
+              },
+              profile_data: {
+                service_category: 'childcare',
+                country: formData.country || null,
+                city: formData.city || null,
+                state: formData.state || null,
+                zip_code: formData.zipCode || null,
+                nationality: formData.nationality || null,
+                native_language: formData.nativeLanguage || formData.language || null,
+                experience_level: formData.experienceLevel || null,
+                years_of_experience: formData.yearsOfExperience || null,
+                hourly_rate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : null,
+                languages: (formData.communicationLanguages && formData.communicationLanguages.length > 0) ? formData.communicationLanguages : (formData.language ? [formData.language] : []),
+                additional_services: formData.otherServices || [],
+                skills: [ ...(formData.servicesProvided || []), ...(formData.specialPreferences || []) ],
+                category_specific_details: {
+                  type_of_care_provider: Array.isArray(formData.providerType) ? formData.providerType[0] : formData.providerType || null,
+                  preferred_option: formData.preferredOption || null,
+                  special_preferences: formData.specialPreferences || [],
+                  communication_language: (formData.communicationLanguages && formData.communicationLanguages.length > 0) ? formData.communicationLanguages[0] : (formData.language || null)
+                },
+                about_me: formData.aboutYou || null,
+                profile_title: formData.title || null
+              }
+            }
+            // Save top-level user_data so the final payload builder (EmailPassword.jsx)
+            // can pick up full_name and names correctly.
+            dispatch(saveStep({ stepName: 'user_data', data: { first_name: trimmedFirst, last_name: trimmedLast, full_name: (trimmedFirst + ' ' + trimmedLast).trim() } }))
+            // Save flattened profile fields under 'child_profile' so EmailPassword merges them into profile_data correctly
+            const flatProfile = { ...childPayload.profile_data };
+            dispatch(saveStep({ stepName: 'child_profile', data: flatProfile }))
             handleNext()
           }} className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8">
           Save

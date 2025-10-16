@@ -9,6 +9,7 @@ import CareProvidersNearYouDashboard from "../Pages/CareSeekers/Dashboard/CarePr
 import ViewDetails from "../Pages/CareSeekers/Dashboard/ViewDetails";
 import Requests from "../Pages/CareSeekers/Dashboard/Requests";
 import Message from "../Pages/CareSeekers/Dashboard/Message";
+import PaymentSuccessRedirect from "../Pages/PaymentSuccessRedirect";
 import Settings from "../Pages/CareSeekers/Dashboard/Settings";
 import VerifyIdentity from "../Pages/CareSeekers/Dashboard/VerifyIdentity";
 import PersonalInformation from "../Pages/CareSeekers/Dashboard/PersonalInformation";
@@ -17,6 +18,7 @@ import MessageDetails from "../Pages/CareSeekers/Dashboard/MessageDetails";
 import RequestDetails from "../Pages/CareSeekers/Dashboard/RequestDetails";
 import PersonalInformationProvider from "../Pages/CareProviders/Dashboard/PersonalInformation";
 import DashboardHome from "../Pages/CareSeekers/Dashboard/Home";
+import PendingDetails from "../Pages/CareSeekers/Dashboard/PendingDetails";
 
 import HomePage from "../Pages/CareProviders/Dashboard/HomePage";
 import JobDetails from "../Pages/CareProviders/Dashboard/JobDetails";
@@ -38,6 +40,8 @@ import Support from "../Pages/Admin/Support";
 import ProfileVerificationSeeker from "../Pages/Admin/ProfileVerificationSeeker";
 import ProfileVerificationProvider from "../Pages/Admin/ProfileVerificationProvider";
 import MessageAdmin from "../Pages/Admin/Message";
+
+import BookingService from "../Pages/CareSeekers/BookingaService/CareCategory";
 
 export const router = createBrowserRouter([
   {
@@ -99,20 +103,36 @@ export const router = createBrowserRouter([
     element: <Requests />,
   },
   {
+    path: "/careseekers/dashboard/pending_details",
+    element: <PendingDetails />,
+  },
+  {
+    path: "/careseekers/dashboard/pending_details/:id",
+    element: <PendingDetails />,
+  },
+  {
     path: "/careseekers/dashboard/message",
     element: <Message />,
+  },
+  {
+    path: "/payment-success",
+    element: <PaymentSuccessRedirect />,
   },
   {
     path: "/careseekers/dashboard/setting",
     element: <Settings />,
   },
   {
-    path: "/careseekers/dashboard/message_provider",
+    path: "/careseekers/dashboard/message_provider/:id",
     element: <MessageDetails />,
   },
   {
-    path: "/careseekers/dashboard/request_details",
+    path: "/careseekers/dashboard/request_details/:id",
     element: <RequestDetails />,
+  },
+  {
+    path: "/careseekers/bookservice",
+    element: <BookingService />,
   },
 
   {
@@ -129,6 +149,10 @@ export const router = createBrowserRouter([
   },
   {
     path: "/careproviders/dashboard/request_details",
+    element: <RequestDetailsProvider />,
+  },
+  {
+    path: "/careproviders/dashboard/request_details/:id",
     element: <RequestDetailsProvider />,
   },
   {

@@ -1,17 +1,27 @@
-import React from "react";
+import { useEffect } from "react";
 import Sidebar from "./Sidebar";
 import { FaWallet } from "react-icons/fa";
 import { BsDownload } from "react-icons/bs";
 import Pattern from "../../../../public/pattern.svg";
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchWalletDashboard, fetchWalletHistory } from '../../../Redux/ProviderWallet'
 function Wallet() {
-  const transactions = [
-    { status: "Wallet funded", date: "07-03-24 | 02:15am", amount: "₦ 3,800.00", positive: true },
-    { status: "Wallet funded", date: "07-03-24 | 02:15am", amount: "₦ 3,800.00", positive: false },
-    { status: "Wallet funded", date: "07-03-24 | 02:15am", amount: "₦ 3,800.00", positive: true },
-    { status: "Wallet funded", date: "07-03-24 | 02:15am", amount: "₦ 3,800.00", positive: false },
-    { status: "Wallet funded", date: "07-03-24 | 02:15am", amount: "₦ 3,800.00", positive: true },
-    { status: "Wallet funded", date: "07-03-24 | 02:15am", amount: "₦ 3,800.00", positive: false },
-  ];
+ 
+
+  const dispatch = useDispatch()
+  const { dashboard, history, loading } = useSelector(s => s.providerWallet || { dashboard: { current_balance: 0, total_hours: 0 }, history: [], loading: false })
+
+  useEffect(() => {
+    dispatch(fetchWalletDashboard())
+    dispatch(fetchWalletHistory())
+  }, [dispatch])
+
+  // Debug logging so you can inspect what the API returned in browser console
+  useEffect(() => {
+    console.debug('ProviderWallet dashboard:', dashboard)
+    console.debug('ProviderWallet history length:', history && history.length)
+    console.debug('ProviderWallet loading:', loading)
+  }, [dashboard, history, loading])
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -25,9 +35,9 @@ function Wallet() {
           <div className="flex w-full justify-between items-center mb-6">
             <div className="text-4xl font-bold text-[#0093d1] flex items-center">
               <img src="/NiCurrency.svg" alt="Naira" className="inline-block align-middle mr-2 w-8 h-8" />
-              53,589.00
+              {dashboard && typeof dashboard.current_balance !== 'undefined' ? Number(dashboard.current_balance).toLocaleString() : '0.00'}
             </div>
-            <div className="text-5xl font-semibold text-[#0093d1]">25</div>
+            <div className="text-5xl font-semibold text-[#0093d1]">{dashboard && typeof dashboard.total_hours !== 'undefined' ? dashboard.total_hours : 0}</div>
           </div>
           <div className="flex w-full justify-between items-center mb-6">
             <div className="text-gray-500 text-base">New Care Providers request</div>
@@ -68,23 +78,34 @@ function Wallet() {
 
           </div>
         </div>
+        {/* Transactions header */}
+        <div className="mb-4 bg-white border border-gray-100 rounded-lg px-6 py-3 flex items-center justify-between">
+          <div className="font-medium text-gray-700">Transaction</div>
+          <div className="text-gray-500 text-sm">Date</div>
+          <div className="text-gray-700 font-medium">Amount</div>
+        </div>
         <div>
-          {transactions.map((tx, i) => (
-            <div key={i} className="flex items-center justify-between bg-white border border-gray-100 rounded-lg px-6 py-4 mb-3">
-              <div className="flex items-center gap-3">
-                <span className={`bg-[#eaf6fb] rounded-full p-2 text-[#0093d1]`}><FaWallet /></span>
-                <span className="font-medium text-gray-700">{tx.status}</span>
+          {loading && <div className="text-sm text-gray-500 mb-4">Loading...</div>}
+          {(!history || history.length === 0) ? (
+            <div className="text-center text-gray-500 py-8">No transactions yet.</div>
+          ) : (
+            history.map((tx) => (
+              <div key={tx.id} className="flex items-center justify-between bg-white border border-gray-100 rounded-lg px-6 py-4 mb-3">
+                <div className="flex items-center gap-3">
+                  <span className={`bg-[#eaf6fb] rounded-full p-2 text-[#0093d1]`}><FaWallet /></span>
+                  <span className="font-medium text-gray-700">{tx.transaction_title}</span>
+                </div>
+                <span className="text-gray-400 text-xs">{tx.transaction_date ? new Date(tx.transaction_date).toLocaleString() : ''}</span>
+                <span
+                  className="font-semibold flex items-center"
+                  style={{ color: Number(tx.amount) >= 0 ? '#378c37' : '#a37c39' }}
+                >
+                  <img src="/NiCurrency.svg" alt="Naira" className="inline-block align-middle mr-1 w-4 h-4" />
+                  {Number(tx.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
               </div>
-              <span className="text-gray-400 text-xs">{tx.date}</span>
-              <span
-                className="font-semibold flex items-center"
-                style={{ color: tx.positive ? '#378c37' : '#a37c39' }}
-              >
-                <img src="/NiCurrency.svg" alt="Naira" className="inline-block align-middle mr-1 w-4 h-4" />
-                {tx.amount.replace(/₦|Naira|N/g, "").trim()}
-              </span>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>

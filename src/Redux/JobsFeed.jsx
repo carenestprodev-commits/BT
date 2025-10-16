@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-
-const BASE_URL = 'http://10.10.13.75:8088'
+import { BASE_URL } from './config'
 
 export const fetchJobsFeed = createAsyncThunk(
   'jobsFeed/fetchJobsFeed',
@@ -42,7 +41,7 @@ export const submitBooking = createAsyncThunk(
       const headers = { 'Content-Type': 'application/json' }
       if (access) headers['Authorization'] = `Bearer ${access}`
 
-      const res = await fetch(`${BASE_URL}/api/bookings/`, {
+      const res = await fetch(`${BASE_URL}/api/provider/applications/`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ job_request_id: jobRequestId }),

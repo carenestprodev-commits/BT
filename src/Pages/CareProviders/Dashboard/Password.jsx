@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Sidebar from "./Sidebar";
-import { useNavigate } from "react-router-dom";
+// useNavigate not needed here
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { useDispatch } from 'react-redux'
+import { changePassword } from '../../../Redux/PasswordChange'
 
 function Password() {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,6 +17,31 @@ function Password() {
   const isPasswordStrong = strongPasswordRegex.test(password);
   const isConfirmMatch = password === confirmPassword && confirmPassword.length > 0;
   const canSubmit = isPasswordStrong && isConfirmMatch;
+  const dispatch = useDispatch()
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return
+    setLoading(true)
+    try {
+      const res = await dispatch(changePassword({ password, confirm_password: confirmPassword }))
+      if (res && res.payload && res.payload.message) {
+        alert(res.payload.message)
+        setPassword('')
+        setConfirmPassword('')
+        setTouched({ password: false, confirm: false })
+      } else if (res && res.error && res.error.message) {
+        alert(res.error.message)
+      } else {
+        alert('Password changed')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Password change failed')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -76,10 +103,11 @@ function Password() {
               )}
           </div>
           <button
-            className={`w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition ${!canSubmit ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={!canSubmit}
+            className={`w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition ${(!canSubmit || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!canSubmit || loading}
+            onClick={handleSubmit}
           >
-            Submit
+            {loading ? 'Submitting...' : 'Submit'}
           </button>
         </div>
       </div>

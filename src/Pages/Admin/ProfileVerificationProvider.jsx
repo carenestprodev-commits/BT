@@ -1,36 +1,38 @@
-import React, { useMemo, useState } from 'react'
-import { FaSearch } from 'react-icons/fa'
+import { useMemo, useState, useEffect } from 'react'
 import dayjs from 'dayjs'
-
-const makeRow = (i) => ({
-  id: i + 1,
-  name: ['Stephen Adejare', 'Jane Doe', 'Ozenua Tobi', 'Titus Olumba', 'ireti Pinnuade', 'Oluwafemi Peter'][i % 6],
-  verificationType: i % 2 === 0 ? 'Background Checks' : '-',
-  paymentOption: i % 3 === 0 ? 'Installment (2 payouts)' : 'Full Payment',
-  paymentStatus: i % 4 === 0 ? `In Progress (₦3,000 remaining)` : i % 4 === 1 ? 'Paid' : i % 4 === 2 ? 'Completed' : 'Failed',
-  verificationStatus: ['In Review', 'Sent to Vetting', 'Verified', 'Failed', 'Declined'][i % 5],
-  vettingFeedback: i % 3 === 0 ? 'ID Validated – Address Pending' : i % 3 === 1 ? 'ID mismatch' : 'All checks passed',
-  lastUpdated: dayjs().subtract(i, 'day').format('DD-MM-YYYY'),
-})
-
-const INITIAL = new Array(18).fill(0).map((_, i) => makeRow(i))
+import { FaSearch } from 'react-icons/fa'
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchVerifications, fetchVerificationById, postVerificationAction, clearCurrentVerification, uploadVerificationId } from '../../Redux/Verification'
 
 function ProfileVerificationProvider() {
-  const [rows] = useState(INITIAL)
+  const dispatch = useDispatch()
+  const { items } = useSelector((s) => s.verification || {})
+  useEffect(() => { dispatch(fetchVerifications()) }, [dispatch])
+
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [openMenuId, setOpenMenuId] = useState(null)
+  const [showDetailId, setShowDetailId] = useState(null)
+  const { current, currentLoading, actionLoading, actionError, actionSuccess } = useSelector((s) => s.verification || {})
 
   const pageSize = 8
 
+  const providerRows = (items || []).filter((x) => x.user_type === 'provider')
+
   const filtered = useMemo(() => {
-    if (!query) return rows
+    if (!query) return providerRows
     const q = query.toLowerCase()
-    return rows.filter(r => r.name.toLowerCase().includes(q))
-  }, [rows, query])
+    return providerRows.filter(r => (r.name || '').toLowerCase().includes(q))
+  }, [providerRows, query])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const current = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize)
+  // ensure the table shows space for 10 rows even when there are fewer items
+  const minVisibleRows = 10
+  const displayRows = [
+    ...pageRows,
+    ...Array(Math.max(0, minVisibleRows - pageRows.length)).fill(null),
+  ]
 
   const makePageButtons = () => {
     const pages = []
@@ -49,6 +51,7 @@ function ProfileVerificationProvider() {
   }
 
   return (
+    <>
     <div className="bg-white">
       <div className="flex items-center justify-between mb-4">
         <div className="relative w-1/3">
@@ -58,10 +61,9 @@ function ProfileVerificationProvider() {
       </div>
 
       <div className="flex flex-col min-h-[60vh]">
-        <div className="overflow-hidden rounded border border-gray-100 text-black flex-1 flex flex-col">
-          <div className="overflow-x-auto">
+        <div className="overflow-hidden rounded border border-gray-100 text-black flex-1">
             <table className="w-full table-auto text-sm">
-              <thead className="bg-gray-50 sticky top-0">
+              <thead className="bg-gray-50">
             <tr>
               <th className="p-3 text-left w-12"><input type="checkbox" /></th>
               <th className="p-3 text-left">Care Provider Name</th>
@@ -74,39 +76,50 @@ function ProfileVerificationProvider() {
               <th className="p-3 text-left w-12">...</th>
             </tr>
           </thead>
-          <tbody className="bg-white">
-            {current.map((r, idx) => (
-              <tr key={r.id} className={`border-b hover:bg-gray-50 ${idx === 0 && page === 1 ? 'bg-blue-50' : ''}`}>
+            <tbody>
+            {displayRows.map((r, idx) => (
+              r ? (
+                <tr key={r.id} className={`border-b hover:bg-gray-50`}>
                 <td className="p-3 align-top"><input type="checkbox" /></td>
                 <td className="p-3 align-top font-medium text-black">{r.name}</td>
-                <td className="p-3 align-top text-black">{r.verificationType}</td>
-                <td className="p-3 align-top text-black">{r.paymentOption}</td>
-                <td className="p-3 align-top text-black">{r.paymentStatus}</td>
-                <td className="p-3 align-top text-black">{r.verificationStatus}</td>
-                <td className="p-3 align-top text-black">{r.vettingFeedback}</td>
-                <td className="p-3 align-top text-black">{r.lastUpdated}</td>
+                <td className="p-3 align-top text-black">{r.verification_type}</td>
+                <td className="p-3 align-top text-black">{r.payment_option}</td>
+                <td className="p-3 align-top text-black">{r.payment_status}</td>
+                <td className="p-3 align-top text-black">{r.status || r.feedback}</td>
+                <td className="p-3 align-top text-black">{r.last_updated ? dayjs(r.last_updated).format('DD-MM-YYYY') : ''}</td>
                 <td className="p-3 align-top">
                   <div className="relative inline-block">
                     <button onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)} className="px-2 py-1 rounded hover:bg-gray-100 text-black">•••</button>
                     {openMenuId === r.id && (
-                      <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow z-10 text-sm">
+                      <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded shadow z-10 text-sm">
                         <ul>
-                          <li className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">View</li>
-                          <li className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">Approve</li>
-                          <li className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">Reject</li>
-                          <li className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">Message</li>
-                          <li className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">Re Upload</li>
-                          <li className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">Send Prompt</li>
+                          <li onClick={() => { setShowDetailId(r.id); setOpenMenuId(null); dispatch(fetchVerificationById(r.id)) }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">View</li>
+                          <li onClick={() => { dispatch(postVerificationAction({ id: r.id, action: 'approve' })) }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">Approve</li>
+                          <li onClick={() => { dispatch(postVerificationAction({ id: r.id, action: 'reject', feedback: 'Rejected by admin' })) }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">Reject</li>
+                          <li onClick={() => { dispatch(postVerificationAction({ id: r.id, action: 'message' })); setOpenMenuId(null) }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">Message</li>
+                          <li onClick={() => { dispatch(postVerificationAction({ id: r.id, action: 're_upload' })); setOpenMenuId(null) }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">Re Upload</li>
+                          <li onClick={() => { dispatch(postVerificationAction({ id: r.id, action: 'send_prompt' })); setOpenMenuId(null) }} className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black">Send Prompt</li>
                         </ul>
                       </div>
                     )}
                   </div>
                 </td>
-              </tr>
+                </tr>
+              ) : (
+                <tr key={`empty-${idx}`} className="border-b">
+                  <td className="p-3 align-top h-12"><input type="checkbox" disabled className="opacity-0" /></td>
+                  <td className="p-3 align-top h-12">&nbsp;</td>
+                  <td className="p-3 align-top h-12">&nbsp;</td>
+                  <td className="p-3 align-top h-12">&nbsp;</td>
+                  <td className="p-3 align-top h-12">&nbsp;</td>
+                  <td className="p-3 align-top h-12">&nbsp;</td>
+                  <td className="p-3 align-top h-12">&nbsp;</td>
+                  <td className="p-3 align-top h-12">&nbsp;</td>
+                </tr>
+              )
             ))}
           </tbody>
           </table>
-          </div>
         </div>
 
         <div className="flex items-center justify-between mt-4">
@@ -155,6 +168,106 @@ function ProfileVerificationProvider() {
         </div>
       </div>
     </div>
+
+    {/* Detail modal */}
+    {showDetailId && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+        <div className="bg-white rounded-lg max-w-3xl w-full p-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium">Verification Detail</h3>
+            <button className="text-gray-500" onClick={() => { setShowDetailId(null); dispatch(clearCurrentVerification()) }}>&times;</button>
+          </div>
+          <div className="mt-4">
+            {currentLoading ? (
+              <div>Loading...</div>
+            ) : (
+              <div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-500">Name</div>
+                    <div className="font-medium">{current?.name}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Verification Type</div>
+                    <div className="font-medium">{current?.verification_type}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Payment Option</div>
+                    <div className="font-medium">{current?.payment_option}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Payment Status</div>
+                    <div className="font-medium">{current?.payment_status}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Status</div>
+                    <div className="font-medium">{current?.status}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Last Updated</div>
+                    <div className="font-medium">{current?.last_updated ? dayjs(current.last_updated).format('DD-MM-YYYY') : ''}</div>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <div className="text-sm text-gray-500">Feedback</div>
+                  <div className="font-medium">{current?.feedback}</div>
+                </div>
+                {current?.government_id_url && (
+                  <div className="mt-4">
+                    <div className="text-sm text-gray-500">Government ID</div>
+                    <img src={current.government_id_url} alt="gov" className="mt-2 max-h-48" />
+                  </div>
+                )}
+                <div className="mt-4">
+                  <div className="text-sm text-gray-500">Upload Government ID</div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <input type="file" id="gov-upload" className="text-sm" />
+                    <button
+                      className="px-4 py-2 bg-[#0d99c9] text-white rounded"
+                      onClick={async () => {
+                        const inp = document.getElementById('gov-upload')
+                        if (!inp || !inp.files || inp.files.length === 0) {
+                          alert('Please select a file to upload')
+                          return
+                        }
+                        const file = inp.files[0]
+                        try {
+                          const res = await dispatch(uploadVerificationId(file))
+                          // thunk returns fulfilled action or rejected action object
+                          if (res && res.payload && res.payload.message) {
+                            alert(res.payload.message)
+                          } else if (res && res.payload && typeof res.payload === 'string') {
+                            alert(res.payload)
+                          } else if (res && res.error && res.error.message) {
+                            alert(res.error.message)
+                          } else {
+                            alert('Upload completed')
+                          }
+                        } catch (err) {
+                          console.error(err)
+                          alert('Upload failed')
+                        }
+                      }}
+                    >
+                      Upload
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 flex justify-end gap-2">
+            {actionError && <div className="text-red-600 mr-auto">{actionError}</div>}
+            {actionSuccess && <div className="text-green-600 mr-auto">{actionSuccess}</div>}
+            <button className="btn btn-ghost" onClick={() => { setShowDetailId(null); dispatch(clearCurrentVerification()) }}>Close</button>
+            <button className="btn btn-error" onClick={() => dispatch(postVerificationAction({ id: showDetailId, action: 'reject', feedback: 'Rejected by admin' }))} disabled={actionLoading}>{actionLoading ? 'Rejecting...' : 'Reject'}</button>
+            <button className="btn btn-primary" onClick={() => dispatch(postVerificationAction({ id: showDetailId, action: 'approve' }))} disabled={actionLoading}>{actionLoading ? 'Approving...' : 'Approve'}</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 

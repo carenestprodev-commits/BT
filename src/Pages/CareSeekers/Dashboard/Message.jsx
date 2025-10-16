@@ -1,102 +1,449 @@
-import React, { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import Sidebar from "./Sidebar";
+import { useLocation } from 'react-router-dom'
+import {
+  fetchConversations,
+  fetchMessages,
+  sendMessage,
+  markAsRead,
+  setActiveConversation,
+  connectWebSocket,
+  disconnectWebSocket,
+  clearSendMessageError
+  , createConversation } from "../../../Redux/Messenger";
+import { initiateActivityPayment, clearPaymentState, clearActivityStarted, clearActivityEnded, endActivity } from "../../../Redux/StartActivity";
+import { BASE_URL } from "../../../Redux/config";
 
-const messagesList = [
-  {
-    name: "Aleem Sarah",
-    time: "13:09pm",
-    text: "The dishes have been washed and I only need to take out the trash",
-    avatar: "https://ui-avatars.com/api/?name=Aleem+Sarah&background=E5E7EB&color=374151&size=64"
-  },
-  {
-    name: "John Doe",
-    time: "12:45pm",
-    text: "Can you confirm the schedule for tomorrow?",
-    avatar: "https://ui-avatars.com/api/?name=John+Doe&background=E5E7EB&color=374151&size=64"
-  },
-  {
-    name: "Maria Lopez",
-    time: "11:30am",
-    text: "Thank you for your help today!",
-    avatar: "https://ui-avatars.com/api/?name=Maria+Lopez&background=E5E7EB&color=374151&size=64"
-  },
-  {
-    name: "David Kim",
-    time: "10:15am",
-    text: "I'll be arriving at 2pm.",
-    avatar: "https://ui-avatars.com/api/?name=David+Kim&background=E5E7EB&color=374151&size=64"
-  },
-  {
-    name: "Priya Singh",
-    time: "09:00am",
-    text: "Is there anything else needed for today?",
-    avatar: "https://ui-avatars.com/api/?name=Priya+Singh&background=E5E7EB&color=374151&size=64"
+// Helper functions
+const resolveImage = (url) => {
+  if (!url) return 'https://ui-avatars.com/api/?name=User&background=E5E7EB&color=374151&size=64'
+  if (url.startsWith('http') || url.startsWith('https')) return url
+  if (url.startsWith('/')) return `${BASE_URL}${url}`
+  return url
+}
+
+const formatTime = (timestamp) => {
+  const date = new Date(timestamp)
+  return date.toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: '2-digit', 
+    hour12: true 
+  })
+}
+
+const formatDate = (timestamp) => {
+  const date = new Date(timestamp)
+  return date.toLocaleDateString('en-US', { 
+    month: 'long', 
+    day: 'numeric', 
+    year: 'numeric' 
+  })
+}
+
+const getCurrentUserId = () => {
+  // You might want to store this in Redux auth state
+  // For now, we'll try to get it from token or localStorage
+  try {
+    const token = localStorage.getItem('access')
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      console.log('JWT payload:', payload) // Debug log
+      const userId = payload.user_id || payload.id || payload.sub
+      console.log('Extracted user ID:', userId) // Debug log
+      return userId
+    }
+  } catch (error) {
+    console.error('Error getting user ID from token:', error)
   }
-];
-
-const chatHistories = [
-  [
-    { type: "received", text: "The dishes have been washed and I only need to take out the trash", time: "09:16 PM", date: "May 3, 2025" },
-    { type: "sent", text: "Thank you!", time: "09:17 PM", date: "May 3, 2025" },
-    { type: "info", text: "New Activity Started", time: "09:18 PM", date: "May 3, 2025" },
-    { type: "received", text: "Let me know if you need anything else.", time: "09:19 PM", date: "May 3, 2025" },
-    { type: "info", text: "Activity Ended", time: "09:20 PM", date: "May 3, 2025" }
-  ],
-  [
-    { type: "sent", text: "Can you confirm the schedule for tomorrow?", time: "08:00 AM", date: "May 4, 2025" },
-    { type: "received", text: "Yes, I'll be there at 9am.", time: "08:05 AM", date: "May 4, 2025" },
-    { type: "info", text: "New Activity Started", time: "08:10 AM", date: "May 4, 2025" },
-    { type: "sent", text: "Great, see you then!", time: "08:15 AM", date: "May 4, 2025" }
-  ],
-  [
-    { type: "received", text: "Thank you for your help today!", time: "07:00 PM", date: "May 2, 2025" },
-    { type: "sent", text: "You're welcome!", time: "07:05 PM", date: "May 2, 2025" },
-    { type: "info", text: "New Activity Started", time: "07:10 PM", date: "May 2, 2025" },
-    { type: "info", text: "Activity Ended", time: "07:20 PM", date: "May 2, 2025" }
-  ],
-  [
-    { type: "sent", text: "I'll be arriving at 2pm.", time: "01:00 PM", date: "May 1, 2025" },
-    { type: "received", text: "Okay, see you then!", time: "01:05 PM", date: "May 1, 2025" },
-    { type: "info", text: "New Activity Started", time: "01:10 PM", date: "May 1, 2025" }
-  ],
-  [
-    { type: "received", text: "Is there anything else needed for today?", time: "09:00 AM", date: "Apr 30, 2025" },
-    { type: "sent", text: "No, that's all for now.", time: "09:05 AM", date: "Apr 30, 2025" },
-    { type: "info", text: "New Activity Started", time: "09:10 AM", date: "Apr 30, 2025" },
-    { type: "info", text: "Activity Ended", time: "09:20 AM", date: "Apr 30, 2025" }
-  ]
-];
+  return null
+}
 
 function Message() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const location = useLocation();
+  const inputRef = useRef(null);
+  
+  // Redux state
+  const {
+    conversations,
+    conversationsLoading,
+    conversationsError,
+    messagesByConversation,
+    messagesLoading,
+    messagesError,
+    wsConnected,
+    sendingMessage,
+    sendMessageError,
+    lastCreatedConversationId
+  } = useSelector(state => state.messenger);
+
+  const {
+    initiatingPayment,
+    paymentError,
+    checkoutUrl,
+    activityStarted,
+    lastBookingId
+  } = useSelector(state => state.startActivity);
+
+  // Local state
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  // Dummy payment data for each message
-  const paymentData = [
-    { rate: 13, hours: 32, fee: 7, total: 416 },
-    { rate: 15, hours: 28, fee: 8, total: 428 },
-    { rate: 12, hours: 40, fee: 6, total: 486 },
-    { rate: 14, hours: 30, fee: 7, total: 427 },
-  ];
-  const paymentDetails = paymentData[selected];
-  // Filter messages by search
-  const filteredMessages = messagesList.filter(msg =>
-    msg.name.toLowerCase().includes(search.toLowerCase()) ||
-    msg.text.toLowerCase().includes(search.toLowerCase())
+  const [totalHours, setTotalHours] = useState(1);
+
+  // Handle conversation selection
+  const handleConversationSelect = (index) => {
+    setSelectedIndex(index);
+  };
+
+  // Get current conversation
+  const currentConversation = conversations[selectedIndex] || null;
+  const currentMessages = currentConversation ? 
+    messagesByConversation[String(currentConversation.id)] || messagesByConversation[currentConversation.id] || [] : [];
+
+  // Filter conversations by search
+  const filteredConversations = conversations.filter(conv =>
+    (conv.other_participant?.full_name || conv.other_participant?.email || '')
+      .toLowerCase().includes(search.toLowerCase()) ||
+    (conv.last_message?.content || '')
+      .toLowerCase().includes(search.toLowerCase()) ||
+    (conv.job_title || '')
+      .toLowerCase().includes(search.toLowerCase())
   );
+
+  // Payment calculation (using current conversation's hourly rate or default)
+  const RATE_PER_HOUR = currentConversation?.hourly_rate || 13; // Default $13/hr
+  const SERVICE_FEE = 7; // Fixed service fee
+  const calculatedTotal = (RATE_PER_HOUR * totalHours) + SERVICE_FEE;
+  
+  const paymentDetails = {
+    rate: RATE_PER_HOUR,
+    hours: totalHours,
+    fee: SERVICE_FEE,
+    total: calculatedTotal
+  };
+
+  // Booking ID - try to get from conversation.booking, then booking_id, then fallback
+  const bookingId = currentConversation?.booking || currentConversation?.booking_id || currentConversation?.id || 12;
+
+  // Load conversations on component mount
+  useEffect(() => {
+    dispatch(fetchConversations());
+  }, [dispatch]);
+
+  // If navigated with other_user_id (from ViewDetails), create/open conversation
+  useEffect(() => {
+    const otherUserId = location?.state?.other_user_id
+    if (!otherUserId) return
+
+    let mounted = true
+    ;(async () => {
+      try {
+        await dispatch(createConversation(otherUserId))
+        if (!mounted) return
+      } catch {
+        console.error('Failed to create/open conversation')
+      }
+    })()
+
+    return () => { mounted = false }
+  }, [dispatch, location])
+
+  // When a conversation is created, lastCreatedConversationId will be populated in the store.
+  // Open that conversation once it appears in conversations list.
+  useEffect(() => {
+    if (!lastCreatedConversationId) return
+
+    const cid = String(lastCreatedConversationId)
+    // Try to find the conversation index
+    const idx = conversations.findIndex(c => String(c.id) === cid)
+    if (idx >= 0) {
+      setSelectedIndex(idx)
+      dispatch(setActiveConversation(cid))
+      dispatch(fetchMessages(cid))
+      dispatch(connectWebSocket(cid))
+    setTimeout(() => { if (inputRef.current && typeof inputRef.current.focus === 'function') inputRef.current.focus() }, 100)
+    } else if (conversations.length > 0) {
+      // If not found, refresh list and try again
+      (async () => {
+        const convRes = await dispatch(fetchConversations())
+        const convs = convRes.payload || []
+        const idx2 = convs.findIndex(c => String(c.id) === cid)
+        if (idx2 >= 0) {
+          setSelectedIndex(idx2)
+          dispatch(setActiveConversation(cid))
+          dispatch(fetchMessages(cid))
+          dispatch(connectWebSocket(cid))
+            setTimeout(() => { if (inputRef.current && typeof inputRef.current.focus === 'function') inputRef.current.focus() }, 100)
+        }
+      })()
+    }
+  }, [lastCreatedConversationId, conversations, dispatch])
+
+  // When returning from Stripe, lastBookingId will be set in the store via setActivityStarted.
+  // Open the conversation that matches that booking id so the activity-started message appears in the right chat.
+  useEffect(() => {
+    if (!lastBookingId) return
+    const bid = String(lastBookingId)
+    const idx = conversations.findIndex(c => String(c.booking) === bid || String(c.booking_id) === bid || String(c.id) === bid)
+    if (idx >= 0) {
+      const conv = conversations[idx]
+      setSelectedIndex(idx)
+      dispatch(setActiveConversation(String(conv.id)))
+      dispatch(fetchMessages(String(conv.id)))
+      dispatch(connectWebSocket(String(conv.id)))
+      setTimeout(() => { if (inputRef.current && typeof inputRef.current.focus === 'function') inputRef.current.focus() }, 100)
+    } else if (conversations.length > 0) {
+      ;(async () => {
+        const convRes = await dispatch(fetchConversations())
+        const convs = convRes.payload || []
+        const idx2 = convs.findIndex(c => String(c.booking) === bid || String(c.booking_id) === bid || String(c.id) === bid)
+        if (idx2 >= 0) {
+          const conv = convs[idx2]
+          setSelectedIndex(idx2)
+          dispatch(setActiveConversation(String(conv.id)))
+          dispatch(fetchMessages(String(conv.id)))
+          dispatch(connectWebSocket(String(conv.id)))
+          setTimeout(() => { if (inputRef.current && typeof inputRef.current.focus === 'function') inputRef.current.focus() }, 100)
+        }
+      })()
+    }
+  }, [lastBookingId, conversations, dispatch])
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      dispatch(disconnectWebSocket());
+      dispatch(clearSendMessageError());
+    };
+  }, [dispatch]);
+
+  // Redirect to Stripe checkout when URL is received
+  useEffect(() => {
+    if (checkoutUrl) {
+      // Redirect to Stripe checkout
+      window.location.href = checkoutUrl;
+    }
+  }, [checkoutUrl]);
+
+  // Stripe return handling is performed by the PaymentSuccessRedirect route component
+
+  // Send "Activity has started" message when activity is confirmed
+  useEffect(() => {
+    if (activityStarted && currentConversation) {
+      // Send system message to chat
+      const activityMessage = "Activity has started";
+      dispatch(sendMessage({
+        conversationId: currentConversation.id,
+        content: activityMessage
+      }));
+      
+      // Clear the activity started flag after sending message
+      setTimeout(() => {
+        dispatch(clearPaymentState());
+        dispatch(clearActivityStarted());
+      }, 1000);
+    }
+
+    // When activity is ended, send a system message too
+    // We'll read activityEnded from the store via selector below
+  }, [activityStarted, currentConversation, dispatch]);
+
+  // Watch for activityEnded flag and send system message
+  const { activityEnded } = useSelector(state => state.startActivity);
+  useEffect(() => {
+    if (activityEnded && currentConversation) {
+      const endMessage = 'Activity has ended';
+      dispatch(sendMessage({ conversationId: currentConversation.id, content: endMessage }));
+      setTimeout(() => {
+        dispatch(clearActivityEnded());
+      }, 1000);
+    }
+  }, [activityEnded, currentConversation, dispatch]);
+
+  // Handle conversation selection
+  useEffect(() => {
+    if (currentConversation) {
+      // Load messages for the selected conversation
+      dispatch(fetchMessages(currentConversation.id));
+      dispatch(setActiveConversation(currentConversation.id));
+      
+      // Connect WebSocket for real-time messaging
+      dispatch(connectWebSocket(currentConversation.id));
+      
+      // Mark conversation as read
+      if (currentConversation.unread_count > 0) {
+        dispatch(markAsRead(currentConversation.id));
+      }
+    }
+
+    // Cleanup WebSocket on conversation change
+    return () => {
+      dispatch(disconnectWebSocket());
+    };
+  }, [dispatch, currentConversation]);
+
+  // Message display processing (moved up before useEffect hooks)
+  const convertMessageToDisplay = (message) => {
+    const currentUserId = getCurrentUserId();
+    // Handle both string and number comparison for sender IDs
+    const messageSenderId = String(message.sender);
+    const currentUserIdStr = String(currentUserId);
+    const isSentByCurrentUser = messageSenderId === currentUserIdStr;
+    
+    return {
+      id: message.id || `${message.timestamp}_${message.sender}`,
+      type: isSentByCurrentUser ? "sent" : "received",
+      text: message.content,
+      timestamp: message.timestamp,
+      time: formatTime(message.timestamp),
+      date: formatDate(message.timestamp),
+      senderName: message.sender_name
+    };
+  };
+
+  const displayMessages = currentMessages.map(convertMessageToDisplay);
+
+  // Auto-scroll refs
+  const chatBodyRef = useRef(null)
+  const chatEndRef = useRef(null)
+  // Track previous last message id to only scroll when the last message actually changes
+  const prevLastMessageIdRef = useRef(null)
+
+  // When a conversation is selected, scroll to the bottom to show latest messages
+  useEffect(() => {
+    if (!currentConversation) return
+    
+  // Reset previous last message id when switching conversations
+  prevLastMessageIdRef.current = displayMessages[displayMessages.length - 1]?.id ?? null
+    
+    const end = chatEndRef.current
+    if (end && typeof end.scrollIntoView === 'function') {
+      requestAnimationFrame(() => {
+        try { end.scrollIntoView({ behavior: 'auto', block: 'end' }) } catch (err) { console.error(err) }
+      })
+      return
+    }
+    const el = chatBodyRef.current
+    if (el) {
+      setTimeout(() => { el.scrollTop = el.scrollHeight }, 50)
+    }
+  }, [selectedIndex, currentConversation, currentConversation?.id, displayMessages])
+
+  // Handle sending message
+  // Scroll helper
+  const scrollToBottom = (opts = { behavior: 'smooth' }) => {
+    const end = chatEndRef.current
+    if (end && typeof end.scrollIntoView === 'function') {
+      try { end.scrollIntoView({ behavior: opts.behavior, block: 'end' }) } catch { /* ignore */ }
+      return
+    }
+    const el = chatBodyRef.current
+    if (el) {
+      setTimeout(() => { el.scrollTop = el.scrollHeight }, 50)
+    }
+  }
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || !currentConversation || sendingMessage) return;
+
+    const messageContent = input.trim();
+    // Clear input immediately for optimistic UX
+    setInput("");
+
+    // Optimistically scroll to show the user's new message
+    scrollToBottom({ behavior: 'auto' });
+
+    try {
+      // Always use HTTP API for reliability, WebSocket will handle real-time updates
+      const resultAction = await dispatch(sendMessage({
+        conversationId: currentConversation.id,
+        content: messageContent
+      }));
+
+      // After the send completes, scroll to bottom again to ensure server-rendered message is visible
+      requestAnimationFrame(() => scrollToBottom({ behavior: 'smooth' }));
+      return resultAction
+    } catch {
+      // still try to ensure scroll in case of optimistic UI
+      requestAnimationFrame(() => scrollToBottom({ behavior: 'smooth' }));
+    }
+  };
+
+  // Handle Enter key press
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // Handle payment initiation
+  const handleProceedToPayment = async () => {
+    if (!currentConversation || totalHours < 1) {
+      alert('Please enter valid hours');
+      return;
+    }
+
+    try {
+      const result = await dispatch(initiateActivityPayment({
+        bookingId,
+        totalHours,
+        paymentGateway: 'stripe'
+      }));
+
+      if (initiateActivityPayment.fulfilled.match(result)) {
+        // Checkout URL will trigger redirect via useEffect
+        // No need to do anything here
+      } else {
+        alert('Failed to initiate payment. Please try again.');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Failed to initiate payment. Please try again.');
+    }
+  };
+
+  // Variables are now declared above in the useEffect section
+  
+  useEffect(() => {
+    // Determine the id of the last message
+    const lastMessageId = displayMessages[displayMessages.length - 1]?.id ?? null
+
+    // Only scroll if the last message id changed
+    const isNewLastMessage = lastMessageId && lastMessageId !== prevLastMessageIdRef.current
+
+    if (isNewLastMessage) {
+      const end = chatEndRef.current
+      if (end && typeof end.scrollIntoView === 'function') {
+        requestAnimationFrame(() => {
+          try { end.scrollIntoView({ behavior: 'smooth', block: 'end' }) } catch { /* ignore */ }
+        })
+      } else {
+        const el = chatBodyRef.current
+        if (el) {
+          setTimeout(() => { el.scrollTop = el.scrollHeight }, 50)
+        }
+      }
+    }
+
+    // Update previous last message id
+    prevLastMessageIdRef.current = lastMessageId
+  }, [displayMessages])
 
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex h-screen bg-white overflow-hidden">
       <Sidebar active="Message" />
-      <div className="flex-1 font-sfpro px-0 py-0 ml-64 flex">
+      <div className="flex-1 font-sfpro ml-64 flex h-screen">
         {/* Left: Messages List */}
-        <div className="w-[340px] border-r border-gray-100 bg-[#f3fafc] flex flex-col">
+        <div className="w-[340px] border-r border-gray-100 bg-[#f3fafc] flex flex-col h-screen">
 
           <div className="px-6 py-6 border-b border-gray-100">
             <div className="flex text-left">
@@ -112,68 +459,127 @@ function Message() {
             />
           </div>
           <div className="flex-1 overflow-y-auto px-2 pt-2 pb-2">
-            {filteredMessages.length === 0 ? (
-              <div className="text-center text-gray-400 py-8">No messages found</div>
+            {conversationsLoading ? (
+              <div className="text-center text-gray-400 py-8">Loading conversations...</div>
+            ) : conversationsError ? (
+              <div className="text-center text-red-400 py-8">Error loading conversations</div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="text-center text-gray-400 py-8">No conversations found</div>
             ) : (
-              filteredMessages.map((msg, i) => (
-                <button
-                  key={i}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left mb-1 hover:bg-[#c5c7ca] focus:outline-none ${selected === i ? "bg-[#c5c7ca]" : ""}`}
-                  onClick={() => setSelected(messagesList.indexOf(msg))}
-                >
-                  <img src={msg.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-800 text-base">{msg.name}</div>
-                    <div className="text-xs text-gray-500 mt-1">{msg.text}</div>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs text-gray-400">{msg.time}</span>
-                  </div>
-                </button>
-              ))
+              filteredConversations.map((conversation) => {
+                const originalIndex = conversations.indexOf(conversation);
+                return (
+                  <button
+                    key={conversation.id}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left mb-1 hover:bg-[#c5c7ca] focus:outline-none ${selectedIndex === originalIndex ? "bg-[#c5c7ca]" : ""}`}
+                    onClick={() => handleConversationSelect(originalIndex)}
+                  >
+                    <img 
+                      src={resolveImage(conversation.other_participant?.profile_image_url)} 
+                      alt="avatar" 
+                      className="w-10 h-10 rounded-full object-cover" 
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-800 text-base">
+                        {conversation.other_participant?.full_name || 
+                         conversation.other_participant?.email || 
+                         'Unknown User'}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {conversation.last_message?.content || 'No messages yet'}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-gray-400">
+                        {conversation.last_message?.timestamp ? 
+                         formatTime(conversation.last_message.timestamp) : ''}
+                      </span>
+                      {conversation.unread_count > 0 && (
+                        <span className="bg-[#0d99c9] text-white text-xs rounded-full px-2 py-1 mt-1">
+                          {conversation.unread_count}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
         {/* Right: Chat Area */}
-        <div className="flex-1 flex flex-col bg-white">
-          {/* Chat Header */}
-          <div className="flex items-center px-8 py-6 border-b border-gray-100 bg-[#f3fafc] relative">
-            <img src={messagesList[selected].avatar} alt="avatar" className="w-10 h-10 rounded-full mr-3 object-cover" />
-            <div className="flex-1 flex items-center">
-              <div className="font-semibold text-gray-800 text-lg">{messagesList[selected].name}</div>
-            </div>
+        <div className="flex-1 flex flex-col bg-white h-screen overflow-hidden">
+          {/* Chat Header - Fixed at top */}
+          <div className="flex items-center px-8 py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0">
+            {currentConversation ? (
+              <>
+                <img 
+                  src={resolveImage(currentConversation.other_participant?.profile_image_url)} 
+                  alt="avatar" 
+                  className="w-10 h-10 rounded-full mr-3 object-cover" 
+                />
+                <div className="flex-1 flex items-center">
+                  <div className="font-semibold text-gray-800 text-lg">
+                    {currentConversation.other_participant?.full_name || 
+                     currentConversation.other_participant?.email || 
+                     'Unknown User'}
+                  </div>
+                  {wsConnected && (
+                    <span className="ml-2 text-xs text-green-500">● Online</span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex-1">
+                <div className="font-semibold text-gray-800 text-lg">Select a conversation</div>
+              </div>
+            )}
             <div className="flex gap-4 items-center">
               <button className="text-[#0d99c9] hover:text-[#007bb0] text-xl"><i className="fas fa-phone"></i></button>
               <button className="text-[#0d99c9] hover:text-[#007bb0] text-xl"><i className="fas fa-video"></i></button>
             </div>
-            <div className="ml-4 relative">
-              <button
-                className="text-gray-400 hover:text-gray-600 focus:outline-none"
-                onClick={() => setMenuOpen((v) => !v)}
-              >
-                <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
-                  <circle cx="12" cy="6" r="2" />
-                  <circle cx="12" cy="12" r="2" />
-                  <circle cx="12" cy="18" r="2" />
-                </svg>
-              </button>
-              {menuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                  <button
-                    className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
-                    onClick={() => { setShowPayment(true); setMenuOpen(false); }}
-                  >
-                    Start a new activity
-                  </button>
-                  <button
-                    className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    End activity
-                  </button>
-                </div>
-              )}
-            </div>
+            {currentConversation?.booking ? (
+              <div className="ml-4 relative">
+                <button
+                  className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                  onClick={() => setMenuOpen((v) => !v)}
+                >
+                  <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="6" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="12" cy="18" r="2" />
+                  </svg>
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <button
+                      className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
+                      onClick={async () => {
+                        setMenuOpen(false);
+                        setShowPayment(true);
+                      }}
+                    >
+                      Start a new activity
+                    </button>
+                    <button
+                      className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
+                      onClick={async () => {
+                        // End activity: use bookingId resolved for this conversation
+                        setMenuOpen(false);
+                        try {
+                          const res = await dispatch(endActivity(bookingId));
+                          const payload = res.payload || res.error || null
+                          alert(`End activity response:\n${JSON.stringify(payload, null, 2)}`)
+                        } catch {
+                          alert('Failed to end activity')
+                        }
+                      }}
+                    >
+                      End activity
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
           {/* Payment Popup */}
           {showPayment && (
@@ -181,14 +587,14 @@ function Message() {
               <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-full p-8 relative">
                 <button
                   className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
-                  onClick={() => { setShowPayment(false); setPaymentSuccess(false); }}
+                  onClick={() => { setShowPayment(false); setPaymentSuccess(false); setTotalHours(1); }}
                 >
                   &times;
                 </button>
                 {!paymentSuccess ? (
                   <>
                     <h2 className="text-2xl font-semibold text-gray-800 text-center mb-2">Proceed to Payment</h2>
-                    <p className="text-center text-gray-500 mb-6">Are you sure you want to proceed to payment</p>
+                    <p className="text-center text-gray-500 mb-6">Enter total hours and confirm payment</p>
                     <div className="bg-gray-50 rounded-lg p-4 mb-6">
                       <div className="flex justify-between items-center mb-3">
                         <span className="text-gray-500">Rate per hour</span>
@@ -196,7 +602,13 @@ function Message() {
                       </div>
                       <div className="flex justify-between items-center mb-3">
                         <span className="text-gray-500">Total hours</span>
-                        <span className="text-gray-800 font-semibold">{paymentDetails.hours}</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={totalHours}
+                          onChange={(e) => setTotalHours(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded text-gray-800 font-semibold text-right dark:bg-white"
+                        />
                       </div>
                       <div className="flex justify-between items-center mb-3">
                         <span className="text-gray-500">Service Fee</span>
@@ -208,15 +620,22 @@ function Message() {
                         <span className="text-[#0d99c9] text-xl font-bold">${paymentDetails.total.toFixed(2)}</span>
                       </div>
                     </div>
+                    {paymentError && (
+                      <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+                        {paymentError}
+                      </div>
+                    )}
                     <button
-                      className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition mb-3"
-                      onClick={() => setPaymentSuccess(true)}
+                      className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={handleProceedToPayment}
+                      disabled={initiatingPayment || totalHours < 1}
                     >
-                      Proceed to Payment
+                      {initiatingPayment ? 'Processing...' : 'Proceed to Payment'}
                     </button>
                     <button
                       className="w-full border border-[#0d99c9] text-[#0d99c9] py-3 rounded-md font-semibold bg-white hover:bg-[#f7fafd] transition"
-                      onClick={() => { setShowPayment(false); setPaymentSuccess(false); }}
+                      onClick={() => { setShowPayment(false); setPaymentSuccess(false); setTotalHours(1); }}
+                      disabled={initiatingPayment}
                     >
                       Cancel
                     </button>
@@ -228,7 +647,7 @@ function Message() {
                     <p className="text-gray-500 mb-4">Your payment has been processed.</p>
                     <button
                       className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition"
-                      onClick={() => { setShowPayment(false); setPaymentSuccess(false); }}
+                      onClick={() => { setShowPayment(false); setPaymentSuccess(false); setTotalHours(1); }}
                     >
                       Close
                     </button>
@@ -238,54 +657,103 @@ function Message() {
             </div>
           )}
           {/* Chat Body */}
-          <div className="flex-1 px-8 py-6 overflow-y-auto bg-white">
-            {/* Date */}
-            <div className="flex justify-center mb-6">
-              <span className="text-xs text-gray-400 bg-[#f5f5f5] px-4 py-1 rounded-full">{chatHistories[selected][0]?.date || ""}</span>
-            </div>
-            {/* Messages */}
-            {chatHistories[selected].map((msg, i) => (
-              <div key={i} className="mb-4">
-                {msg.type === "received" && (
-                  <div className="flex flex-col max-w-[60%]">
-                    <span className="text-xs text-gray-500 font-semibold mb-1">{messagesList[selected].name}</span>
-                    <div className="bg-gray-100 rounded-lg px-5 py-3 text-gray-800 text-sm">
-                      {msg.text}
-                    </div>
-                    <span className="text-xs text-gray-400 mt-1">{msg.time}</span>
-                  </div>
-                )}
-                {msg.type === "sent" && (
-                  <div className="flex flex-col items-end max-w-[60%] ml-auto">
-                    <span className="text-xs text-gray-500 font-semibold mb-1">You</span>
-                    <div className="bg-[#0d99c9] rounded-lg px-5 py-3 text-white text-sm">
-                      {msg.text}
-                    </div>
-                    <span className="text-xs text-gray-400 mt-1">{msg.time}</span>
-                  </div>
-                )}
-                {msg.type === "info" && (
-                  <div className="flex justify-end">
-                    <div className="bg-[#f5f5f5] rounded-2xl px-6 py-4 min-w-[220px] max-w-[320px] flex flex-col items-start shadow-sm">
-                      <span className="text-[#0d99c9] text-md font-medium mb-2">{msg.text}</span>
-                      <span className="text-[#0d99c9] text-sm font-normal ml-auto self-end">{msg.time}</span>
-                    </div>
-                  </div>
-                )}
+          <div ref={chatBodyRef} className="flex-1 px-8 py-6 overflow-y-auto bg-white">
+            {!currentConversation ? (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                Select a conversation to start messaging
               </div>
-            ))}
+            ) : messagesLoading[currentConversation.id] ? (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                Loading messages...
+              </div>
+            ) : messagesError[currentConversation.id] ? (
+              <div className="flex items-center justify-center h-full text-red-400">
+                Error loading messages
+              </div>
+            ) : displayMessages.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                No messages yet. Start the conversation!
+              </div>
+            ) : (
+              <>
+                {/* Date */}
+                {displayMessages.length > 0 && (
+                  <div className="flex justify-center mb-6">
+                    <span className="text-xs text-gray-400 bg-[#f5f5f5] px-4 py-1 rounded-full">
+                      {displayMessages[0]?.date || ""}
+                    </span>
+                  </div>
+                )}
+                {/* Messages */}
+                {displayMessages.map((msg, i) => (
+                  <div key={i} className="mb-4">
+                    {msg.type === "received" && (
+                          <div className="flex flex-col max-w-[60%] items-start">
+                            <span className="text-xs text-gray-500 font-semibold mb-1">
+                              {msg.senderName || currentConversation.other_participant?.full_name || 'Other User'}
+                            </span>
+                            <div className="bg-gray-100 rounded-lg px-5 py-3 text-gray-800 text-sm">
+                              {msg.text}
+                            </div>
+                            <span className="text-xs text-gray-400 mt-1">{msg.time}</span>
+                          </div>
+                        )}
+                        {msg.type === "sent" && (
+                          <div className="flex flex-col max-w-[60%] items-end ml-auto">
+                            <span className="text-xs text-gray-500 font-semibold mb-1">You</span>
+                            <div className="bg-[#0d99c9] rounded-lg px-5 py-3 text-white text-sm">
+                              {msg.text}
+                            </div>
+                            <span className="text-xs text-gray-400 mt-1">{msg.time}</span>
+                          </div>
+                        )}
+                    {msg.type === "info" && (
+                      <div className="flex justify-end">
+                        <div className="bg-[#f5f5f5] rounded-2xl px-6 py-4 min-w-[220px] max-w-[320px] flex flex-col items-start shadow-sm">
+                          <span className="text-[#0d99c9] text-md font-medium mb-2">{msg.text}</span>
+                          <span className="text-[#0d99c9] text-sm font-normal ml-auto self-end">{msg.time}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {/* end marker for smooth scrolling */}
+                <div ref={chatEndRef} />
+                {/* Show error if message sending failed */}
+                {sendMessageError && (
+                  <div className="flex justify-center">
+                    <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm">
+                      Failed to send message: {sendMessageError}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          {/* Chat Input */}
-          <div className="px-8 py-6 border-t border-gray-100 bg-white flex items-center">
+          {/* Chat Input - Fixed at bottom */}
+          <div className="px-8 py-6 border-t border-gray-100 bg-white flex items-center flex-shrink-0">
             <input
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder="Start message"
-              className="flex-1 px-4 py-3 rounded-md border border-gray-200 bg-[#f7fafd] text-gray-700 text-sm focus:outline-none"
+              onKeyPress={handleKeyPress}
+              placeholder={currentConversation ? "Start message" : "Select a conversation first"}
+              disabled={!currentConversation || sendingMessage}
+              ref={inputRef}
+              className="flex-1 px-4 py-3 rounded-md border border-gray-200 bg-[#f7fafd] text-gray-700 text-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             />
-            <button className="ml-4 bg-[#0d99c9] hover:bg-[#007bb0] rounded-full w-10 h-10 flex items-center justify-center">
-              <svg width="22" height="22" fill="white" viewBox="0 0 24 24"><path d="M2 21l21-9-21-9v7l15 2-15 2z"/></svg>
+            <button 
+              onClick={handleSendMessage}
+              disabled={!currentConversation || sendingMessage || !input.trim()}
+              className="ml-4 bg-[#0d99c9] hover:bg-[#007bb0] rounded-full w-10 h-10 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sendingMessage ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+                  <path d="M2 21l21-9-21-9v7l15 2-15 2z"/>
+                </svg>
+              )}
             </button>
           </div>
         </div>

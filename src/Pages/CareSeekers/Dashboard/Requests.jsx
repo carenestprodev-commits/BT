@@ -1,109 +1,26 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchSeekerActiveRequests, fetchSeekerClosedRequests, fetchSeekerPendingRequests } from '../../../Redux/SeekerRequest'
 
 const tabs = ["Active", "Closed", "Pending"];
 
-const API_BASE = 'http://10.10.13.75:8088'
-
-function formatDateShort(iso) {
-  if (!iso) return ''
-  try {
-    const d = new Date(iso)
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  } catch { return '' }
-}
-
-function formatTimeRange(startIso, endIso) {
-  try {
-    const s = startIso ? new Date(startIso) : null
-    const e = endIso ? new Date(endIso) : null
-    const opts = { hour: '2-digit', minute: '2-digit' }
-    const sStr = s ? s.toLocaleTimeString([], opts) : ''
-    const eStr = e ? e.toLocaleTimeString([], opts) : ''
-    if (sStr && eStr) return `${sStr} - ${eStr}`
-    if (sStr) return sStr
-    return ''
-  } catch { return '' }
-}
-
-function avatarFromName(name) {
-  const safe = encodeURIComponent(name || 'User')
-  return `https://ui-avatars.com/api/?name=${safe}&background=E5E7EB&color=374151&size=64`
-}
+// Data and formatting are provided by the Redux slice; helpers removed.
 
 function Requests() {
   const [selectedTab, setSelectedTab] = useState(0);
   const navigate = useNavigate();
 
-  const [pendingRequests, setPendingRequests] = useState([])
-  const [activeRequests, setActiveRequests] = useState([])
-  const [closedRequests, setClosedRequests] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [fetchError, setFetchError] = useState(null)
+  const dispatch = useDispatch()
+  const { active: activeRequests = [], closed: closedRequests = [], pending: pendingRequests = [], loading, error: fetchError } = useSelector(s => s.seekerRequests || { active: [], closed: [], pending: [], loading: false, error: null })
+  const fetchErrorMsg = typeof fetchError === 'string' ? fetchError : (fetchError && (fetchError.message || fetchError.error || JSON.stringify(fetchError)))
 
   useEffect(() => {
-    let mounted = true
-    const access = localStorage.getItem('access')
-    const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-
-    async function fetchAll() {
-      setLoading(true)
-      setFetchError(null)
-      try {
-        // pending
-        const pRes = await fetch(`${API_BASE}/api/seeker/requests/pending/`, { headers })
-        const pJson = await pRes.json()
-        const pending = (Array.isArray(pJson) ? pJson : []).map(item => ({
-          id: item.id,
-          posted: item.posted_ago || item.posted || 'Posted just now',
-          title: item.title || item.summary || '',
-          desc: item.summary || item.message_to_provider || '',
-          price_min: item.price_min,
-          price_max: item.price_max,
-        }))
-
-        // active
-        const aRes = await fetch(`${API_BASE}/api/seeker/requests/active/`, { headers })
-        const aJson = await aRes.json()
-        const active = (Array.isArray(aJson) ? aJson : []).map(item => ({
-          id: item.id,
-          day: formatDateShort(item.created_at),
-          date: (item.created_at ? new Date(item.created_at).getDate() : ''),
-          title: item.job_title || (item.job && item.job.title) || '',
-          time: formatTimeRange(item.hired_at, item.completed_at) || '',
-          avatar: item.provider?.user?.full_name ? avatarFromName(item.provider.user.full_name) : avatarFromName('Provider'),
-          provider: item.provider,
-        }))
-
-        // closed
-        const cRes = await fetch(`${API_BASE}/api/seeker/requests/closed/`, { headers })
-        const cJson = await cRes.json()
-        const closed = (Array.isArray(cJson) ? cJson : []).map(item => ({
-          id: item.id,
-          name: item.provider?.user?.full_name || 'Provider',
-          dateRange: `${formatDateShort(item.hired_at)} - ${formatDateShort(item.completed_at)}`,
-          rating: item.provider?.average_rating || (item.review?.rating ?? 0),
-          review: item.review?.text || item.provider?.about_me || '',
-          avatar: item.provider?.user?.full_name ? avatarFromName(item.provider.user.full_name) : avatarFromName('Provider'),
-          provider: item.provider,
-        }))
-
-        if (mounted) {
-          setPendingRequests(pending)
-          setActiveRequests(active)
-          setClosedRequests(closed)
-        }
-      } catch {
-        if (mounted) setFetchError('Failed to load requests')
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-
-    fetchAll()
-    return () => { mounted = false }
-  }, [])
+    dispatch(fetchSeekerPendingRequests())
+    dispatch(fetchSeekerActiveRequests())
+    dispatch(fetchSeekerClosedRequests())
+  }, [dispatch])
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -140,7 +57,7 @@ function Requests() {
             <div className="mb-4 text-sm text-gray-500">Loading requests…</div>
           )}
           {fetchError && (
-            <div className="mb-4 text-sm text-red-600">{fetchError}</div>
+            <div className="mb-4 text-sm text-red-600">{fetchErrorMsg}</div>
           )}
           {selectedTab === 0 && (
             <div>
@@ -166,7 +83,7 @@ function Requests() {
                 <button
                   key={i}
                   className="w-full text-left bg-gray-50 rounded-lg shadow-sm p-6 mb-4 flex hover:bg-gray-100 transition"
-                  onClick={() => navigate("/careseekers/dashboard/request_details")}
+                  onClick={() => navigate("/careseekers/dashboard/request_details/" + req.id)}
                 >
                   <img src={req.avatar} alt="avatar" className="w-12 h-12 rounded-full mr-4" />
                   <div>
@@ -184,9 +101,9 @@ function Requests() {
           )}
           {selectedTab === 2 && (
             <div>
-              {pendingRequests.map((req, i) => (
-                <PendingRequestCard key={i} req={req} />
-              ))}
+                {pendingRequests.map((req, i) => (
+                  <PendingRequestCard key={i} req={req} />
+                ))}
             </div>
           )}
         </div>
@@ -208,10 +125,11 @@ function PendingRequestCard({ req }) {
   };
   const handleEdit = () => {
     setMenuOpen(false);
-    // Add edit logic here
+    // Navigate to summary (edit) page
+    navigate('/careseekers/dashboard/summary')
   };
   return (
-    <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4 relative cursor-pointer" onClick={() => navigate('/careseekers/dashboard/summary')}>
+  <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4 relative cursor-pointer" onClick={() => navigate(`/careseekers/dashboard/pending_details/${req.id}`)}>
       <div className="absolute top-3 right-3">
         <button
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 focus:outline-none"

@@ -29,11 +29,24 @@ function Settings() {
               <span>Password</span>
               <span className="text-gray-400 text-xl">&gt;</span>
             </button>
-            <Link to="/careseekers/login/">
-            <button className="w-full flex items-center justify-between bg-white border border-gray-100 rounded-lg px-6 py-4 text-[#f56c6c] text-base font-medium hover:bg-gray-50">
+           <button
+              onClick={() => {
+                // Clear local storage to remove tokens and onboarding state
+                try {
+                  localStorage.clear()
+                } catch (e) {
+                  console.warn('Failed to clear localStorage', e)
+                }
+                // Redirect to login and reload to ensure protected routes don't use stale state
+                navigate('/careseekers/login/', { replace: true })
+                // Force reload to reset any in-memory auth state
+                window.location.reload()
+              }}
+              className="w-full flex items-center justify-between bg-white border border-gray-100 rounded-lg px-6 py-4 text-[#f56c6c] text-base font-medium hover:bg-gray-50"
+            >
               <span>Log out</span>
               <span className="text-gray-400 text-xl">&gt;</span>
-            </button></Link>
+            </button>
           </div>
         </div>
       </div>
@@ -42,3 +55,22 @@ function Settings() {
 }
 
 export default Settings;
+
+<button
+              onClick={() => {
+                // Clear local storage to remove tokens and onboarding state
+                try {
+                  localStorage.clear()
+                } catch (e) {
+                  console.warn('Failed to clear localStorage', e)
+                }
+                // Redirect to login and reload to ensure protected routes don't use stale state
+                navigate('/careseekers/login/', { replace: true })
+                // Force reload to reset any in-memory auth state
+                window.location.reload()
+              }}
+              className="w-full flex items-center justify-between bg-white border border-gray-100 rounded-lg px-6 py-4 text-[#f56c6c] text-base font-medium hover:bg-gray-50"
+            >
+              <span>Log out</span>
+              <span className="text-gray-400 text-xl">&gt;</span>
+            </button>

@@ -76,7 +76,7 @@ function CareProvidersNearYou() {
                   </div>
 
                   <div className="flex space-x-2">
-                    <button className={`flex-1 bg-[#0093d1] text-white py-2 rounded-md font-medium transition ${plan === "Free" && idx !== 0 ? 'opacity-50 cursor-not-allowed hover:bg-[#0093d1]' : 'hover:bg-[#007bb0]'}`} onClick={() => { if (plan === "Free" && idx !== 0) return; navigate('/careseekers/dashboard/message_provider') }} disabled={plan === "Free" && idx !== 0}>Message</button>
+                    <button className={`flex-1 bg-[#0093d1] text-white py-2 rounded-md font-medium transition ${plan === "Free" && idx !== 0 ? 'opacity-50 cursor-not-allowed hover:bg-[#0093d1]' : 'hover:bg-[#007bb0]'}`} onClick={() => { if (plan === "Free" && idx !== 0) return; navigate('/careseekers/dashboard/message_provider/' + (p?.user?.id || p?.id)) }} disabled={plan === "Free" && idx !== 0}>Message</button>
                     <button className="flex-1 border border-[#0093d1] text-[#0093d1] py-2 rounded-md font-medium hover:bg-[#f0fbf9] transition" onClick={() => navigate('/careseekers/dashboard/details', { state: { providerId: p?.user?.id || p?.id, provider: p } })}>View Details</button>
                   </div>
                 </div>

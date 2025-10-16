@@ -1,18 +1,19 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-const BASE_URL = 'http://10.10.13.75:8088'
+import { BASE_URL, getAuthHeaders } from './config'
 
 export const fetchSupportTickets = createAsyncThunk(
   'adminSupport/fetchSupportTickets',
   async (_, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem('access')
-      const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/support-tickets/`, { headers })
+      const res = await fetch(`${BASE_URL}/api/admin/support-tickets/`, { headers: getAuthHeaders() })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        return rejectWithValue(data || 'Failed')
+      }
       const data = await res.json()
-      if (!res.ok) return rejectWithValue(data)
       return Array.isArray(data) ? data : data.results || []
-    } catch {
-      return rejectWithValue({ error: 'Network error' })
+    } catch (err) {
+      return rejectWithValue({ error: 'Network error', details: err.message })
     }
   }
 )
@@ -21,14 +22,40 @@ export const fetchSupportTicketById = createAsyncThunk(
   'adminSupport/fetchSupportTicketById',
   async (id, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem('access')
-      const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/support-tickets/${id}/`, { headers })
+      const res = await fetch(`${BASE_URL}/api/admin/support-tickets/${id}/`, { headers: getAuthHeaders() })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        return rejectWithValue(data || 'Failed')
+      }
       const data = await res.json()
-      if (!res.ok) return rejectWithValue(data)
       return data
-    } catch {
-      return rejectWithValue({ error: 'Network error' })
+    } catch (err) {
+      return rejectWithValue({ error: 'Network error', details: err.message })
+    }
+  }
+)
+
+export const postSupportAction = createAsyncThunk(
+  'adminSupport/postSupportAction',
+  async ({ id, action, message }, { rejectWithValue, dispatch }) => {
+    try {
+      const headers = { 'Content-Type': 'application/json', ...getAuthHeaders() }
+      const body = JSON.stringify({ action, ...(message ? { message } : {}) })
+      const res = await fetch(`${BASE_URL}/api/admin/support-tickets/${id}/`, {
+        method: 'POST',
+        headers,
+        body,
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        return rejectWithValue(data || 'Failed')
+      }
+      const data = await res.json()
+      // refresh list so UI reflects updated statuses
+  try { dispatch(fetchSupportTickets()) } catch { /* ignore */ }
+      return data
+    } catch (err) {
+      return rejectWithValue({ error: 'Network error', details: err.message })
     }
   }
 )
@@ -42,12 +69,20 @@ const slice = createSlice({
     error: null,
     currentLoading: false,
     currentError: null,
+    actionLoading: false,
+    actionError: null,
+    actionSuccess: null,
   },
   reducers: {
     clearCurrentTicket(state) {
       state.current = null
       state.currentLoading = false
       state.currentError = null
+    },
+    clearActionStatus(state) {
+      state.actionLoading = false
+      state.actionError = null
+      state.actionSuccess = null
     }
   },
   extraReducers: (builder) => {
@@ -59,8 +94,12 @@ const slice = createSlice({
       .addCase(fetchSupportTicketById.pending, (state) => { state.currentLoading = true; state.currentError = null })
       .addCase(fetchSupportTicketById.fulfilled, (state, action) => { state.currentLoading = false; state.current = action.payload })
       .addCase(fetchSupportTicketById.rejected, (state, action) => { state.currentLoading = false; state.currentError = action.payload || action.error })
+
+      .addCase(postSupportAction.pending, (state) => { state.actionLoading = true; state.actionError = null; state.actionSuccess = null })
+      .addCase(postSupportAction.fulfilled, (state, action) => { state.actionLoading = false; state.actionSuccess = action.payload || { status: 'ok' } })
+      .addCase(postSupportAction.rejected, (state, action) => { state.actionLoading = false; state.actionError = action.payload || action.error })
   }
 })
 
-export const { clearCurrentTicket } = slice.actions
+export const { clearCurrentTicket, clearActionStatus } = slice.actions
 export default slice.reducer

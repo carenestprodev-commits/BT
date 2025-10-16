@@ -5,6 +5,7 @@ import { reverseGeocode } from '../../../Redux/Location'
 
 function HouseKeepingDetails({ formData, updateFormData, handleNext, handleBack, showLocationPopup, setShowLocationPopup }) {
   const dispatch = useDispatch();
+  const [errors, setErrors] = useState({});
   const [countryOptions, setCountryOptions] = useState(["United States", "Canada", "United Kingdom"])
   const [stateOptions, setStateOptions] = useState(["California", "Texas"])
   const [languageOptions, setLanguageOptions] = useState(["English", "French", "Spanish", "Bengali"])
@@ -56,12 +57,16 @@ function HouseKeepingDetails({ formData, updateFormData, handleNext, handleBack,
           <button onClick={handleBack} className="mr-4 text-gray-500 hover:text-gray-700">←</button>
           <h3 className="text-lg text-gray-700 flex-1">Housekeeping details</h3>
         </div>
-
-        <p className="text-sm text-gray-500 mb-6">Kindly select options to help us understand your preferences</p>
-
-        <div className="flex items-center mb-6">
-          <input type="checkbox" id="useLocation" checked={formData.useCurrentLocation} onChange={(e) => { updateFormData("useCurrentLocation", e.target.checked); if (e.target.checked) setShowLocationPopup(true); }} className="mr-3" />
-          <label htmlFor="useLocation" className="text-sm text-gray-700">Use my current Location instead</label>
+        {/* Name fields */}
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <div>
+            <TextField label="First Name" value={formData.firstName || ''} onChange={(val) => updateFormData('firstName', val)} />
+            {errors.firstName && <p className="text-sm text-red-600 mt-1">{errors.firstName}</p>}
+          </div>
+          <div>
+            <TextField label="Last Name" value={formData.lastName || ''} onChange={(val) => updateFormData('lastName', val)} />
+            {errors.lastName && <p className="text-sm text-red-600 mt-1">{errors.lastName}</p>}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-6">
@@ -71,6 +76,20 @@ function HouseKeepingDetails({ formData, updateFormData, handleNext, handleBack,
           <TextField label="City" value={formData.city} onChange={(val) => updateFormData("city", val)} />
           <TextField label="Nationality" value={formData.nationality} onChange={(val) => updateFormData("nationality", val)} />
           <TextField label="Zip Code" value={formData.zipCode} onChange={(val) => updateFormData("zipCode", val)} />
+          <SelectField label="Years of Experience" value={formData.experienceLevel} onChange={(val) => updateFormData("experienceLevel", val)} options={["1-3 Years","4-8 Years","9-12 Years"]} />
+          <SelectField label="Native Language" value={formData.nativeLanguage} onChange={(val) => updateFormData("nativeLanguage", val)} options={[]} />
+          <SelectField label="Other Language" value={formData.otherLanguage} onChange={(val) => updateFormData("otherLanguage", val)} options={[]} />
+          <CheckboxGroup
+  label="Other Services you can Offer"
+  options={["Child Care", "Elderly Care", "House keeping"]}
+  values={formData.otherServices || []}
+  onChange={(val) => updateFormData("otherServices", val)}
+/>
+          <SelectField label="State" value={formData.state} onChange={(val) => updateFormData("state", val)} options={stateOptions} />
+          <TextField label="City" value={formData.city} onChange={(val) => updateFormData("city", val)} />
+          <TextField label="Nationality" value={formData.nationality} onChange={(val) => updateFormData("nationality", val)} />
+          <TextField label="Zip Code" value={formData.zipCode} onChange={(val) => updateFormData("zipCode", val)} />
+          <SelectField label="Years of Experience" value={formData.experienceLevel} onChange={(val) => updateFormData("experienceLevel", val)} options={["1-3 Years","4-8 Years","9-12 Years"]} />
           <SelectField label="Native Language" value={formData.nativeLanguage} onChange={(val) => updateFormData("nativeLanguage", val)} options={[]} />
           <SelectField label="Other Language" value={formData.otherLanguage} onChange={(val) => updateFormData("otherLanguage", val)} options={[]} />
           <CheckboxGroup
@@ -135,18 +154,46 @@ function HouseKeepingDetails({ formData, updateFormData, handleNext, handleBack,
 
         <button
           onClick={() => {
-            const payload = {
-              country: formData.country,
-              city: formData.city,
-              nativeLanguage: formData.nativeLanguage,
-              otherLanguage: formData.otherLanguage,
-              otherServices: formData.otherServices,
-              hourlyRate: formData.hourlyRate,
-              aboutYou: formData.aboutYou,
-              title: formData.title,
-              housekeepingPreference: formData.housekeepingPreference
+            const trimmedFirst = (formData.firstName || '').trim();
+            const trimmedLast = (formData.lastName || '').trim();
+            const newErrors = {};
+            if (!trimmedFirst) newErrors.firstName = 'First name is required.';
+            if (!trimmedLast) newErrors.lastName = 'Last name is required.';
+            setErrors(newErrors);
+            if (Object.keys(newErrors).length > 0) return;
+
+            const hkPayload = {
+              user_data: {
+                first_name: trimmedFirst,
+                last_name: trimmedLast,
+                full_name: (trimmedFirst + ' ' + trimmedLast).trim()
+              },
+              profile_data: {
+                service_category: 'housekeeping',
+                country: formData.country || null,
+                city: formData.city || null,
+                state: formData.state || null,
+                zip_code: formData.zipCode || null,
+                nationality: formData.nationality || null,
+                native_language: formData.nativeLanguage || formData.language || null,
+                experience_level: formData.experienceLevel || null,
+                years_of_experience: formData.yearsOfExperience || null,
+                hourly_rate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : null,
+                languages: (formData.communicationLanguages && formData.communicationLanguages.length > 0) ? formData.communicationLanguages : (formData.language ? [formData.language] : []),
+                additional_services: formData.otherServices || [],
+                skills: formData.otherServices || [],
+                category_specific_details: {
+                  housekeeping_preference: Array.isArray(formData.housekeepingPreference) ? formData.housekeepingPreference[0] : formData.housekeepingPreference || null,
+                  services_offered: formData.otherServices || []
+                },
+                about_me: formData.aboutYou || null,
+                profile_title: formData.title || null
+              }
             }
-            dispatch(saveStep({ stepName: 'housekeeping_profile', data: payload }))
+
+            dispatch(saveStep({ stepName: 'user_data', data: { first_name: trimmedFirst, last_name: trimmedLast, full_name: (trimmedFirst + ' ' + trimmedLast).trim() } }))
+            const flatProfile = { ...hkPayload.profile_data };
+            dispatch(saveStep({ stepName: 'housekeeping_profile', data: flatProfile }))
             handleNext()
           }}
           className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8"

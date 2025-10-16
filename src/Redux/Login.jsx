@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-
-const BASE_URL = 'http://10.10.13.75:8088'
+import { BASE_URL } from './config'
 const LS_ACCESS = 'access'
 const LS_REFRESH = 'refresh'
 const LS_USER = 'user'

@@ -11,6 +11,17 @@ import adminActivitiesReducer from './AdminActivities'
 import adminEarningReducer from './AdminEarning'
 import adminSubscriptionReducer from './AdminSubscription'
 import adminSupportReducer from './AdminSupport'
+import verificationReducer from './Verification'
+import adminMessageReducer from './AdminMessage'
+import providerWalletReducer from './ProviderWallet'
+import providerSettingsReducer from './ProviderSettings'
+import careProviderRequestsReducer from './CareProviderRequest'
+import seekerRequestsReducer from './SeekerRequest'
+import passwordChangeReducer from './PasswordChange'
+import messengerReducer from './Messenger'
+import seekerDashboardReducer from './SeekerDashboardHome'
+import providerReviewReducer from './ProviderReview'
+import startActivityReducer from './StartActivity'
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +37,17 @@ export const store = configureStore({
     adminEarning: adminEarningReducer,
     adminSubscription: adminSubscriptionReducer,
     adminSupport: adminSupportReducer,
+    adminMessage: adminMessageReducer,
+    verification: verificationReducer,
+    providerWallet: providerWalletReducer,
+    providerSettings: providerSettingsReducer,
+    seekerRequests: seekerRequestsReducer,
+  seekerDashboard: seekerDashboardReducer,
+    providerReview: providerReviewReducer,
+    passwordChange: passwordChangeReducer,
+    careProviderRequests: careProviderRequestsReducer,
+    messenger: messengerReducer,
+    startActivity: startActivityReducer,
   },
 })
 

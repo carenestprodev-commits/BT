@@ -20,9 +20,6 @@ function EmailPassword(handleBack) {
       return
     }
 
-    // Save the user credentials to steps/localStorage
-    dispatch(saveStep({ stepName: 'user_data', data: { full_name: '', email, password, password2, user_type: 'provider' } }))
-
     // Read provider onboarding steps from Redux (preferred) and fall back to localStorage
     let steps = (providerState && providerState.steps) || {}
     if (!steps || Object.keys(steps).length === 0) {
@@ -30,6 +27,19 @@ function EmailPassword(handleBack) {
       const stored = raw ? JSON.parse(raw) : { steps: {} }
       steps = stored.steps || {}
     }
+
+    // Merge existing user_data (if any) so we don't overwrite first/last name saved earlier
+    const existingUserData = steps.user_data || {}
+    const mergedUserData = {
+      ...existingUserData,
+      full_name: existingUserData.full_name || ((steps.child_profile && steps.child_profile.user_data && steps.child_profile.user_data.full_name) || existingUserData.full_name || ''),
+      email,
+      password,
+      password2,
+      user_type: 'provider'
+    }
+    // Persist merged user_data
+    dispatch(saveStep({ stepName: 'user_data', data: mergedUserData }))
 
     // We'll merge steps below into `mergedProfile`
 
@@ -109,12 +119,15 @@ function EmailPassword(handleBack) {
       }
     }
 
+    const userFirst = (steps.user_data && steps.user_data.first_name) || mergedProfile.firstName || mergedProfile.first_name || ''
+    const userLast = (steps.user_data && steps.user_data.last_name) || mergedProfile.lastName || mergedProfile.last_name || ''
+
     const payload = {
       user_data: {
-        full_name: (steps.user_data && steps.user_data.full_name) || mergedProfile.fullName || mergedProfile.full_name || '',
+        first_name: userFirst,
+        last_name: userLast,
         email,
         password,
-        password2,
         user_type: 'provider'
       },
       profile_data: profileData

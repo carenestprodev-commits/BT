@@ -5,6 +5,7 @@ import { reverseGeocode } from '../../../Redux/Location'
 
 function ElderlyCareDetails({ formData, updateFormData, handleNext, handleBack, showLocationPopup, setShowLocationPopup }) {
   const dispatch = useDispatch();
+  const [errors, setErrors] = useState({});
   const [countryOptions, setCountryOptions] = useState(["United States", "Canada", "United Kingdom"])
   const [stateOptions, setStateOptions] = useState(["California", "New York", "Texas"])
   const [languageOptions, setLanguageOptions] = useState(["English", "Spanish", "French", "Bengali"])
@@ -56,6 +57,17 @@ function ElderlyCareDetails({ formData, updateFormData, handleNext, handleBack, 
           <button onClick={handleBack} className="mr-4 text-gray-500 hover:text-gray-700">←</button>
           <h3 className="text-lg text-gray-700 flex-1">Elderly care details</h3>
         </div>
+        {/* Name fields */}
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <div>
+            <TextField label="First Name" value={formData.firstName || ''} onChange={(val) => updateFormData('firstName', val)} />
+            {errors.firstName && <p className="text-sm text-red-600 mt-1">{errors.firstName}</p>}
+          </div>
+          <div>
+            <TextField label="Last Name" value={formData.lastName || ''} onChange={(val) => updateFormData('lastName', val)} />
+            {errors.lastName && <p className="text-sm text-red-600 mt-1">{errors.lastName}</p>}
+          </div>
+        </div>
         
 
         <p className="text-sm text-gray-500 mb-6">Kindly select options to help us understand your preferences</p>
@@ -72,7 +84,7 @@ function ElderlyCareDetails({ formData, updateFormData, handleNext, handleBack, 
           <TextField label="City" value={formData.city} onChange={(val) => updateFormData("city", val)} />
           <TextField label="Nationality" value={formData.nationality} onChange={(val) => updateFormData("nationality", val)} />
           <TextField label="Zip Code" value={formData.zipCode} onChange={(val) => updateFormData("zipCode", val)} />
-          <SelectField label="Experience Level" value={formData.experienceLevel} onChange={(val) => updateFormData("experienceLevel", val)} options={[]} />
+          <SelectField label="Years of Experience" value={formData.experienceLevel} onChange={(val) => updateFormData("experienceLevel", val)} options={["1-3 Years","4-8 Years","9-12 Years"]} />
           <SelectField label="Native Language" value={formData.nativeLanguage} onChange={(val) => updateFormData("nativeLanguage", val)} options={[]} />
           <SelectField label="Other Language" value={formData.otherLanguage} onChange={(val) => updateFormData("otherLanguage", val)} options={[]} />
           <CheckboxGroup
@@ -103,6 +115,28 @@ function ElderlyCareDetails({ formData, updateFormData, handleNext, handleBack, 
           onChange={(val) => updateFormData("skills", val)}
         />
 
+        {/* Additional multi-select dropdown-like groups */}
+        <CheckboxGroup
+          label="Personality and Interpersonal Skill"
+          options={["Friendly", "Patient", "Energetic", "Calm", "Organized"]}
+          values={formData.personalitySkills || []}
+          onChange={(val) => updateFormData("personalitySkills", val)}
+        />
+
+        <CheckboxGroup
+          label="Communication and Language"
+          options={["Fluent in English","Fluent in French","Fluent in Spanish","Fluent in Yoruba","Fluent in Igbo","Fluent in Idoma","Fluent in Edo"]}
+          values={formData.communicationLanguages || []}
+          onChange={(val) => updateFormData("communicationLanguages", val)}
+        />
+
+        <CheckboxGroup
+          label="Special Preference"
+          options={["Experience with Autism","Experience with ADHD","Experience with Cerebral Palsy","Experience with twins or multiples","Experience with special needs","Experience with speech delay"]}
+          values={formData.specialPreferences || []}
+          onChange={(val) => updateFormData("specialPreferences", val)}
+        />
+
         <div className="mt-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">Hourly Rate</label>
           <input type="text" className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900" placeholder="Input rate" value={formData.hourlyRate} onChange={(e) => updateFormData("hourlyRate", e.target.value)} />
@@ -125,20 +159,50 @@ function ElderlyCareDetails({ formData, updateFormData, handleNext, handleBack, 
         </div>
 
         <button onClick={() => {
-            const payload = {
-              country: formData.country,
-              city: formData.city,
-              experienceLevel: formData.experienceLevel,
-              nativeLanguage: formData.nativeLanguage,
-              otherLanguage: formData.otherLanguage,
-              otherServices: formData.otherServices,
-              careQualities: formData.careQualities,
-              skills: formData.skills,
-              hourlyRate: formData.hourlyRate,
-              aboutYou: formData.aboutYou,
-              title: formData.title
+            const trimmedFirst = (formData.firstName || '').trim();
+            const trimmedLast = (formData.lastName || '').trim();
+            const newErrors = {};
+            if (!trimmedFirst) newErrors.firstName = 'First name is required.';
+            if (!trimmedLast) newErrors.lastName = 'Last name is required.';
+            setErrors(newErrors);
+            if (Object.keys(newErrors).length > 0) return;
+
+            const elderPayload = {
+              user_data: {
+                first_name: trimmedFirst,
+                last_name: trimmedLast,
+                full_name: (trimmedFirst + ' ' + trimmedLast).trim()
+              },
+              profile_data: {
+                service_category: 'elderlycare',
+                country: formData.country || null,
+                city: formData.city || null,
+                state: formData.state || null,
+                zip_code: formData.zipCode || null,
+                nationality: formData.nationality || null,
+                native_language: formData.nativeLanguage || formData.language || null,
+                experience_level: formData.experienceLevel || null,
+                years_of_experience: formData.yearsOfExperience || null,
+                hourly_rate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : null,
+                languages: (formData.communicationLanguages && formData.communicationLanguages.length > 0) ? formData.communicationLanguages : (formData.language ? [formData.language] : []),
+                additional_services: formData.otherServices || [],
+                skills: formData.skills || [],
+                category_specific_details: {
+                  personality_and_interpersonal_skills: formData.personalitySkills || [],
+                  special_preferences: formData.specialPreferences || [],
+                  communication_language: (formData.communicationLanguages && formData.communicationLanguages.length > 0) ? formData.communicationLanguages[0] : (formData.language || null),
+                  preferred_option: Array.isArray(formData.housekeepingPreference) ? formData.housekeepingPreference[0] : (formData.preferredOption || null)
+                },
+                about_me: formData.aboutYou || null,
+                profile_title: formData.title || null
+              }
             }
-            dispatch(saveStep({ stepName: 'elderly_profile', data: payload }))
+
+            // persist top-level user_data so the final payload builder picks up names
+            dispatch(saveStep({ stepName: 'user_data', data: { first_name: trimmedFirst, last_name: trimmedLast, full_name: (trimmedFirst + ' ' + trimmedLast).trim() } }))
+            // save flattened profile fields under 'elderly_profile'
+            const flatProfile = { ...elderPayload.profile_data };
+            dispatch(saveStep({ stepName: 'elderly_profile', data: flatProfile }))
             handleNext()
           }} className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8">
           Save

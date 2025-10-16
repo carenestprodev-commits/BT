@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { FaCheckCircle } from "react-icons/fa";
 import { FaFolderOpen } from "react-icons/fa6";
 import { IoIosArrowDown } from "react-icons/io";
@@ -11,11 +11,28 @@ import folder from "../../../../public/folder.svg";
 import calender from "../../../../public/calender.svg";
 import provider from "../../../../public/provider.png";
 import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchSeekerDashboard } from '../../../Redux/SeekerDashboardHome'
+import { fetchSeekerActiveRequests } from '../../../Redux/SeekerRequest'
 
 
 
 
 function Home() {
+  const dispatch = useDispatch()
+  const { greeting_name, new_care_provider_requests, total_amount_spent, loading } = useSelector(state => state.seekerDashboard || {})
+
+  useEffect(() => {
+    dispatch(fetchSeekerDashboard())
+    dispatch(fetchSeekerActiveRequests())
+  }, [dispatch])
+
+  const greetingName = greeting_name || 'Mark'
+  const requestsCount = new_care_provider_requests ?? 0
+  const totalSpent = total_amount_spent ?? 0.00
+  const activeRequests = useSelector(state => state.seekerRequests?.active || [])
+  const firstActive = activeRequests && activeRequests.length > 0 ? activeRequests[0] : null
+
   return (
     <div className="flex min-h-screen ">
       <Sidebar active="Home" />
@@ -30,8 +47,7 @@ function Home() {
       <div className="flex items-center space-x-2 mb-4">
         <FaCheckCircle className="text-[#00b894] text-lg" />
         <p className="text-black text-2xl">
-
-          Hello, <span className="font-semibold">Mark!</span>
+          Hello, <span className="font-semibold">{greetingName}</span>
         </p>
       </div>
 
@@ -46,7 +62,7 @@ function Home() {
   <div className="flex items-center">
     {/* Left: New Requests */}
     <div className="text-[#0093d1] w-1/2">
-      <div className="text-[40px] font-semibold leading-none">7</div>
+      <div className="text-[40px] font-semibold leading-none">{loading ? '...' : requestsCount}</div>
       <p className="text-[13px] mt-1">New Care Providers request</p>
     </div>
 
@@ -57,7 +73,7 @@ function Home() {
     <div className="flex-1 text-right">
       <div className="flex items-center justify-end text-[#0093d1] text-[28px] font-semibold leading-none">
         <img src="/NiCurrency.svg" alt="Naira" className="w-7 h-7 mr-2" />
-        <span>0.00</span>
+        <span>{loading ? '...' : Number(totalSpent).toFixed(2)}</span>
       </div>
       <p className="text-[13px] mt-1 text-[#0093d1]">Total Amount Spent</p>
     </div>
@@ -97,7 +113,7 @@ function Home() {
 
 <div className="grid grid-cols-2 gap-4">
   {/* Book a Service Card */}
-  <Link to="/careseekers/signup">
+  <Link to="/careseekers/bookservice">
   <div className="bg-[#f3f9fc] rounded-xl px-4 py-10 flex items-center space-x-3 shadow-sm border border-gray-100 hover:shadow-lg transition">
     <div className="p-2 rounded-md flex-shrink-0">
       <img src={calender} alt="Calendar Icon"className="h-15 w-15" />
@@ -142,9 +158,9 @@ function Home() {
   {/* Date Column */}
   <div className="w-14 flex flex-col items-center justify-center py-3 border-r-[5px] border-[#0d99c9] rounded-l-lg">
 
-
-    <p className="text-xs text-gray-500">Wed</p>
-    <p className="text-base font-semibold text-gray-700">12</p>
+    {/* If we have an active request, show its day and date (fallbacks provided) */}
+    <p className="text-xs text-gray-500">{firstActive ? (typeof firstActive.day === 'string' ? (firstActive.day.split(' ')[0] || firstActive.day) : firstActive.day) : 'Wed'}</p>
+    <p className="text-base font-semibold text-gray-700">{firstActive ? (firstActive.date ?? (firstActive.day && firstActive.day.split(' ')[1]) ?? '') : '12'}</p>
   </div>
 
   {/* Vertical Blue Line */}
@@ -153,15 +169,15 @@ function Home() {
   {/* Content */}
   <div className="flex items-center px-4 py-3 space-x-3 flex-1">
     <img
-      src="https://randomuser.me/api/portraits/women/1.jpg"
+      src={firstActive ? firstActive.avatar : "https://randomuser.me/api/portraits/women/1.jpg"}
       alt="Avatar"
       className="w-10 h-10 rounded-full object-cover"
     />
     <div className="flex flex-col">
       <p className="text-lg font-medium text-gray-800 leading-tight">
-        Child care with Aleem Sarah
+        {firstActive ? firstActive.title : 'Child care with Aleem Sarah'}
       </p>
-      <p className="text-sm text-gray-500">06:45 AM - 13:00 PM</p>
+      <p className="text-sm text-gray-500">{firstActive ? firstActive.time : '06:45 AM - 13:00 PM'}</p>
     </div>
   </div>
 </div>

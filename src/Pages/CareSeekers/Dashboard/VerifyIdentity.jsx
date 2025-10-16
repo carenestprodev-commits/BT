@@ -1,8 +1,8 @@
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Sidebar from "./Sidebar";
-import { useNavigate } from "react-router-dom";
-import { FaFileUpload } from "react-icons/fa";
 import UploadIcon from "../../../../public/upload.svg"; 
+import { useDispatch } from 'react-redux'
+import { uploadVerificationId } from '../../../Redux/Verification'
 
 
 function VerifyIdentity() {
@@ -23,12 +23,36 @@ function VerifyIdentity() {
     }
   };
 
-  const handleChooseFile = () => {
-    handleRemoveFile();
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+  const dispatch = useDispatch()
+  const [uploading, setUploading] = useState(false)
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      alert('Please choose a file first')
+      return
     }
-  };
+    setUploading(true)
+    try {
+      const res = await dispatch(uploadVerificationId(selectedFile))
+      if (res && res.payload && res.payload.message) {
+        alert(res.payload.message)
+        // clear selected file on success
+        handleRemoveFile()
+      } else if (res && res.error && res.error.message) {
+        alert(res.error.message)
+      } else {
+        alert('Upload completed')
+        handleRemoveFile()
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  // (no extra helper needed)
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -77,6 +101,13 @@ function VerifyIdentity() {
                     onClick={handleRemoveFile}
                   >
                     Remove
+                  </button>
+                    <button
+                    className="bg-red-100 text-green-600 px-4 py-1 rounded font-medium hover:bg-red-200 disabled:opacity-50"
+                    onClick={handleUpload}
+                    disabled={uploading}
+                  >
+                    {uploading ? 'Uploading...' : 'Upload'}
                   </button>
                 </div>
               </div>

@@ -1,12 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { FaStar } from "react-icons/fa";
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchSeekerRequestDetails, submitReview, clearCurrentRequest } from '../../../Redux/SeekerRequest'
+import { BASE_URL } from '../../../Redux/config'
 
 function RequestDetails() {
   const navigate = useNavigate();
   const [feedback, setFeedback] = useState("");
   const [rating, setRating] = useState(0);
+  const dispatch = useDispatch()
+  const { currentRequest, submit } = useSelector(s => s.seekerRequests || { currentRequest: null, submit: {} })
+  const params = useParams()
+  const routeId = params?.id || params?.requestId || params?.bookingId
+
+  useEffect(() => {
+    const id = routeId || 11
+    dispatch(fetchSeekerRequestDetails(id))
+    return () => dispatch(clearCurrentRequest())
+    // intentionally only run on mount/unmount; routeId included so it re-fetches if URL param changes
+  }, [dispatch, routeId])
+
+  useEffect(() => {
+    if (submit && submit.response) {
+      alert(`Review submitted: ${JSON.stringify(submit.response)}`)
+      // navigate back after successful submit
+      navigate('/careseekers/dashboard/requests')
+    } else if (submit && submit.error) {
+      alert(`Failed to submit review: ${typeof submit.error === 'string' ? submit.error : (submit.error?.error || submit.error?.message || JSON.stringify(submit.error))}`)
+    }
+  }, [submit, navigate])
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -17,24 +41,33 @@ function RequestDetails() {
         </button>
         <h2 className="text-2xl font-semibold text-gray-800 mb-8">Details</h2>
         <div className="flex items-center mb-6">
-          <img src="https://ui-avatars.com/api/?name=Aleem+Sarah&background=E5E7EB&color=374151&size=64" alt="Aleem Sarah" className="w-16 h-16 rounded-full object-cover mr-6" />
+          <img src={currentRequest?.provider?.user?.profile_image_url ? (currentRequest.provider.user.profile_image_url.startsWith('/') ? `${BASE_URL}${currentRequest.provider.user.profile_image_url}` : currentRequest.provider.user.profile_image_url) : 'https://ui-avatars.com/api/?name=Provider&background=E5E7EB&color=374151&size=64'} alt={currentRequest?.provider?.user?.full_name || 'Provider'} className="w-16 h-16 rounded-full object-cover mr-6" />
           <div>
-            <div className="text-xl font-semibold text-gray-800">Aleem Sarah</div>
-            <div className="text-gray-500 text-sm mt-1">Jan 20, 2025 -Mar 6, 2025</div>
+            <div className="text-xl font-semibold text-gray-800">{currentRequest?.provider?.user?.full_name || currentRequest?.job_title || 'Provider'}</div>
+            <div className="text-gray-500 text-sm mt-1">{currentRequest?.hired_at ? `${new Date(currentRequest.hired_at).toLocaleDateString()} - ${currentRequest?.completed_at ? new Date(currentRequest.completed_at).toLocaleDateString() : 'Ongoing'}` : ''}</div>
           </div>
         </div>
         <div className="flex gap-6 mb-8">
           <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
             <span className="text-gray-500 text-xs mb-1">Experience</span>
-            <span className="text-gray-800 font-semibold text-lg">8 years</span>
+            <span className="text-gray-800 font-semibold text-lg">{currentRequest?.provider?.years_of_experience ?? 'N/A'}</span>
           </div>
           <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
             <span className="text-gray-500 text-xs mb-1">Rate</span>
-            <span className="text-gray-800 font-semibold text-lg">$135/hr</span>
+            <span className="text-gray-800 font-semibold text-lg">{currentRequest?.provider?.hourly_rate ? `$${currentRequest.provider.hourly_rate}` : 'N/A'}</span>
           </div>
           <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
             <span className="text-gray-500 text-xs mb-1">Rating</span>
-            <span className="text-gray-800 font-semibold text-lg flex items-center gap-2">5.0 {Array.from({ length: 5 }).map((_, i) => <FaStar key={i} className="text-[#cb9e49] text-base" />)}</span>
+            <span className="text-gray-800 font-semibold text-lg flex items-center gap-2">{currentRequest?.provider?.average_rating ?? 'N/A'} {Array.from({ length: 5 }).map((_, i) => <FaStar key={i} className={i < (Math.round(currentRequest?.provider?.average_rating ?? 0)) ? "text-[#cb9e49] text-base" : "text-gray-300 text-base"} />)}</span>
+          </div>
+        </div>
+        <div className="mb-6">
+          <div className="text-gray-700 font-medium mb-2">Provider Details</div>
+          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 text-gray-700 text-base">
+            <div><strong>Profile Title:</strong> {currentRequest?.provider?.profile_title}</div>
+            <div><strong>City:</strong> {currentRequest?.provider?.city}</div>
+            <div><strong>Country:</strong> {currentRequest?.provider?.country}</div>
+            <div><strong>Service Category:</strong> {currentRequest?.provider?.service_category_name}</div>
           </div>
         </div>
         <div className="mb-8">
@@ -64,8 +97,16 @@ function RequestDetails() {
             I had a wonderful experience caring for Mr. and Mrs. Johnson over the past 8 months. They are such a sweet couple who treated me like family from day one. Mrs. Johnson always had interesting stories to share, and Mr. Johnson kept me entertained with his sense of humor during our daily walks.
           </div>
         </div>
-        <button className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition">Submit</button>
-        <p className="text-sm text-red-500 mt-2">after clicking the submit it should go back with a successful alert msg</p>
+        <button
+          className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition"
+            onClick={() => {
+            // send review
+            const booking_id = currentRequest?.id || routeId || 11
+            dispatch(submitReview({ booking_id, rating, comment: feedback }))
+          }}
+        >
+          {submit?.loading ? 'Submitting…' : 'Submit'}
+        </button>
       </div>
     </div>
   );
