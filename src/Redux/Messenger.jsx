@@ -129,7 +129,7 @@ class WebSocketManager {
       this.disconnect()
     }
 
-    const wsUrl = `ws://10.10.13.75:8088/ws/chat/${conversationId}/?token=${token}`
+    const wsUrl = `wss://carenestpro.duckdns.org/ws/chat/${conversationId}/?token=${token}`
     this.socket = new WebSocket(wsUrl)
 
     this.socket.onopen = () => {
