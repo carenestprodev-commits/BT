@@ -55,7 +55,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen bg-white ">
       <Sidebar active="Home" />
-      <div className="flex-1 font-sfpro  ml-64 ">
+      <div className="flex-1 font-sfpro px-4 md:px-6 md:ml-64">
         <div className="bg-[#f5f8ff] py-5 px-2">
           <div className="flex items-center mb-4 ml-5">
             <RiVerifiedBadgeFill className="text-[#8ed796] mr-2 text-3xl" />
