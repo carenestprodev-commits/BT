@@ -1,8 +1,12 @@
 import React from "react";
 
 function EmailStep({ formData, updateFormData, onClose, onComplete }) {
+  const isValidEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || "");
+  };
+
   const handleSubmit = () => {
-    if (formData.email) {
+    if (isValidEmail(formData.email)) {
       onComplete();
     }
   };
@@ -43,15 +47,20 @@ function EmailStep({ formData, updateFormData, onClose, onComplete }) {
 
       <button
         onClick={handleSubmit}
-        disabled={!formData.email}
+        disabled={!isValidEmail(formData.email)}
         className={`w-full text-lg font-medium py-3 rounded-md transition mt-4 ${
-          formData.email
+          isValidEmail(formData.email)
             ? "bg-[#0093d1] text-white hover:bg-[#007bb0]"
             : "bg-gray-300 text-gray-500 cursor-not-allowed"
         }`}
       >
         Sign Up
       </button>
+      {!isValidEmail(formData.email) && formData.email && (
+        <p className="text-red-500 text-sm mt-2">
+          Please enter a valid email address
+        </p>
+      )}
     </div>
   );
 }

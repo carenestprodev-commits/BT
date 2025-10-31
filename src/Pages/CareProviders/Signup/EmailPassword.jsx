@@ -1,45 +1,68 @@
 import { useState } from "react";
 import CareLogo from "../../../../public/CareLogo.png";
 import { Link } from "react-router-dom";
-import { useDispatch, useSelector } from 'react-redux';
-import { registerAndCreateProfile, saveStep } from '../../../Redux/CareProviderAuth';
+import { useDispatch, useSelector } from "react-redux";
+import {
+  registerAndCreateProfile,
+  saveStep,
+} from "../../../Redux/CareProviderAuth";
 
 function EmailPassword(handleBack) {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [password2, setPassword2] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
   const dispatch = useDispatch();
-  const providerState = useSelector((state) => state.careProvider) || null
+  const providerState = useSelector((state) => state.careProvider) || null;
+
+  const isValidEmail = (value) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || "");
+  const isStrongPassword = (pw) =>
+    pw && /^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(pw);
 
   const handleSignUp = async (e) => {
     e.preventDefault();
 
-    if (!email || !password || password !== password2) {
-      alert('Please provide matching email and passwords')
-      return
+    // validate again before submit
+    if (!isValidEmail(email)) {
+      alert("Please provide a valid email address");
+      return;
+    }
+    if (!isStrongPassword(password)) {
+      alert("Password must be at least 8 characters and include a number");
+      return;
+    }
+    if (password !== password2) {
+      alert("Passwords do not match");
+      return;
     }
 
     // Read provider onboarding steps from Redux (preferred) and fall back to localStorage
-    let steps = (providerState && providerState.steps) || {}
+    let steps = (providerState && providerState.steps) || {};
     if (!steps || Object.keys(steps).length === 0) {
-      const raw = localStorage.getItem('provider_onboarding')
-      const stored = raw ? JSON.parse(raw) : { steps: {} }
-      steps = stored.steps || {}
+      const raw = localStorage.getItem("provider_onboarding");
+      const stored = raw ? JSON.parse(raw) : { steps: {} };
+      steps = stored.steps || {};
     }
 
     // Merge existing user_data (if any) so we don't overwrite first/last name saved earlier
-    const existingUserData = steps.user_data || {}
+    const existingUserData = steps.user_data || {};
     const mergedUserData = {
       ...existingUserData,
-      full_name: existingUserData.full_name || ((steps.child_profile && steps.child_profile.user_data && steps.child_profile.user_data.full_name) || existingUserData.full_name || ''),
+      full_name:
+        existingUserData.full_name ||
+        (steps.child_profile &&
+          steps.child_profile.user_data &&
+          steps.child_profile.user_data.full_name) ||
+        existingUserData.full_name ||
+        "",
       email,
       password,
       password2,
-      user_type: 'provider'
-    }
+      user_type: "provider",
+    };
     // Persist merged user_data
-    dispatch(saveStep({ stepName: 'user_data', data: mergedUserData }))
+    dispatch(saveStep({ stepName: "user_data", data: mergedUserData }));
 
     // We'll merge steps below into `mergedProfile`
 
@@ -52,75 +75,187 @@ function EmailPassword(handleBack) {
       ...(steps.elderly_profile || {}),
       ...(steps.housekeeping_profile || {}),
       ...(steps.tutoring_profile || {}),
-    }
+    };
 
     // Ensure some canonical fields are present and normalized
-    mergedProfile.service_category = (steps.careCategory || mergedProfile.service_category || '').toLowerCase()
-    mergedProfile.work_reason = steps.whyWantWork || mergedProfile.work_reason || ''
+    mergedProfile.service_category = (
+      steps.careCategory ||
+      mergedProfile.service_category ||
+      ""
+    ).toLowerCase();
+    mergedProfile.work_reason =
+      steps.whyWantWork || mergedProfile.work_reason || "";
 
     // Normalize some common arrays/fields to match expected backend naming
-    if (mergedProfile.nativeLanguage && !mergedProfile.languages) mergedProfile.languages = [mergedProfile.nativeLanguage]
-    if (mergedProfile.servicesProvided && !mergedProfile.skills) mergedProfile.skills = mergedProfile.servicesProvided
-    if (mergedProfile.otherServices && !mergedProfile.additional_services) mergedProfile.additional_services = mergedProfile.otherServices
+    if (mergedProfile.nativeLanguage && !mergedProfile.languages)
+      mergedProfile.languages = [mergedProfile.nativeLanguage];
+    if (mergedProfile.servicesProvided && !mergedProfile.skills)
+      mergedProfile.skills = mergedProfile.servicesProvided;
+    if (mergedProfile.otherServices && !mergedProfile.additional_services)
+      mergedProfile.additional_services = mergedProfile.otherServices;
 
     // Helper to ensure array values
     const ensureArray = (v) => {
-      if (!v && v !== 0) return []
-      if (Array.isArray(v)) return v
-      return [v]
-    }
+      if (!v && v !== 0) return [];
+      if (Array.isArray(v)) return v;
+      return [v];
+    };
 
     // Build canonical profile_data shape expected by backend (snake_case keys)
     const profileData = {
-      service_category: mergedProfile.service_category || mergedProfile.serviceCategory || '',
-      work_reason: mergedProfile.work_reason || mergedProfile.workReason || '',
-      profile_title: mergedProfile.title || mergedProfile.profileTitle || mergedProfile.profile_title || '',
-      about_me: mergedProfile.aboutYou || mergedProfile.about_me || mergedProfile.about || '',
-      country: mergedProfile.country || '',
-      city: mergedProfile.city || '',
-      state: mergedProfile.state || mergedProfile.region || mergedProfile.state || '',
-      zip_code: mergedProfile.zipCode || mergedProfile.zip_code || mergedProfile.zip || '',
-      nationality: mergedProfile.nationality || mergedProfile.nationality_country || '',
-      native_language: mergedProfile.nativeLanguage || mergedProfile.native_language || '',
-      experience_level: mergedProfile.experienceLevel || mergedProfile.experience_level || '',
-      years_of_experience: parseInt(mergedProfile.yearsOfExperience || mergedProfile.years_of_experience || mergedProfile.years || 0) || 0,
-      hourly_rate: parseFloat(mergedProfile.hourlyRate || mergedProfile.hourly_rate || 0) || 0,
-      languages: ensureArray(mergedProfile.languages || mergedProfile.nativeLanguage || mergedProfile.otherLanguage),
-      additional_services: ensureArray(mergedProfile.additional_services || mergedProfile.otherServices || mergedProfile.other_services),
-      skills: ensureArray(mergedProfile.skills || mergedProfile.servicesProvided || mergedProfile.careQualities || mergedProfile.subjects),
-      category_specific_details: {}
+      service_category:
+        mergedProfile.service_category || mergedProfile.serviceCategory || "",
+      work_reason: mergedProfile.work_reason || mergedProfile.workReason || "",
+      profile_title:
+        mergedProfile.title ||
+        mergedProfile.profileTitle ||
+        mergedProfile.profile_title ||
+        "",
+      about_me:
+        mergedProfile.aboutYou ||
+        mergedProfile.about_me ||
+        mergedProfile.about ||
+        "",
+      country: mergedProfile.country || "",
+      city: mergedProfile.city || "",
+      state:
+        mergedProfile.state ||
+        mergedProfile.region ||
+        mergedProfile.state ||
+        "",
+      zip_code:
+        mergedProfile.zipCode ||
+        mergedProfile.zip_code ||
+        mergedProfile.zip ||
+        "",
+      nationality:
+        mergedProfile.nationality || mergedProfile.nationality_country || "",
+      native_language:
+        mergedProfile.nativeLanguage || mergedProfile.native_language || "",
+      experience_level:
+        mergedProfile.experienceLevel || mergedProfile.experience_level || "",
+      years_of_experience:
+        parseInt(
+          mergedProfile.yearsOfExperience ||
+            mergedProfile.years_of_experience ||
+            mergedProfile.years ||
+            0
+        ) || 0,
+      hourly_rate:
+        parseFloat(
+          mergedProfile.hourlyRate || mergedProfile.hourly_rate || 0
+        ) || 0,
+      languages: ensureArray(
+        mergedProfile.languages ||
+          mergedProfile.nativeLanguage ||
+          mergedProfile.otherLanguage
+      ),
+      additional_services: ensureArray(
+        mergedProfile.additional_services ||
+          mergedProfile.otherServices ||
+          mergedProfile.other_services
+      ),
+      skills: ensureArray(
+        mergedProfile.skills ||
+          mergedProfile.servicesProvided ||
+          mergedProfile.careQualities ||
+          mergedProfile.subjects
+      ),
+      category_specific_details: {},
+    };
+
+    const cat = (profileData.service_category || "").toLowerCase();
+    if (cat === "childcare") {
+      profileData.category_specific_details = {
+        type_of_care_provider: Array.isArray(mergedProfile.providerType)
+          ? mergedProfile.providerType[0]
+          : mergedProfile.providerType ||
+            mergedProfile.type_of_care_provider ||
+            "",
+        preferred_option: Array.isArray(mergedProfile.housekeepingPreference)
+          ? mergedProfile.housekeepingPreference[0]
+          : mergedProfile.preferredWorkOption ||
+            mergedProfile.preferred_option ||
+            (mergedProfile.housekeepingPreference &&
+              mergedProfile.housekeepingPreference[0]) ||
+            "",
+        special_preferences: ensureArray(
+          mergedProfile.specialPreferences ||
+            mergedProfile.special_preferences ||
+            mergedProfile.servicesProvided ||
+            mergedProfile.careQualities
+        ),
+        communication_language:
+          mergedProfile.communicationLanguage ||
+          mergedProfile.nativeLanguage ||
+          mergedProfile.native_language ||
+          "",
+      };
+    } else if (cat === "tutoring") {
+      profileData.category_specific_details = {
+        tutoring_services: ensureArray(
+          mergedProfile.tutoringServices ||
+            mergedProfile.tutoring_services ||
+            []
+        ),
+        experience_level_taught: ensureArray(
+          mergedProfile.tutoringExperienceLevel ||
+            mergedProfile.tutoring_experience_level ||
+            mergedProfile.tutoringExperienceLevel
+        ),
+        subjects_experienced_in: ensureArray(
+          mergedProfile.subjects ||
+            mergedProfile.subjects_experienced_in ||
+            mergedProfile.subjects
+        ),
+      };
+    } else if (cat === "elderlycare") {
+      profileData.category_specific_details = {
+        personality_and_interpersonal_skills: ensureArray(
+          mergedProfile.careQualities ||
+            mergedProfile.personality_and_interpersonal_skills
+        ),
+        special_preferences: ensureArray(
+          mergedProfile.specialPreferences ||
+            mergedProfile.special_preferences ||
+            mergedProfile.careQualities
+        ),
+        communication_language:
+          mergedProfile.communicationLanguage ||
+          mergedProfile.nativeLanguage ||
+          mergedProfile.native_language ||
+          "",
+        preferred_option: Array.isArray(mergedProfile.housekeepingPreference)
+          ? mergedProfile.housekeepingPreference[0]
+          : mergedProfile.preferred_option ||
+            mergedProfile.preferredWorkOption ||
+            "",
+      };
+    } else if (cat === "housekeeping") {
+      profileData.category_specific_details = {
+        housekeeping_preference: Array.isArray(
+          mergedProfile.housekeepingPreference
+        )
+          ? mergedProfile.housekeepingPreference[0]
+          : mergedProfile.housekeepingPreference ||
+            mergedProfile.housekeeping_preference ||
+            "",
+        services_offered: ensureArray(
+          mergedProfile.servicesProvided || mergedProfile.skills || []
+        ),
+      };
     }
 
-    const cat = (profileData.service_category || '').toLowerCase()
-    if (cat === 'childcare') {
-      profileData.category_specific_details = {
-        type_of_care_provider: Array.isArray(mergedProfile.providerType) ? mergedProfile.providerType[0] : (mergedProfile.providerType || mergedProfile.type_of_care_provider || ''),
-        preferred_option: Array.isArray(mergedProfile.housekeepingPreference) ? mergedProfile.housekeepingPreference[0] : (mergedProfile.preferredWorkOption || mergedProfile.preferred_option || (mergedProfile.housekeepingPreference && mergedProfile.housekeepingPreference[0]) || ''),
-        special_preferences: ensureArray(mergedProfile.specialPreferences || mergedProfile.special_preferences || mergedProfile.servicesProvided || mergedProfile.careQualities),
-        communication_language: mergedProfile.communicationLanguage || mergedProfile.nativeLanguage || mergedProfile.native_language || ''
-      }
-    } else if (cat === 'tutoring') {
-      profileData.category_specific_details = {
-        tutoring_services: ensureArray(mergedProfile.tutoringServices || mergedProfile.tutoring_services || []),
-        experience_level_taught: ensureArray(mergedProfile.tutoringExperienceLevel || mergedProfile.tutoring_experience_level || mergedProfile.tutoringExperienceLevel),
-        subjects_experienced_in: ensureArray(mergedProfile.subjects || mergedProfile.subjects_experienced_in || mergedProfile.subjects)
-      }
-    } else if (cat === 'elderlycare') {
-      profileData.category_specific_details = {
-        personality_and_interpersonal_skills: ensureArray(mergedProfile.careQualities || mergedProfile.personality_and_interpersonal_skills),
-        special_preferences: ensureArray(mergedProfile.specialPreferences || mergedProfile.special_preferences || mergedProfile.careQualities),
-        communication_language: mergedProfile.communicationLanguage || mergedProfile.nativeLanguage || mergedProfile.native_language || '',
-        preferred_option: Array.isArray(mergedProfile.housekeepingPreference) ? mergedProfile.housekeepingPreference[0] : (mergedProfile.preferred_option || mergedProfile.preferredWorkOption || '')
-      }
-    } else if (cat === 'housekeeping') {
-      profileData.category_specific_details = {
-        housekeeping_preference: Array.isArray(mergedProfile.housekeepingPreference) ? mergedProfile.housekeepingPreference[0] : mergedProfile.housekeepingPreference || mergedProfile.housekeeping_preference || '',
-        services_offered: ensureArray(mergedProfile.servicesProvided || mergedProfile.skills || [])
-      }
-    }
-
-    const userFirst = (steps.user_data && steps.user_data.first_name) || mergedProfile.firstName || mergedProfile.first_name || ''
-    const userLast = (steps.user_data && steps.user_data.last_name) || mergedProfile.lastName || mergedProfile.last_name || ''
+    const userFirst =
+      (steps.user_data && steps.user_data.first_name) ||
+      mergedProfile.firstName ||
+      mergedProfile.first_name ||
+      "";
+    const userLast =
+      (steps.user_data && steps.user_data.last_name) ||
+      mergedProfile.lastName ||
+      mergedProfile.last_name ||
+      "";
 
     const payload = {
       user_data: {
@@ -128,28 +263,33 @@ function EmailPassword(handleBack) {
         last_name: userLast,
         email,
         password,
-        user_type: 'provider'
+        user_type: "provider",
       },
-      profile_data: profileData
-    }
+      profile_data: profileData,
+    };
 
     // Debug log so you can inspect the full payload in browser console
-    console.log('OUTGOING PAYLOAD (canonical)', payload)
+    console.log("OUTGOING PAYLOAD (canonical)", payload);
 
     try {
       const resultAction = await dispatch(registerAndCreateProfile(payload));
       if (resultAction.error) {
-        alert('Registration failed: ' + (resultAction.payload || resultAction.error.message || JSON.stringify(resultAction.error)))
+        alert(
+          "Registration failed: " +
+            (resultAction.payload ||
+              resultAction.error.message ||
+              JSON.stringify(resultAction.error))
+        );
       } else {
-        const res = resultAction.payload
-        alert(res.message || 'Account created')
+        const res = resultAction.payload;
+        alert(res.message || "Account created");
         // Optionally clear onboarding
         // dispatch(clearOnboarding())
       }
     } catch (err) {
-      alert('Registration failed: ' + err.message)
+      alert("Registration failed: " + err.message);
     }
-  }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white font-sfpro">
@@ -174,7 +314,9 @@ function EmailPassword(handleBack) {
           </Link>
         </div>
 
-        <h2 className="text-xl font-semibold text-gray-800 font-tomato">Sign Up</h2>
+        <h2 className="text-xl font-semibold text-gray-800 font-tomato">
+          Sign Up
+        </h2>
         <p className="text-gray-500 text-sm mt-1 mb-6">
           Welcome back, Please enter your signup details
         </p>
@@ -193,6 +335,11 @@ function EmailPassword(handleBack) {
               placeholder="Input email address"
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-white dark:text-gray-700"
             />
+            {!isValidEmail(email) && email && (
+              <p className="text-red-500 text-sm mt-1">
+                Please enter a valid email address
+              </p>
+            )}
           </div>
 
           {/* Password with Eye Icon */}
@@ -255,7 +402,11 @@ function EmailPassword(handleBack) {
                 )}
               </button>
             </div>
-
+            {password && !isStrongPassword(password) && (
+              <p className="text-red-500 text-sm mt-1">
+                Password must be at least 8 characters and include a number
+              </p>
+            )}
           </div>
 
           {/* Confirm Password with Eye Icon */}
@@ -319,24 +470,28 @@ function EmailPassword(handleBack) {
               </button>
             </div>
             {/* Sign Up */}
-        <p className="text-center text-sm text-gray-500 mt-6 mb-5">
-          Already have an account?{" "}
-          <Link to="/careproviders/login">
-            <span className="text-[#0093d1] hover:underline">Log In</span>
-          </Link>
-        </p>
+            <p className="text-center text-sm text-gray-500 mt-6 mb-5">
+              Already have an account?{" "}
+              <Link to="/careproviders/login">
+                <span className="text-[#0093d1] hover:underline">Log In</span>
+              </Link>
+            </p>
           </div>
 
-            {/* Sign Up Button */}
-            <button
-              type="submit"
-              onClick={handleSignUp}
-              className="w-full bg-[#0093d1] text-white font-medium py-2 rounded-md hover:bg-[#007bb0] transition"
-            >
-              Sign Up
-            </button>
+          {/* Sign Up Button */}
+          <button
+            type="submit"
+            onClick={handleSignUp}
+            disabled={
+              !isValidEmail(email) ||
+              !isStrongPassword(password) ||
+              password !== password2
+            }
+            className="w-full bg-[#0093d1] text-white font-medium py-2 rounded-md hover:bg-[#007bb0] transition disabled:opacity-60"
+          >
+            Sign Up
+          </button>
         </form>
-
       </div>
     </div>
   );

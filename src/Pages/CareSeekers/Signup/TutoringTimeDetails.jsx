@@ -1,4 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
+import { useState } from "react";
 import {
   saveStep,
   generatePreview,
@@ -16,6 +17,7 @@ function TutoringTimeDetails({
 }) {
   const dispatch = useDispatch();
   const onboardingSteps = useSelector((state) => state.careSeeker.steps);
+  const [errors, setErrors] = useState({});
   return (
     <div className="w-full max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
       <div className="flex items-center mb-6">
@@ -68,37 +70,67 @@ function TutoringTimeDetails({
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date
+                  Start Date <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="date"
+                  required
+                  aria-required="true"
+                  onFocus={(e) => {
+                    try {
+                      if (e.target && e.target.showPicker)
+                        e.target.showPicker();
+                    } catch (e) {
+                      void e;
+                    }
+                  }}
                   className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                   style={{ backgroundColor: "#fff", color: "#222" }}
                   value={formData.startDate}
                   onChange={(e) => updateFormData("startDate", e.target.value)}
                 />
+                {errors.startDate && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.startDate}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date
+                  End Date <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="date"
+                  required
+                  aria-required="true"
+                  onFocus={(e) => {
+                    try {
+                      if (e.target && e.target.showPicker)
+                        e.target.showPicker();
+                    } catch (e) {
+                      void e;
+                    }
+                  }}
                   className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                   style={{ backgroundColor: "#fff", color: "#222" }}
                   value={formData.endDate}
                   onChange={(e) => updateFormData("endDate", e.target.value)}
                 />
+                {errors.endDate && (
+                  <p className="text-sm text-red-600 mt-1">{errors.endDate}</p>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Repeat every
+                  Repeat every <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
+                  required
+                  aria-required="true"
                   placeholder="Specify No.of times"
                   className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                   style={{ backgroundColor: "#fff", color: "#222" }}
@@ -107,6 +139,11 @@ function TutoringTimeDetails({
                     updateFormData("repeatEvery", e.target.value)
                   }
                 />
+                {errors.repeatEvery && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.repeatEvery}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -115,22 +152,30 @@ function TutoringTimeDetails({
                 </label>
                 <select
                   className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
+                  required
+                  aria-required="true"
                   style={{ backgroundColor: "#fff", color: "#222" }}
                   value={formData.repeatFrequency}
                   onChange={(e) =>
                     updateFormData("repeatFrequency", e.target.value)
                   }
                 >
+                  <option value="">Select frequency</option>
                   <option>Weekly</option>
                   <option>Monthly</option>
                   <option>Daily</option>
                 </select>
+                {errors.repeatFrequency && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.repeatFrequency}
+                  </p>
+                )}
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
-                Repeat
+                Repeat <span className="text-red-600">*</span>
               </label>
               <div className="flex justify-between max-w-full w-full">
                 {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
@@ -178,6 +223,9 @@ function TutoringTimeDetails({
                   </button>
                 ))}
               </div>
+              {errors.repeatDays && (
+                <p className="text-sm text-red-600 mt-1">{errors.repeatDays}</p>
+              )}
             </div>
           </>
         )}
@@ -185,42 +233,64 @@ function TutoringTimeDetails({
         {formData.scheduleType === "One-Off" && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date
+              Start Date <span className="text-red-600">*</span>
             </label>
             <input
               type="date"
+              required
+              aria-required="true"
+              onFocus={(e) => {
+                try {
+                  if (e.target && e.target.showPicker) e.target.showPicker();
+                } catch (e) {
+                  void e;
+                }
+              }}
               className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
               style={{ backgroundColor: "#fff", color: "#222" }}
               value={formData.startDate}
               onChange={(e) => updateFormData("startDate", e.target.value)}
             />
+            {errors.startDate && (
+              <p className="text-sm text-red-600 mt-1">{errors.startDate}</p>
+            )}
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Time
+              Start Time <span className="text-red-600">*</span>
             </label>
             <input
               type="time"
+              required
+              aria-required="true"
               className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
               style={{ backgroundColor: "#fff", color: "#222" }}
               value={formData.startTime}
               onChange={(e) => updateFormData("startTime", e.target.value)}
             />
+            {errors.startTime && (
+              <p className="text-sm text-red-600 mt-1">{errors.startTime}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Time
+              End Time <span className="text-red-600">*</span>
             </label>
             <input
               type="time"
+              required
+              aria-required="true"
               className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
               style={{ backgroundColor: "#fff", color: "#222" }}
               value={formData.endTime}
               onChange={(e) => updateFormData("endTime", e.target.value)}
             />
+            {errors.endTime && (
+              <p className="text-sm text-red-600 mt-1">{errors.endTime}</p>
+            )}
           </div>
         </div>
 
@@ -245,11 +315,40 @@ function TutoringTimeDetails({
                 updateFormData("hourlyRateEnd", v.hourlyRateEnd);
             }}
           />
+          {errors.hourlyRate && (
+            <p className="text-sm text-red-600 mt-1">{errors.hourlyRate}</p>
+          )}
         </div>
       </div>
 
       <button
         onClick={async () => {
+          const newErrors = {};
+          if (!formData.startTime)
+            newErrors.startTime = "Start time is required.";
+          if (!formData.endTime) newErrors.endTime = "End time is required.";
+          if (!formData.hourlyRateStart || !formData.hourlyRateEnd)
+            newErrors.hourlyRate = "Please set an hourly rate range.";
+
+          if (formData.scheduleType === "Reoccurring") {
+            if (!formData.startDate)
+              newErrors.startDate = "Start date is required.";
+            if (!formData.endDate) newErrors.endDate = "End date is required.";
+            if (!formData.repeatEvery)
+              newErrors.repeatEvery = "Repeat every is required.";
+            if (!formData.repeatFrequency)
+              newErrors.repeatFrequency = "Repeat frequency is required.";
+            if (!formData.repeatDays || formData.repeatDays.length === 0)
+              newErrors.repeatDays = "Select at least one day to repeat.";
+          } else {
+            // One-Off
+            if (!formData.startDate)
+              newErrors.startDate = "Start date is required.";
+          }
+
+          setErrors(newErrors);
+          if (Object.keys(newErrors).length > 0) return;
+
           const timeDetailsData = {
             scheduleType: formData.scheduleType,
             startDate: formData.startDate,

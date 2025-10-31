@@ -25,6 +25,7 @@ function HousekeeperInformation({
     "French",
     "Spanish",
   ]);
+  const [errors, setErrors] = useState({});
   return (
     <>
       {/* Location Popup */}
@@ -143,27 +144,37 @@ function HousekeeperInformation({
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              First Name
+              First Name <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
+              required
+              aria-required="true"
               placeholder="First name"
               className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
               value={formData.firstName || ""}
               onChange={(e) => updateFormData("firstName", e.target.value)}
             />
+            {errors.firstName && (
+              <p className="text-sm text-red-600 mt-1">{errors.firstName}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Last Name
+              Last Name <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
+              required
+              aria-required="true"
               placeholder="Last name"
               className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
               value={formData.lastName || ""}
               onChange={(e) => updateFormData("lastName", e.target.value)}
             />
+            {errors.lastName && (
+              <p className="text-sm text-red-600 mt-1">{errors.lastName}</p>
+            )}
           </div>
         </div>
 
@@ -189,11 +200,13 @@ function HousekeeperInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country
+                Country <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.country}
+                required
+                aria-required="true"
                 onChange={(e) => updateFormData("country", e.target.value)}
               >
                 <option value="">Select country</option>
@@ -203,14 +216,19 @@ function HousekeeperInformation({
                   </option>
                 ))}
               </select>
+              {errors.country && (
+                <p className="text-sm text-red-600 mt-1">{errors.country}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Preferred Language
+                Preferred Language <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.preferredLanguage}
+                required
+                aria-required="true"
                 onChange={(e) =>
                   updateFormData("preferredLanguage", e.target.value)
                 }
@@ -222,6 +240,11 @@ function HousekeeperInformation({
                   </option>
                 ))}
               </select>
+              {errors.preferredLanguage && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.preferredLanguage}
+                </p>
+              )}
             </div>
           </div>
 
@@ -229,11 +252,13 @@ function HousekeeperInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                State
+                State <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.state}
+                required
+                aria-required="true"
                 onChange={(e) => updateFormData("state", e.target.value)}
               >
                 <option value="">Select state</option>
@@ -243,18 +268,26 @@ function HousekeeperInformation({
                   </option>
                 ))}
               </select>
+              {errors.state && (
+                <p className="text-sm text-red-600 mt-1">{errors.state}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                City
+                City <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
+                required
+                aria-required="true"
                 placeholder="Input city"
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.city}
                 onChange={(e) => updateFormData("city", e.target.value)}
               />
+              {errors.city && (
+                <p className="text-sm text-red-600 mt-1">{errors.city}</p>
+              )}
             </div>
           </div>
 
@@ -262,27 +295,39 @@ function HousekeeperInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nationality
+                Nationality <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
+                required
+                aria-required="true"
                 placeholder="Input nationality"
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.nationality}
                 onChange={(e) => updateFormData("nationality", e.target.value)}
               />
+              {errors.nationality && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.nationality}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Zip Code
+                Zip Code <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
+                required
+                aria-required="true"
                 placeholder="Input zip code"
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.zipCode}
                 onChange={(e) => updateFormData("zipCode", e.target.value)}
               />
+              {errors.zipCode && (
+                <p className="text-sm text-red-600 mt-1">{errors.zipCode}</p>
+              )}
             </div>
           </div>
 
@@ -290,39 +335,52 @@ function HousekeeperInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                What kind of Housekeeping
+                What kind of Housekeeping{" "}
+                <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.housekeepingType}
+                required
+                aria-required="true"
                 onChange={(e) =>
                   updateFormData("housekeepingType", e.target.value)
                 }
               >
-                <option>Select option</option>
+                <option value="">Select option</option>
                 <option>House keeper</option>
                 <option>Cook</option>
                 <option>Laundry Support</option>
                 <option>Cleaner</option>
                 <option>Others</option>
               </select>
+              {errors.housekeepingType && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.housekeepingType}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Size of your House
+                Size of your House <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.houseSize}
+                required
+                aria-required="true"
                 onChange={(e) => updateFormData("houseSize", e.target.value)}
               >
-                <option>Select option</option>
+                <option value="">Select option</option>
                 <option>Bungalow</option>
                 <option>Duplex</option>
                 <option>2 storey building</option>
                 <option>3 storey building</option>
                 <option>Others</option>
               </select>
+              {errors.houseSize && (
+                <p className="text-sm text-red-600 mt-1">{errors.houseSize}</p>
+              )}
             </div>
           </div>
 
@@ -330,33 +388,43 @@ function HousekeeperInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Number of Bedrooms
+                Number of Bedrooms <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.bedrooms}
+                required
+                aria-required="true"
                 onChange={(e) => updateFormData("bedrooms", e.target.value)}
               >
-                <option>Select option</option>
+                <option value="">Select option</option>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <option key={n}>{n}</option>
                 ))}
               </select>
+              {errors.bedrooms && (
+                <p className="text-sm text-red-600 mt-1">{errors.bedrooms}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Number of Bathrooms
+                Number of Bathrooms <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.bathrooms}
+                required
+                aria-required="true"
                 onChange={(e) => updateFormData("bathrooms", e.target.value)}
               >
-                <option>Select option</option>
+                <option value="">Select option</option>
                 {[1, 2, 3, 4].map((n) => (
                   <option key={n}>{n}</option>
                 ))}
               </select>
+              {errors.bathrooms && (
+                <p className="text-sm text-red-600 mt-1">{errors.bathrooms}</p>
+              )}
             </div>
           </div>
 
@@ -364,32 +432,42 @@ function HousekeeperInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Number of Toilets
+                Number of Toilets <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.toilets}
+                required
+                aria-required="true"
                 onChange={(e) => updateFormData("toilets", e.target.value)}
               >
-                <option>Select option</option>
+                <option value="">Select option</option>
                 {[1, 2, 3, 4].map((n) => (
                   <option key={n}>{n}</option>
                 ))}
               </select>
+              {errors.toilets && (
+                <p className="text-sm text-red-600 mt-1">{errors.toilets}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pets present
+                Pets present <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.pets}
+                required
+                aria-required="true"
                 onChange={(e) => updateFormData("pets", e.target.value)}
               >
-                <option>Select option</option>
+                <option value="">Select option</option>
                 <option>Yes</option>
                 <option>No</option>
               </select>
+              {errors.pets && (
+                <p className="text-sm text-red-600 mt-1">{errors.pets}</p>
+              )}
             </div>
           </div>
 
@@ -397,32 +475,45 @@ function HousekeeperInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                (If yes) Specify Pet present
+                (If yes) Specify Pet present{" "}
+                <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
+                required
+                aria-required="true"
                 placeholder="Input pet name"
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.petName}
                 onChange={(e) => updateFormData("petName", e.target.value)}
               />
+              {errors.petName && (
+                <p className="text-sm text-red-600 mt-1">{errors.petName}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Additional Care
+                Additional Care <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.additionalCare}
+                required
+                aria-required="true"
                 onChange={(e) =>
                   updateFormData("additionalCare", e.target.value)
                 }
               >
-                <option>Select option</option>
+                <option value="">Select option</option>
                 <option>Child Care</option>
                 <option>Elderly Care</option>
                 <option>Tutoring</option>
               </select>
+              {errors.additionalCare && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.additionalCare}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -430,6 +521,47 @@ function HousekeeperInformation({
         {/* Next Button */}
         <button
           onClick={() => {
+            const newErrors = {};
+            const empty = (v) =>
+              v === undefined ||
+              v === null ||
+              v === "" ||
+              (typeof v === "string" && v.toLowerCase().startsWith("select"));
+            if (empty(formData.firstName))
+              newErrors.firstName = "First name is required.";
+            if (empty(formData.lastName))
+              newErrors.lastName = "Last name is required.";
+            if (empty(formData.country))
+              newErrors.country = "Country is required.";
+            if (empty(formData.preferredLanguage))
+              newErrors.preferredLanguage = "Preferred language is required.";
+            if (empty(formData.state)) newErrors.state = "State is required.";
+            if (empty(formData.city)) newErrors.city = "City is required.";
+            if (empty(formData.nationality))
+              newErrors.nationality = "Nationality is required.";
+            if (empty(formData.zipCode))
+              newErrors.zipCode = "Zip code is required.";
+            if (empty(formData.housekeepingType))
+              newErrors.housekeepingType = "Please select housekeeping type.";
+            if (empty(formData.houseSize))
+              newErrors.houseSize = "Please select house size.";
+            if (empty(formData.bedrooms))
+              newErrors.bedrooms = "Please select number of bedrooms.";
+            if (empty(formData.bathrooms))
+              newErrors.bathrooms = "Please select number of bathrooms.";
+            if (empty(formData.toilets))
+              newErrors.toilets = "Please select number of toilets.";
+            if (empty(formData.pets))
+              newErrors.pets = "Please indicate whether pets are present.";
+            if (formData.pets === "Yes" && empty(formData.petName))
+              newErrors.petName = "Please specify pet name.";
+            if (empty(formData.additionalCare))
+              newErrors.additionalCare =
+                "Please select additional care option.";
+
+            setErrors(newErrors);
+            if (Object.keys(newErrors).length > 0) return;
+
             dispatch(
               saveStep({
                 stepName: "user_data",

@@ -145,7 +145,7 @@ function Home() {
           </Link>
 
           {/* Become a Care Provider Card */}
-          <a href="https://www.google.com">
+          <Link to="/careseekers/signup ">
             <div className="bg-[#f2faf8] rounded-xl px-4 py-6 sm:py-10 flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 shadow-sm border border-gray-100 hover:shadow-lg transition">
               <div className="p-2 rounded-md flex-shrink-0 flex items-center justify-center">
                 <img
@@ -163,7 +163,7 @@ function Home() {
                 </p>
               </div>
             </div>
-          </a>
+          </Link>
         </div>
 
         {/* Appointment */}

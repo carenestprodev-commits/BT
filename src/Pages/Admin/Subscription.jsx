@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { FaSearch, FaDownload, FaChevronDown } from "react-icons/fa";
 import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
@@ -117,10 +117,10 @@ function Subscription() {
   };
 
   return (
-    <div className="p-6 text-black bg-white font-sfpro">
+    <div className="p-4 sm:p-6 text-black bg-white font-sfpro">
       {/* Controls */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1">
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4">
+        <div className="flex-1 w-full">
           <div className="flex items-center bg-white rounded-md px-3 py-2 shadow-sm text-black">
             <FaSearch className="text-slate-400 mr-2" />
             <input
@@ -132,7 +132,7 @@ function Subscription() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 mt-3 md:mt-0">
           <div className="relative">
             <select
               value={roleFilter}
@@ -179,7 +179,7 @@ function Subscription() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-md shadow-sm overflow-hidden text-black">
+      <div className="bg-white rounded-md shadow-sm overflow-x-auto text-black">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500 text-xs">
             <tr>

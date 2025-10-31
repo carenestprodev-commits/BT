@@ -29,6 +29,7 @@ function TutoringInformation({
     "French",
     "Bengali",
   ]);
+  const [errors, setErrors] = useState({});
   return (
     <>
       {/* Location Popup */}
@@ -149,27 +150,37 @@ function TutoringInformation({
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              First Name
+              First Name <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
+              required
+              aria-required="true"
               placeholder="First name"
               className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
               value={formData.firstName || ""}
               onChange={(e) => updateFormData("firstName", e.target.value)}
             />
+            {errors.firstName && (
+              <p className="text-sm text-red-600 mt-1">{errors.firstName}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Last Name
+              Last Name <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
+              required
+              aria-required="true"
               placeholder="Last name"
               className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
               value={formData.lastName || ""}
               onChange={(e) => updateFormData("lastName", e.target.value)}
             />
+            {errors.lastName && (
+              <p className="text-sm text-red-600 mt-1">{errors.lastName}</p>
+            )}
           </div>
         </div>
 
@@ -195,11 +206,13 @@ function TutoringInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Preferred Language
+                Preferred Language <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.preferredLanguage || ""}
+                required
+                aria-required="true"
                 onChange={(e) =>
                   updateFormData("preferredLanguage", e.target.value)
                 }
@@ -211,14 +224,21 @@ function TutoringInformation({
                   </option>
                 ))}
               </select>
+              {errors.preferredLanguage && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.preferredLanguage}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country
+                Country <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.country || ""}
+                required
+                aria-required="true"
                 onChange={(e) => updateFormData("country", e.target.value)}
               >
                 <option value="">Select country</option>
@@ -228,6 +248,9 @@ function TutoringInformation({
                   </option>
                 ))}
               </select>
+              {errors.country && (
+                <p className="text-sm text-red-600 mt-1">{errors.country}</p>
+              )}
             </div>
           </div>
 
@@ -235,11 +258,13 @@ function TutoringInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                State
+                State <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.state}
+                required
+                aria-required="true"
                 onChange={(e) => updateFormData("state", e.target.value)}
               >
                 <option value="">Select state</option>
@@ -249,18 +274,28 @@ function TutoringInformation({
                   </option>
                 ))}
               </select>
+              {errors.state && (
+                <p className="text-sm text-red-600 mt-1">{errors.state}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nationality
+                Nationality <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
+                required
+                aria-required="true"
                 placeholder="Input nationality"
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.nationality}
                 onChange={(e) => updateFormData("nationality", e.target.value)}
               />
+              {errors.nationality && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.nationality}
+                </p>
+              )}
             </div>
           </div>
 
@@ -268,24 +303,31 @@ function TutoringInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Zip Code
+                Zip Code <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
+                required
+                aria-required="true"
                 placeholder="Input zip code"
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.zipCode}
                 onChange={(e) => updateFormData("zipCode", e.target.value)}
               />
+              {errors.zipCode && (
+                <p className="text-sm text-red-600 mt-1">{errors.zipCode}</p>
+              )}
             </div>
             {/* Preferred Location */}
             <div className="w-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Preferred Location
+                Preferred Location <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.preferredLocation || ""}
+                required
+                aria-required="true"
                 onChange={(e) =>
                   updateFormData("preferredLocation", e.target.value)
                 }
@@ -296,6 +338,11 @@ function TutoringInformation({
                 <option value="Tutor's Place">Tutor&apos;s Place</option>
                 <option value="Any Location">Any Location</option>
               </select>
+              {errors.preferredLocation && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.preferredLocation}
+                </p>
+              )}
             </div>
           </div>
 
@@ -305,7 +352,8 @@ function TutoringInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                What subject(s) need tutoring
+                What subject(s) need tutoring{" "}
+                <span className="text-red-600">*</span>
               </label>
               <div className="bg-white rounded-lg border border-gray-200 p-4">
                 {[
@@ -321,6 +369,9 @@ function TutoringInformation({
                   >
                     <input
                       type="checkbox"
+                      name="tutoringSubject"
+                      required
+                      aria-required="true"
                       className="mr-2"
                       checked={formData.tutoringSubject?.includes(subject)}
                       onChange={(e) => {
@@ -337,15 +388,23 @@ function TutoringInformation({
                   </label>
                 ))}
               </div>
+              {errors.tutoringSubject && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.tutoringSubject}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                What is the learning environment needed
+                What is the learning environment needed{" "}
+                <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.learningEnvironment || ""}
+                required
+                aria-required="true"
                 onChange={(e) =>
                   updateFormData("learningEnvironment", e.target.value)
                 }
@@ -354,6 +413,11 @@ function TutoringInformation({
                 <option value="Group lessons">Group lessons</option>
                 <option value="Individual Tutoring">Individual Tutoring</option>
               </select>
+              {errors.learningEnvironment && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.learningEnvironment}
+                </p>
+              )}
             </div>
           </div>
 
@@ -361,11 +425,14 @@ function TutoringInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                What is the purpose of this learning
+                What is the purpose of this learning{" "}
+                <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.learningPurpose || ""}
+                required
+                aria-required="true"
                 onChange={(e) =>
                   updateFormData("learningPurpose", e.target.value)
                 }
@@ -381,15 +448,22 @@ function TutoringInformation({
                 </option>
                 <option value="Online Tutoring">Online Tutoring</option>
               </select>
+              {errors.learningPurpose && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.learningPurpose}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Age range of student
+                Age range of student <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.studentAgeRange || ""}
+                required
+                aria-required="true"
                 onChange={(e) =>
                   updateFormData("studentAgeRange", e.target.value)
                 }
@@ -403,6 +477,11 @@ function TutoringInformation({
                 <option value="26 - 30 years">26 - 30 years</option>
                 <option value="Above 30">Above 30</option>
               </select>
+              {errors.studentAgeRange && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.studentAgeRange}
+                </p>
+              )}
             </div>
           </div>
 
@@ -410,7 +489,7 @@ function TutoringInformation({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Additional Care
+                Additional Care <span className="text-red-600">*</span>
               </label>
               <div className="bg-white rounded-lg border border-gray-200 p-4">
                 {["Child Care", "Elderly Care"].map((care) => (
@@ -420,6 +499,9 @@ function TutoringInformation({
                   >
                     <input
                       type="checkbox"
+                      name="additionalCare"
+                      required
+                      aria-required="true"
                       className="mr-2"
                       checked={formData.additionalCare?.includes(care)}
                       onChange={(e) => {
@@ -436,6 +518,11 @@ function TutoringInformation({
                   </label>
                 ))}
               </div>
+              {errors.additionalCare && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.additionalCare}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -443,6 +530,42 @@ function TutoringInformation({
         {/* Next Button */}
         <button
           onClick={() => {
+            const newErrors = {};
+            if (!formData.firstName)
+              newErrors.firstName = "First name is required.";
+            if (!formData.lastName)
+              newErrors.lastName = "Last name is required.";
+            if (!formData.preferredLanguage)
+              newErrors.preferredLanguage = "Preferred language is required.";
+            if (!formData.country) newErrors.country = "Country is required.";
+            if (!formData.state) newErrors.state = "State is required.";
+            if (!formData.nationality)
+              newErrors.nationality = "Nationality is required.";
+            if (!formData.zipCode) newErrors.zipCode = "Zip code is required.";
+            if (!formData.preferredLocation)
+              newErrors.preferredLocation = "Preferred location is required.";
+            if (
+              !formData.tutoringSubject ||
+              formData.tutoringSubject.length === 0
+            )
+              newErrors.tutoringSubject = "Select at least one subject.";
+            if (!formData.learningEnvironment)
+              newErrors.learningEnvironment =
+                "Learning environment is required.";
+            if (!formData.learningPurpose)
+              newErrors.learningPurpose = "Learning purpose is required.";
+            if (!formData.studentAgeRange)
+              newErrors.studentAgeRange = "Student age range is required.";
+            if (
+              !formData.additionalCare ||
+              formData.additionalCare.length === 0
+            )
+              newErrors.additionalCare =
+                "Select at least one additional care option.";
+
+            setErrors(newErrors);
+            if (Object.keys(newErrors).length > 0) return;
+
             dispatch(
               saveStep({
                 stepName: "user_data",

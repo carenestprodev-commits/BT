@@ -156,8 +156,8 @@ function Earnings() {
   }, [currentTransaction]);
 
   return (
-    <div className="p-6 text-black bg-white font-sfpro">
-      <div className="grid grid-cols-2 gap-4 mb-6">
+    <div className="p-4 sm:p-6 text-black bg-white font-sfpro">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {[
           {
             key: "careSeekers",
@@ -206,8 +206,8 @@ function Earnings() {
         })}
       </div>
 
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1">
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4">
+        <div className="flex-1 w-full">
           <div className="flex items-center bg-white rounded-md px-3 py-2 shadow-sm text-black">
             <FaSearch className="text-slate-400 mr-2" />
             <input
@@ -219,7 +219,7 @@ function Earnings() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 mt-3 md:mt-0">
           <div className="flex items-center px-4 py-2 border rounded-md text-sm bg-white text-black gap-2">
             <FaCalendarAlt className="text-slate-400" />
             <input
@@ -239,7 +239,7 @@ function Earnings() {
         </div>
       </div>
 
-      <div className="bg-white rounded-md shadow-sm overflow-hidden text-black">
+      <div className="bg-white rounded-md shadow-sm overflow-x-auto text-black">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500 text-xs">
             <tr>

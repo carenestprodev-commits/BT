@@ -115,7 +115,7 @@ export default function DualRangeSlider({
             aria-label="Maximum hourly rate"
           />
         </div>
-        <div className="flex justify-between mt-2">
+        <div className="flex justify-between mt-2 dark: text-blue-500">
           <span className="text-lg font-semibold">${start}</span>
           <span className="text-lg font-semibold">${end}</span>
         </div>

@@ -27,22 +27,22 @@ function Signup() {
   const [isEmailComplete, setIsEmailComplete] = useState(false);
   const [isPasswordComplete, setIsPasswordComplete] = useState(false);
   const [showLocationPopup, setShowLocationPopup] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     // Category
     careCategory: "",
-    
+
     // Location data
     useCurrentLocation: false,
     country: "",
     state: "",
     city: "",
     zipCode: "",
-    
+
     // Child care specific
     numberOfChildren: "",
     childrenDetails: [],
-    
+
     // Elderly care specific
     elderlyCareType: "",
     relationshipWithElderly: "",
@@ -51,21 +51,21 @@ function Signup() {
     healthCondition: "",
     otherHealthCondition: "",
     assistanceForm: "",
-    
+
     // Tutoring specific
     tutoringSubjects: [],
     studentAge: "",
     currentGrade: "",
-    
+
     // Housekeeping specific
     housekeepingServices: [],
     homeSize: "",
     cleaningFrequency: "",
-    
+
     // Experience and preferences
     careProviderQualities: [],
     careProviderExperience: [],
-    
+
     // Time details
     scheduleType: "Reoccurring",
     startDate: "",
@@ -77,20 +77,20 @@ function Signup() {
     endTime: "",
     hourlyRateStart: 80,
     hourlyRateEnd: 1230,
-    
+
     // Summary
     messageToProvider: "",
     acceptedTerms: false,
-    
+
     // Auth
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
 
   const updateFormData = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (field === 'useCurrentLocation' && value === true) {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "useCurrentLocation" && value === true) {
       setShowLocationPopup(true);
     }
   };
@@ -113,37 +113,59 @@ function Signup() {
     switch (selectedCategory) {
       case "Childcare":
         switch (currentStep) {
-          case 1: return 2; // CareCategory → ChildInformation
-          case 2: return 3; // ChildInformation → ChildCareProviderExperience
-          case 3: return 4; // ChildCareProviderExperience → ChildTimeDetails
-          case 4: return 5; // ChildTimeDetails → ChildSummary
-          case 5: return 6; // ChildSummary → CareProvidersNearYou
-          default: return null;
+          case 1:
+            return 2; // CareCategory → ChildInformation
+          case 2:
+            return 3; // ChildInformation → ChildCareProviderExperience
+          case 3:
+            return 4; // ChildCareProviderExperience → ChildTimeDetails
+          case 4:
+            return 5; // ChildTimeDetails → ChildSummary
+          case 5:
+            return 6; // ChildSummary → CareProvidersNearYou
+          default:
+            return null;
         }
       case "Elderly Care":
         switch (currentStep) {
-          case 1: return 2; // CareCategory → ElderlyInformation
-          case 2: return 3; // ElderlyInformation → ElderlyCareProviderExperience
-          case 3: return 4; // ElderlyCareProviderExperience → ElderlyTimeDetails
-          case 4: return 5; // ElderlyTimeDetails → ElderlySummary
-          case 5: return 6; // ElderlySummary → CareProvidersNearYou
-          default: return null;
+          case 1:
+            return 2; // CareCategory → ElderlyInformation
+          case 2:
+            return 3; // ElderlyInformation → ElderlyCareProviderExperience
+          case 3:
+            return 4; // ElderlyCareProviderExperience → ElderlyTimeDetails
+          case 4:
+            return 5; // ElderlyTimeDetails → ElderlySummary
+          case 5:
+            return 6; // ElderlySummary → CareProvidersNearYou
+          default:
+            return null;
         }
       case "Tutoring":
         switch (currentStep) {
-          case 1: return 2; // CareCategory → TutoringInformation
-          case 2: return 3; // TutoringInformation → TutoringTimeDetails
-          case 3: return 4; // TutoringTimeDetails → TutoringSummary
-          case 4: return 5; // TutoringSummary → CareProvidersNearYou
-          default: return null;
+          case 1:
+            return 2; // CareCategory → TutoringInformation
+          case 2:
+            return 3; // TutoringInformation → TutoringTimeDetails
+          case 3:
+            return 4; // TutoringTimeDetails → TutoringSummary
+          case 4:
+            return 5; // TutoringSummary → CareProvidersNearYou
+          default:
+            return null;
         }
       case "Housekeeping":
         switch (currentStep) {
-          case 1: return 2; // CareCategory → HousekeeperInformation
-          case 2: return 3; // HousekeeperInformation → HouseKeepingTimeDetails
-          case 3: return 4; // HouseKeepingTimeDetails → HousekeepingSummary
-          case 4: return 5; // HousekeepingSummary → CareProvidersNearYou
-          default: return null;
+          case 1:
+            return 2; // CareCategory → HousekeeperInformation
+          case 2:
+            return 3; // HousekeeperInformation → HouseKeepingTimeDetails
+          case 3:
+            return 4; // HouseKeepingTimeDetails → HousekeepingSummary
+          case 4:
+            return 5; // HousekeepingSummary → CareProvidersNearYou
+          default:
+            return null;
         }
       default:
         // If no category is selected, only allow moving from step 1 to step 2
@@ -156,12 +178,24 @@ function Signup() {
   };
 
   const handleEmailComplete = () => {
-    setIsEmailComplete(true);
+    // Validate email before marking complete
+    const isValidEmail = (email) =>
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || "");
+    if (isValidEmail(formData.email)) {
+      setIsEmailComplete(true);
+    }
     setShowEmailPopup(false);
   };
 
   const handlePasswordComplete = () => {
-    setIsPasswordComplete(true);
+    const isStrongPassword = (pw) =>
+      pw && /^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(pw);
+    if (
+      isStrongPassword(formData.password) &&
+      formData.password === formData.confirmPassword
+    ) {
+      setIsPasswordComplete(true);
+    }
     setShowPasswordPopup(false);
   };
 
@@ -174,12 +208,12 @@ function Signup() {
   };
 
   const renderStepContent = () => {
-  const totalSteps = getStepsForCategory(selectedCategory).length;
+    const totalSteps = getStepsForCategory(selectedCategory).length;
 
-  // Step 1 is always CareCategory
+    // Step 1 is always CareCategory
     if (currentStep === 1) {
       return (
-        <CareCategory 
+        <CareCategory
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
           updateFormData={updateFormData}
@@ -252,7 +286,7 @@ function Signup() {
             );
           default:
             return (
-              <CareCategory 
+              <CareCategory
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
                 updateFormData={updateFormData}
@@ -260,7 +294,7 @@ function Signup() {
               />
             );
         }
-        
+
       case "Elderly Care":
         switch (currentStep) {
           case 2:
@@ -305,8 +339,8 @@ function Signup() {
                 updateFormData={updateFormData}
                 handleNext={handleNext}
                 handleBack={handleBack}
-                  currentStep={currentStep}
-                  totalSteps={totalSteps}
+                currentStep={currentStep}
+                totalSteps={totalSteps}
               />
             );
           case 6:
@@ -321,7 +355,7 @@ function Signup() {
             );
           default:
             return (
-              <CareCategory 
+              <CareCategory
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
                 updateFormData={updateFormData}
@@ -329,7 +363,7 @@ function Signup() {
               />
             );
         }
-        
+
       case "Tutoring":
         switch (currentStep) {
           case 2:
@@ -377,7 +411,7 @@ function Signup() {
             );
           default:
             return (
-              <CareCategory 
+              <CareCategory
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
                 updateFormData={updateFormData}
@@ -385,7 +419,7 @@ function Signup() {
               />
             );
         }
-        
+
       case "Housekeeping":
         switch (currentStep) {
           case 2:
@@ -435,7 +469,7 @@ function Signup() {
             );
           default:
             return (
-              <CareCategory 
+              <CareCategory
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
                 updateFormData={updateFormData}
@@ -447,7 +481,7 @@ function Signup() {
       default:
         // Default fallback - always show CareCategory if no valid category is selected
         return (
-          <CareCategory 
+          <CareCategory
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
             updateFormData={updateFormData}
@@ -460,15 +494,15 @@ function Signup() {
   return (
     <div className="flex min-h-screen bg-white">
       {/* Sidebar */}
-      <SidebarSignup 
-        activeStep={currentStep} 
+      <SidebarSignup
+        activeStep={currentStep}
         selectedCategory={selectedCategory}
       />
 
       {/* Main Content */}
-      <div 
+      <div
         className="flex-1 flex items-center justify-center min-h-screen font-sfpro"
-        style={{ marginLeft: '440px' }}
+        style={{ marginLeft: "440px" }}
       >
         <div className="w-full flex flex-col items-center justify-center py-12 px-8">
           <h2 className="text-4xl font-semibold text-gray-800 mb-8 text-center font-sfpro">

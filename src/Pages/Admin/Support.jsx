@@ -95,10 +95,10 @@ function Support() {
   };
 
   return (
-    <div className="p-6 bg-white text-black font-sfpro">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3 w-1/2">
-          <div className="relative flex-1">
+    <div className="p-4 sm:p-6 bg-white text-black font-sfpro">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-3">
+        <div className="w-full md:w-1/2">
+          <div className="relative">
             <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               value={query}
@@ -108,7 +108,7 @@ function Support() {
             />
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}

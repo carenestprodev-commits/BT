@@ -61,6 +61,9 @@ function LoginPage(handleBack) {
     }
   }, [navigate]);
 
+  const isValidEmail = (value) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || "");
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white font-sfpro">
       {/* Logo + Title */}
@@ -110,6 +113,11 @@ function LoginPage(handleBack) {
               placeholder="Input email address"
               className="font-sfpro w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-white dark:text-gray-700"
             />
+            {!isValidEmail(email) && email && (
+              <p className="text-red-500 text-sm mt-1">
+                Please enter a valid email
+              </p>
+            )}
           </div>
 
           {/* Password with Eye Icon */}
@@ -183,7 +191,8 @@ function LoginPage(handleBack) {
           {/* Login Button */}
           <button
             type="submit"
-            className="font-sfpro w-full bg-[#0093d1] text-white font-medium py-2 rounded-md hover:bg-[#007bb0] transition"
+            className="font-sfpro w-full bg-[#0093d1] text-white font-medium py-2 rounded-md hover:bg-[#007bb0] transition disabled:opacity-60"
+            disabled={!isValidEmail(email) || !password}
           >
             Log In
           </button>

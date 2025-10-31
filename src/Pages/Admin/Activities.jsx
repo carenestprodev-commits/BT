@@ -166,9 +166,9 @@ function Activities() {
   }
 
   return (
-    <div className="p-6 text-black bg-white font-sfpro">
+    <div className="p-4 sm:p-6 text-black bg-white font-sfpro">
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
           {
             key: "all",
@@ -266,8 +266,8 @@ function Activities() {
       )}
 
       {/* Controls: search left, filters right */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1">
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4">
+        <div className="flex-1 w-full">
           <div className="flex items-center bg-white rounded-md px-3 py-2 shadow-sm text-black relative z-40">
             <FaSearch className="text-slate-400 mr-2" />
             <input
@@ -281,7 +281,7 @@ function Activities() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 mt-3 md:mt-0">
           <div className="relative">
             <select
               value={serviceFilter}
@@ -339,7 +339,7 @@ function Activities() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-md shadow-sm overflow-hidden text-black">
+      <div className="bg-white rounded-md shadow-sm overflow-x-auto text-black">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500 text-xs">
             <tr>
