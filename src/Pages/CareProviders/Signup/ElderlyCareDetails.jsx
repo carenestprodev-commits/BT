@@ -94,7 +94,9 @@ function ElderlyCareDetails({
                               bn: "Bengali",
                             };
                             const lang = map[code] || code;
+                            // set both preferred language and native language
                             updateFormData("language", lang);
+                            updateFormData("nativeLanguage", lang);
                             if (!languageOptions.includes(lang))
                               setLanguageOptions((prev) => [lang, ...prev]);
                           }
@@ -222,19 +224,18 @@ function ElderlyCareDetails({
             options={["1-3 Years", "4-8 Years", "9-12 Years"]}
           />
           <SelectField
-            required
             label="Native Language"
             value={formData.nativeLanguage}
             onChange={(val) => updateFormData("nativeLanguage", val)}
-            options={[]}
+            options={languageOptions}
           />
-          <SelectField
+          {/* <SelectField
             required
             label="Other Language"
             value={formData.otherLanguage}
             onChange={(val) => updateFormData("otherLanguage", val)}
             options={[]}
-          />
+          /> */}
           <CheckboxGroup
             required
             label="Other Services you can Offer"

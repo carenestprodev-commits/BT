@@ -90,7 +90,9 @@ function HouseKeepingDetails({
                               bn: "Bengali",
                             };
                             const lang = map[code] || code;
+                            // set both preferred language and native language
                             updateFormData("language", lang);
+                            updateFormData("nativeLanguage", lang);
                             if (!languageOptions.includes(lang))
                               setLanguageOptions((prev) => [lang, ...prev]);
                           }
@@ -232,76 +234,16 @@ function HouseKeepingDetails({
             label="Native Language"
             value={formData.nativeLanguage}
             onChange={(val) => updateFormData("nativeLanguage", val)}
-            options={[]}
+            options={languageOptions}
           />
-          <SelectField
+          {/* <SelectField
             name="otherLanguage"
             required
             label="Other Language"
             value={formData.otherLanguage}
             onChange={(val) => updateFormData("otherLanguage", val)}
             options={[]}
-          />
-          <CheckboxGroup
-            name="otherServices"
-            label="Other Services you can Offer"
-            options={["Child Care", "Elderly Care", "House keeping"]}
-            values={formData.otherServices || []}
-            onChange={(val) => updateFormData("otherServices", val)}
-          />
-          <SelectField
-            name="state"
-            required
-            label="State"
-            value={formData.state}
-            onChange={(val) => updateFormData("state", val)}
-            options={stateOptions}
-          />
-          <TextField
-            name="city"
-            required
-            label="City"
-            value={formData.city}
-            onChange={(val) => updateFormData("city", val)}
-          />
-          <TextField
-            name="nationality"
-            required
-            label="Nationality"
-            value={formData.nationality}
-            onChange={(val) => updateFormData("nationality", val)}
-          />
-          <TextField
-            name="zipCode"
-            required
-            label="Zip Code"
-            value={formData.zipCode}
-            onChange={(val) => updateFormData("zipCode", val)}
-          />
-          <SelectField
-            name="experienceLevel"
-            required
-            label="Years of Experience"
-            value={formData.experienceLevel}
-            onChange={(val) => updateFormData("experienceLevel", val)}
-            options={["1-3 Years", "4-8 Years", "9-12 Years"]}
-          />
-          <SelectField
-            name="nativeLanguage"
-            required
-            label="Native Language"
-            value={formData.nativeLanguage}
-            onChange={(val) => updateFormData("nativeLanguage", val)}
-            options={[]}
-          />
-          <SelectField
-            name="otherLanguage"
-            required
-            label="Other Language"
-            value={formData.otherLanguage}
-            onChange={(val) => updateFormData("otherLanguage", val)}
-            options={[]}
-          />
+          /> */}
           <CheckboxGroup
             name="otherServices"
             label="Other Services you can Offer"
@@ -408,7 +350,7 @@ function HouseKeepingDetails({
               "zipCode",
               "experienceLevel",
               "nativeLanguage",
-              "otherLanguage",
+              // "otherLanguage", // optional
               "hourlyRate",
               "aboutYou",
               "title",

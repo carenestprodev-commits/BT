@@ -99,7 +99,9 @@ function ChildCareDetails({
                               bn: "Bengali",
                             };
                             const lang = map[code] || code;
+                            // Set both preferred language and native language when available
                             updateFormData("language", lang);
+                            updateFormData("nativeLanguage", lang);
                             if (!languageOptions.includes(lang))
                               setLanguageOptions((prev) => [lang, ...prev]);
                           }
@@ -232,14 +234,14 @@ function ChildCareDetails({
             label="Native Language"
             value={formData.nativeLanguage}
             onChange={(val) => updateFormData("nativeLanguage", val)}
-            options={[]}
+            options={languageOptions}
           />
-          <SelectField
+          {/* <SelectField
             label="Other Language"
             value={formData.otherLanguage}
             onChange={(val) => updateFormData("otherLanguage", val)}
             options={[]}
-          />
+          /> */}
           <CheckboxGroup
             label="Other Services you can Offer"
             options={["Elderly Care", "Tutoring", "Housekeeping"]}

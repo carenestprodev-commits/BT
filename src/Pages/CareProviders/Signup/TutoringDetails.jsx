@@ -95,7 +95,9 @@ function TutoringDetails({
                               bn: "Bengali",
                             };
                             const lang = map[code] || code;
+                            // set both preferred language and native language
                             updateFormData("language", lang);
+                            updateFormData("nativeLanguage", lang);
                             if (!languageOptions.includes(lang))
                               setLanguageOptions((prev) => [lang, ...prev]);
                           }
@@ -237,16 +239,16 @@ function TutoringDetails({
             label="Native Language"
             value={formData.nativeLanguage}
             onChange={(val) => updateFormData("nativeLanguage", val)}
-            options={[]}
+            options={languageOptions}
           />
-          <SelectField
+          {/* <SelectField
             name="otherLanguage"
             required
             label="Other Language"
             value={formData.otherLanguage}
             onChange={(val) => updateFormData("otherLanguage", val)}
             options={[]}
-          />
+          /> */}
           <CheckboxGroup
             name="otherServices"
             label="Other Services you can Offer"
@@ -390,7 +392,7 @@ function TutoringDetails({
               "zipCode",
               "experienceLevel",
               "nativeLanguage",
-              "otherLanguage",
+              // "otherLanguage", // optional
               "hourlyRate",
               "aboutYou",
               "title",
