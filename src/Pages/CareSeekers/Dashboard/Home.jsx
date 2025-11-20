@@ -1,10 +1,5 @@
-import React, { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FaCheckCircle } from "react-icons/fa";
-import { FaFolderOpen } from "react-icons/fa6";
-import { IoIosArrowDown } from "react-icons/io";
-import { HiOutlineUserGroup } from "react-icons/hi2";
-import { HiOutlineUserPlus } from "react-icons/hi2";
-import { BsThreeDots } from "react-icons/bs";
 import Sidebar from "./Sidebar";
 import pattern from "../../../../public/pattern.svg";
 import folder from "../../../../public/folder.svg";
@@ -14,6 +9,7 @@ import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchSeekerDashboard } from "../../../Redux/SeekerDashboardHome";
 import { fetchSeekerActiveRequests } from "../../../Redux/SeekerRequest";
+import SubscriptionModal from "./SubscriptionModal";
 
 function Home() {
   const dispatch = useDispatch();
@@ -24,10 +20,28 @@ function Home() {
     loading,
   } = useSelector((state) => state.seekerDashboard || {});
 
+  // Check subscription status and show modal if not subscribed
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const isSubscribed = localStorage.getItem("is_subscribed") === "true";
+  const justLoggedIn = localStorage.getItem("just_logged_in") === "true";
+  const modalAlreadyShown =
+    localStorage.getItem("subscription_modal_shown") === "true";
+
   useEffect(() => {
     dispatch(fetchSeekerDashboard());
     dispatch(fetchSeekerActiveRequests());
-  }, [dispatch]);
+
+    // Show subscription modal only once after login when user is not subscribed
+    if (!isSubscribed && justLoggedIn && !modalAlreadyShown) {
+      setShowSubscriptionModal(true);
+      try {
+        localStorage.setItem("subscription_modal_shown", "true");
+        localStorage.removeItem("just_logged_in");
+      } catch {
+        // ignore
+      }
+    }
+  }, [dispatch, isSubscribed, justLoggedIn, modalAlreadyShown]);
 
   const greetingName = greeting_name || "Mark";
   const requestsCount = new_care_provider_requests ?? 0;
@@ -41,7 +55,11 @@ function Home() {
   return (
     <div className="flex min-h-screen font-sfpro">
       <Sidebar active="Home" />
-      <div className="flex-1 bg-white px-6 py-5 font-sfpro md:ml-64">
+      <div
+        className={`flex-1 bg-white px-6 py-5 font-sfpro md:ml-64 ${
+          showSubscriptionModal ? "blur-sm pointer-events-none" : ""
+        }`}
+      >
         {/* Ensure sidebar highlights Home when this component is used inside dashboard layout */}
         {/* Header */}
         <div className="border-b border-gray-200 mb-4">
@@ -218,6 +236,11 @@ function Home() {
           </div>
         </div>
       </div>
+
+      {/* Subscription Modal */}
+      {showSubscriptionModal && (
+        <SubscriptionModal onClose={() => setShowSubscriptionModal(false)} />
+      )}
     </div>
   );
 }

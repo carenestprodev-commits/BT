@@ -184,6 +184,9 @@ function ElderlyCareDetails({
             onChange={(val) => updateFormData("country", val)}
             options={countryOptions}
           />
+          {errors.country && (
+            <p className="text-sm text-red-600 mt-1">{errors.country}</p>
+          )}
           <SelectField
             required
             label="Preferred Language"
@@ -191,6 +194,9 @@ function ElderlyCareDetails({
             onChange={(val) => updateFormData("language", val)}
             options={languageOptions}
           />
+          {errors.language && (
+            <p className="text-sm text-red-600 mt-1">{errors.language}</p>
+          )}
           <SelectField
             required
             label="State"
@@ -198,24 +204,36 @@ function ElderlyCareDetails({
             onChange={(val) => updateFormData("state", val)}
             options={stateOptions}
           />
+          {errors.state && (
+            <p className="text-sm text-red-600 mt-1">{errors.state}</p>
+          )}
           <TextField
             required
             label="City"
             value={formData.city}
             onChange={(val) => updateFormData("city", val)}
           />
+          {errors.city && (
+            <p className="text-sm text-red-600 mt-1">{errors.city}</p>
+          )}
           <TextField
             required
             label="Nationality"
             value={formData.nationality}
             onChange={(val) => updateFormData("nationality", val)}
           />
+          {errors.nationality && (
+            <p className="text-sm text-red-600 mt-1">{errors.nationality}</p>
+          )}
           <TextField
             required
             label="Zip Code"
             value={formData.zipCode}
             onChange={(val) => updateFormData("zipCode", val)}
           />
+          {errors.zipCode && (
+            <p className="text-sm text-red-600 mt-1">{errors.zipCode}</p>
+          )}
           <SelectField
             required
             label="Years of Experience"
@@ -223,12 +241,21 @@ function ElderlyCareDetails({
             onChange={(val) => updateFormData("experienceLevel", val)}
             options={["1-3 Years", "4-8 Years", "9-12 Years"]}
           />
+          {errors.experienceLevel && (
+            <p className="text-sm text-red-600 mt-1">
+              {errors.experienceLevel}
+            </p>
+          )}
           <SelectField
             label="Native Language"
+            required
             value={formData.nativeLanguage}
             onChange={(val) => updateFormData("nativeLanguage", val)}
             options={languageOptions}
           />
+          {errors.nativeLanguage && (
+            <p className="text-sm text-red-600 mt-1">{errors.nativeLanguage}</p>
+          )}
           {/* <SelectField
             required
             label="Other Language"
@@ -243,9 +270,13 @@ function ElderlyCareDetails({
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
           />
+          {errors.otherServices && (
+            <p className="text-sm text-red-600 mt-1">{errors.otherServices}</p>
+          )}
         </div>
 
         <CheckboxGroup
+          required
           label="What qualities matter most to you in a care provider? Select the ones that best align."
           options={[
             "Hypertension",
@@ -267,8 +298,12 @@ function ElderlyCareDetails({
           values={formData.careQualities || []}
           onChange={(val) => updateFormData("careQualities", val)}
         />
+        {errors.careQualities && (
+          <p className="text-sm text-red-600 mt-1">{errors.careQualities}</p>
+        )}
 
         <CheckboxGroup
+          required
           label="Choose the skills you have"
           options={[
             "First Aid Certificate",
@@ -283,16 +318,26 @@ function ElderlyCareDetails({
           values={formData.skills || []}
           onChange={(val) => updateFormData("skills", val)}
         />
+        {errors.skills && (
+          <p className="text-sm text-red-600 mt-1">{errors.skills}</p>
+        )}
 
         {/* Additional multi-select dropdown-like groups */}
         <CheckboxGroup
+          required
           label="Personality and Interpersonal Skill"
           options={["Friendly", "Patient", "Energetic", "Calm", "Organized"]}
           values={formData.personalitySkills || []}
           onChange={(val) => updateFormData("personalitySkills", val)}
         />
+        {errors.personalitySkills && (
+          <p className="text-sm text-red-600 mt-1">
+            {errors.personalitySkills}
+          </p>
+        )}
 
         <CheckboxGroup
+          required
           label="Communication and Language"
           options={[
             "Fluent in English",
@@ -306,8 +351,14 @@ function ElderlyCareDetails({
           values={formData.communicationLanguages || []}
           onChange={(val) => updateFormData("communicationLanguages", val)}
         />
+        {errors.communicationLanguages && (
+          <p className="text-sm text-red-600 mt-1">
+            {errors.communicationLanguages}
+          </p>
+        )}
 
         <CheckboxGroup
+          required
           label="Special Preference"
           options={[
             "Experience with Autism",
@@ -320,6 +371,11 @@ function ElderlyCareDetails({
           values={formData.specialPreferences || []}
           onChange={(val) => updateFormData("specialPreferences", val)}
         />
+        {errors.specialPreferences && (
+          <p className="text-sm text-red-600 mt-1">
+            {errors.specialPreferences}
+          </p>
+        )}
 
         <div className="mt-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -336,6 +392,9 @@ function ElderlyCareDetails({
           <p className="text-sm text-green-600 mt-1">
             Average hourly rate is ₦5,500
           </p>
+          {errors.hourlyRate && (
+            <p className="text-sm text-red-600 mt-1">{errors.hourlyRate}</p>
+          )}
         </div>
 
         <div className="mt-6">
@@ -350,6 +409,9 @@ function ElderlyCareDetails({
             value={formData.aboutYou}
             onChange={(e) => updateFormData("aboutYou", e.target.value)}
           />
+          {errors.aboutYou && (
+            <p className="text-sm text-red-600 mt-1">{errors.aboutYou}</p>
+          )}
         </div>
 
         <div className="mt-6">
@@ -363,6 +425,9 @@ function ElderlyCareDetails({
             value={formData.title}
             onChange={(e) => updateFormData("title", e.target.value)}
           />
+          {errors.title && (
+            <p className="text-sm text-red-600 mt-1">{errors.title}</p>
+          )}
         </div>
 
         <div className="flex items-center mt-6">
@@ -599,7 +664,13 @@ const SelectField = ({ label, value, onChange, options, required = false }) => (
   </div>
 );
 
-const CheckboxGroup = ({ label, options, values, onChange }) => {
+const CheckboxGroup = ({
+  label,
+  options,
+  values,
+  onChange,
+  required = false,
+}) => {
   const handleCheck = (option) => {
     if (values.includes(option)) {
       onChange(values.filter((item) => item !== option));
@@ -612,6 +683,7 @@ const CheckboxGroup = ({ label, options, values, onChange }) => {
     <div className="mt-6">
       <label className="block text-sm font-medium text-gray-700 mb-4">
         {label}
+        {required && <span className="text-red-500"> *</span>}
       </label>
       <div className="grid grid-cols-2 gap-3">
         {options.map((option, idx) => (

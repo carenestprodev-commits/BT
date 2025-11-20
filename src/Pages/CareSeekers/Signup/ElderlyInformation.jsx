@@ -535,6 +535,28 @@ function ElderlyInformation({
               )}
             </div>
           </div>
+
+          {formData.assistanceForm?.includes("Others") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                If other (specify)
+              </label>
+              <input
+                type="text"
+                placeholder="Please specify"
+                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
+                value={formData.assistanceFormOther || ""}
+                onChange={(e) =>
+                  updateFormData("assistanceFormOther", e.target.value)
+                }
+              />
+              {errors.assistanceFormOther && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.assistanceFormOther}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <button
@@ -573,6 +595,15 @@ function ElderlyInformation({
             )
               newErrors.assistanceForm =
                 "Please specify required assistance form.";
+            // If user selected 'Others', require the specification field
+            if (
+              formData.assistanceForm?.includes("Others") &&
+              (!formData.assistanceFormOther ||
+                String(formData.assistanceFormOther).trim() === "")
+            ) {
+              newErrors.assistanceFormOther =
+                "Please specify other assistance.";
+            }
 
             setErrors(newErrors);
             if (Object.keys(newErrors).length > 0) return;

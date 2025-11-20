@@ -296,6 +296,11 @@ const messengerSlice = createSlice({
       }
     },
 
+    // Clear created conversation ID
+    clearCreatedConversationId: (state) => {
+      state.lastCreatedConversationId = null;
+    },
+
     // Clear messages error
     clearMessagesError: (state, action) => {
       const conversationId = action.payload;
@@ -319,16 +324,33 @@ const messengerSlice = createSlice({
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.conversationsLoading = false;
 
-        // Ensure unique conversations based on ID
+        // Start with current conversations to preserve locally created ones
+        const existingConversations = [...state.conversations];
+
+        // Ensure unique conversations based on ID, preserving local conversations
         const uniqueConversations = action.payload.reduce(
           (acc, conversation) => {
             const existingIndex = acc.findIndex(
-              (c) => c.id === conversation.id
+              (c) => String(c.id) === String(conversation.id)
             );
             if (existingIndex >= 0) {
-              // Update existing conversation with latest data
+              // Update existing conversation with latest data from server
               acc[existingIndex] = conversation;
             } else {
+              acc.push(conversation);
+            }
+            return acc;
+          },
+          existingConversations
+        );
+
+        // Remove duplicates that might have been created
+        const finalConversations = uniqueConversations.reduce(
+          (acc, conversation) => {
+            const exists = acc.some(
+              (c) => String(c.id) === String(conversation.id)
+            );
+            if (!exists) {
               acc.push(conversation);
             }
             return acc;
@@ -336,7 +358,7 @@ const messengerSlice = createSlice({
           []
         );
 
-        state.conversations = uniqueConversations;
+        state.conversations = finalConversations;
       })
       .addCase(fetchConversations.rejected, (state, action) => {
         state.conversationsLoading = false;
@@ -433,10 +455,22 @@ const messengerSlice = createSlice({
       })
       .addCase(createConversation.fulfilled, (state, action) => {
         state.creatingConversation = false;
-        // Expecting response: { conversation_id: 31 }
-        const cid = action.payload?.conversation_id ?? action.payload?.id;
-        if (cid) {
-          state.lastCreatedConversationId = String(cid);
+        // API returns full conversation object
+        const conversation = action.payload;
+        if (conversation && conversation.id) {
+          state.lastCreatedConversationId = String(conversation.id);
+
+          // Add the new conversation to the conversations array if not already present
+          const existingIndex = state.conversations.findIndex(
+            (c) => String(c.id) === String(conversation.id)
+          );
+          if (existingIndex === -1) {
+            // Add to the beginning of the list (most recent)
+            state.conversations.unshift(conversation);
+          } else {
+            // Update existing conversation
+            state.conversations[existingIndex] = conversation;
+          }
         }
       })
       .addCase(createConversation.rejected, (state, action) => {
@@ -452,6 +486,7 @@ export const {
   setWebSocketConnected,
   setWebSocketError,
   addRealtimeMessage,
+  clearCreatedConversationId,
   clearMessagesError,
   clearSendMessageError,
 } = messengerSlice.actions;

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import { FaWallet } from "react-icons/fa";
 import { BsDownload } from "react-icons/bs";
@@ -8,6 +8,7 @@ import {
   fetchWalletDashboard,
   fetchWalletHistory,
 } from "../../../Redux/ProviderWallet";
+import { BASE_URL, getAuthHeaders } from "../../../Redux/config";
 function Wallet() {
   const dispatch = useDispatch();
   const { dashboard, history, loading } = useSelector(
@@ -30,6 +31,8 @@ function Wallet() {
     console.debug("ProviderWallet history length:", history && history.length);
     console.debug("ProviderWallet loading:", loading);
   }, [dashboard, history, loading]);
+
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-white font-sfpro">
@@ -73,8 +76,63 @@ function Wallet() {
               Total hours
             </div>
           </div>
-          <button className="w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition">
-            Withdraw Fund
+          <button
+            className={`w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition ${
+              isWithdrawing ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+            onClick={async () => {
+              try {
+                setIsWithdrawing(true);
+                // read user from localStorage
+                const raw = localStorage.getItem("user");
+                let country = "";
+                if (raw) {
+                  try {
+                    const u = JSON.parse(raw);
+                    country = (u.country || "").toString().toLowerCase();
+                  } catch {
+                    country = "";
+                  }
+                }
+
+                const payment_method =
+                  country === "nigeria" ? "paystack" : "stripe";
+
+                const res = await fetch(
+                  `${BASE_URL}/api/payments/wallet/request-payout/`,
+                  {
+                    method: "POST",
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ payment_method }),
+                  }
+                );
+
+                if (!res.ok) {
+                  const txt = await res.text();
+                  alert(`Failed to request payout: ${txt}`);
+                  setIsWithdrawing(false);
+                  return;
+                }
+
+                const data = await res.json();
+                const url =
+                  data &&
+                  (data.onboarding_url || data.onboardingUrl || data.url);
+                if (url) {
+                  window.open(url, "_blank");
+                } else {
+                  alert("No onboarding URL returned from server.");
+                }
+              } catch (err) {
+                console.error("request-payout error", err);
+                alert("An error occurred while requesting payout.");
+              } finally {
+                setIsWithdrawing(false);
+              }
+            }}
+            disabled={isWithdrawing}
+          >
+            {isWithdrawing ? "Please wait..." : "Withdraw Fund"}
           </button>
         </div>
 

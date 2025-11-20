@@ -404,13 +404,28 @@ function ChildInformation({
                         Age of child {index + 1}
                       </label>
                       <input
-                        type="text"
+                        type="date"
                         placeholder="DD-MM-YYYY"
                         className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                         value={formData.childrenDetails?.[index]?.age || ""}
                         onChange={(e) =>
                           updateChildDetail(index, "age", e.target.value)
                         }
+                        onFocus={(e) => {
+                          try {
+                            // Some browsers expose showPicker() to programmatically open the date picker
+                            e.target?.showPicker && e.target.showPicker();
+                          } catch (err) {
+                            void err;
+                          }
+                        }}
+                        onClick={(e) => {
+                          try {
+                            e.target?.showPicker && e.target.showPicker();
+                          } catch (err) {
+                            void err;
+                          }
+                        }}
                       />
                     </div>
                     <div>

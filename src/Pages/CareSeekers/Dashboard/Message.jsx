@@ -12,6 +12,7 @@ import {
   connectWebSocket,
   disconnectWebSocket,
   clearSendMessageError,
+  clearCreatedConversationId,
   createConversation,
 } from "../../../Redux/Messenger";
 import {
@@ -154,22 +155,40 @@ function Message() {
     currentConversation?.id ||
     12;
 
+  // Debug: Log conversations changes
+  useEffect(() => {
+    console.log("Conversations array changed:", {
+      count: conversations.length,
+      conversations: conversations.map((c) => ({
+        id: c.id,
+        title: c.job_title,
+      })),
+      lastCreatedId: lastCreatedConversationId,
+    });
+  }, [conversations, lastCreatedConversationId]);
+
   // Load conversations on component mount
   useEffect(() => {
-    dispatch(fetchConversations());
-  }, [dispatch]);
+    // Only fetch conversations if we don't have any existing ones
+    // This prevents overwriting newly created conversations
+    if (conversations.length === 0) {
+      dispatch(fetchConversations());
+    }
+  }, [dispatch, conversations.length]);
 
   useEffect(() => {
     const otherUserId = location?.state?.other_user_id;
     if (!otherUserId) return;
 
+    console.log("Creating conversation with user ID:", otherUserId);
     let mounted = true;
     (async () => {
       try {
-        await dispatch(createConversation(otherUserId));
+        const result = await dispatch(createConversation(otherUserId));
         if (!mounted) return;
-      } catch {
-        console.error("Failed to create/open conversation");
+        console.log("Conversation creation result:", result);
+      } catch (error) {
+        console.error("Failed to create/open conversation:", error);
       }
     })();
 
@@ -178,43 +197,52 @@ function Message() {
     };
   }, [dispatch, location]);
 
- 
+  // When a conversation is created, lastCreatedConversationId will be populated in the store.
+  // The conversation is now directly added to the conversations array by Redux.
+  // Open that conversation once it appears in conversations list.
   useEffect(() => {
     if (!lastCreatedConversationId) return;
 
-    const cid = String(lastCreatedConversationId);
-    // Try to find the conversation index
-    const idx = conversations.findIndex((c) => String(c.id) === cid);
-    if (idx >= 0) {
-      setSelectedIndex(idx);
-      dispatch(setActiveConversation(cid));
-      dispatch(fetchMessages(cid));
-      dispatch(connectWebSocket(cid));
-      setTimeout(() => {
-        if (inputRef.current && typeof inputRef.current.focus === "function")
-          inputRef.current.focus();
-      }, 100);
-    } else if (conversations.length > 0) {
-      // If not found, refresh list and try again
-      (async () => {
-        const convRes = await dispatch(fetchConversations());
-        const convs = convRes.payload || [];
-        const idx2 = convs.findIndex((c) => String(c.id) === cid);
-        if (idx2 >= 0) {
-          setSelectedIndex(idx2);
-          dispatch(setActiveConversation(cid));
-          dispatch(fetchMessages(cid));
-          dispatch(connectWebSocket(cid));
-          setTimeout(() => {
-            if (
-              inputRef.current &&
-              typeof inputRef.current.focus === "function"
-            )
-              inputRef.current.focus();
-          }, 100);
+    console.log("Handling created conversation ID:", lastCreatedConversationId);
+    console.log(
+      "Current conversations:",
+      conversations.map((c) => ({ id: c.id, title: c.job_title }))
+    );
+
+    // Add a small delay to ensure the conversation is properly added to the array
+    const timeoutId = setTimeout(() => {
+      const cid = String(lastCreatedConversationId);
+      // Try to find the conversation index
+      const idx = conversations.findIndex((c) => String(c.id) === cid);
+      console.log("Found conversation at index:", idx);
+
+      if (idx >= 0) {
+        setSelectedIndex(idx);
+        dispatch(setActiveConversation(cid));
+        dispatch(fetchMessages(cid));
+        dispatch(connectWebSocket(cid));
+
+        // On mobile, show the chat view
+        if (typeof window !== "undefined" && window.innerWidth < 768) {
+          setShowChatOnMobile(true);
         }
-      })();
-    }
+
+        setTimeout(() => {
+          if (inputRef.current && typeof inputRef.current.focus === "function")
+            inputRef.current.focus();
+        }, 100);
+
+        // Clear the created conversation ID after handling it
+        setTimeout(() => {
+          dispatch(clearCreatedConversationId());
+        }, 2000); // Increased delay to prevent premature clearing
+      } else {
+        console.warn("Conversation not found in list yet, will retry...");
+        // If conversation not found, don't clear the ID yet so this effect can retry
+      }
+    }, 500); // Wait 500ms for conversation to be properly added
+
+    return () => clearTimeout(timeoutId);
   }, [lastCreatedConversationId, conversations, dispatch]);
 
   // When returning from Stripe, lastBookingId will be set in the store via setActivityStarted.
@@ -239,30 +267,20 @@ function Message() {
           inputRef.current.focus();
       }, 100);
     } else if (conversations.length > 0) {
-      (async () => {
-        const convRes = await dispatch(fetchConversations());
-        const convs = convRes.payload || [];
-        const idx2 = convs.findIndex(
-          (c) =>
-            String(c.booking) === bid ||
-            String(c.booking_id) === bid ||
-            String(c.id) === bid
-        );
-        if (idx2 >= 0) {
-          const conv = convs[idx2];
-          setSelectedIndex(idx2);
-          dispatch(setActiveConversation(String(conv.id)));
-          dispatch(fetchMessages(String(conv.id)));
-          dispatch(connectWebSocket(String(conv.id)));
-          setTimeout(() => {
-            if (
-              inputRef.current &&
-              typeof inputRef.current.focus === "function"
-            )
-              inputRef.current.focus();
-          }, 100);
-        }
-      })();
+      // Instead of fetching all conversations again (which might remove newly created ones),
+      // just log that the booking wasn't found in current conversations
+      console.log(`Booking ID ${bid} not found in current conversations`);
+      // Set to first conversation as fallback
+      if (conversations.length > 0) {
+        setSelectedIndex(0);
+        dispatch(setActiveConversation(String(conversations[0].id)));
+        dispatch(fetchMessages(String(conversations[0].id)));
+        dispatch(connectWebSocket(String(conversations[0].id)));
+        setTimeout(() => {
+          if (inputRef.current && typeof inputRef.current.focus === "function")
+            inputRef.current.focus();
+        }, 100);
+      }
     }
   }, [lastBookingId, conversations, dispatch]);
 
@@ -423,7 +441,7 @@ function Message() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentConversation?.id]); // Only trigger on conversation ID change
 
-   useEffect(() => {
+  useEffect(() => {
     const lastMessageId =
       displayMessages[displayMessages.length - 1]?.id ?? null;
 
@@ -445,10 +463,7 @@ function Message() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, );
-
-
-
+  });
 
   // Handle sending message
   // Scroll helper
