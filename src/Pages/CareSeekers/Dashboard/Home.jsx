@@ -22,28 +22,26 @@ function Home() {
 
   // Check subscription status and show modal if not subscribed
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const isSubscribed = localStorage.getItem("is_subscribed") === "true";
-  const justLoggedIn = localStorage.getItem("just_logged_in") === "true";
-  const modalAlreadyShown =
-    localStorage.getItem("subscription_modal_shown") === "true";
 
   useEffect(() => {
     dispatch(fetchSeekerDashboard());
     dispatch(fetchSeekerActiveRequests());
 
-    // Show subscription modal only once after login when user is not subscribed
-    if (!isSubscribed && justLoggedIn && !modalAlreadyShown) {
-      setShowSubscriptionModal(true);
-      try {
-        localStorage.setItem("subscription_modal_shown", "true");
-        localStorage.removeItem("just_logged_in");
-      } catch {
-        // ignore
+    // Show subscription modal if user is not subscribed
+    try {
+      const userRaw = localStorage.getItem("user");
+      if (userRaw) {
+        const user = JSON.parse(userRaw);
+        if (user && user.is_subscribed === false) {
+          setShowSubscriptionModal(true);
+        }
       }
+    } catch {
+      // ignore parse errors
     }
-  }, [dispatch, isSubscribed, justLoggedIn, modalAlreadyShown]);
+  }, [dispatch]);
 
-  const greetingName = greeting_name || "Mark";
+  const greetingName = greeting_name || "";
   const requestsCount = new_care_provider_requests ?? 0;
   const totalSpent = total_amount_spent ?? 0.0;
   const activeRequests = useSelector(
@@ -91,9 +89,6 @@ function Home() {
               <p className="text-[13px] mt-1">New Care Providers request</p>
             </div>
 
-            {/* Divider
-    <div className="w-px h-20 bg-[#cbd5e1] mx-6" /> */}
-
             {/* Right: Amount Spent */}
             <div className="flex-1 text-right">
               <div className="flex items-center justify-end text-[#0093d1] text-[28px] font-semibold leading-none">
@@ -110,9 +105,11 @@ function Home() {
             </div>
           </div>
 
-          <button className="w-full mt-5 bg-[#0093d1] text-white rounded-md py-3 text-[15px] font-medium">
-            View Details
-          </button>
+          <Link to="/careseekers/dashboard/message">
+            <button className="w-full mt-5 bg-[#0093d1] text-white rounded-md py-3 text-[15px] font-medium">
+              View Details
+            </button>
+          </Link>
         </div>
 
         {/* Verify Identity */}

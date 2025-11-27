@@ -1,10 +1,9 @@
 import React from "react";
 import Girl from "../../../../public/girl.svg";
 import { Link } from "react-router-dom";
-import { useDispatch } from 'react-redux'
-import { saveStep } from '../../../Redux/CareSeekerAuth'
-import { postJob } from '../../../Redux/BookaService'
-
+import { useDispatch } from "react-redux";
+import { saveStep } from "../../../Redux/CareSeekerAuth";
+import { postJob } from "../../../Redux/BookaService";
 
 function CareProvidersNearYou() {
   const [showSubscribePopup, setShowSubscribePopup] = React.useState(false);
@@ -18,82 +17,103 @@ function CareProvidersNearYou() {
     confirmPassword: "",
   });
 
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
   const readOnboarding = () => {
     try {
-      const raw = localStorage.getItem('seeker_onboarding')
-      return raw ? JSON.parse(raw) : { steps: {}, preview: null }
-    } catch { return { steps: {}, preview: null } }
-  }
+      const raw = localStorage.getItem("seeker_onboarding");
+      return raw ? JSON.parse(raw) : { steps: {}, preview: null };
+    } catch {
+      return { steps: {}, preview: null };
+    }
+  };
 
   const handleRegister = async () => {
-    const onboarding = readOnboarding()
+    const onboarding = readOnboarding();
 
     // Build the complete job_data payload from collected steps
     const job_data = {
-      service_category: (onboarding.steps?.careCategory || "childcare").toLowerCase(),
+      service_category: (
+        onboarding.steps?.careCategory || "childcare"
+      ).toLowerCase(),
       details: {
         location_information: {
-          use_current_location: onboarding.steps?.location?.useCurrentLocation || false,
-          preferred_language: onboarding.steps?.location?.preferredLanguage || "English",
+          use_current_location:
+            onboarding.steps?.location?.useCurrentLocation || false,
+          preferred_language:
+            onboarding.steps?.location?.preferredLanguage || "English",
           country: onboarding.steps?.location?.country || "",
           state: onboarding.steps?.location?.state || "",
           city: onboarding.steps?.location?.city || "",
           zip_code: onboarding.steps?.location?.zipCode || "",
-          nationality: onboarding.steps?.location?.nationality || ""
-        }
+          nationality: onboarding.steps?.location?.nationality || "",
+        },
       },
       schedule: {
-        job_type: onboarding.steps?.timeDetails?.scheduleType?.toLowerCase() === 'one-off' ? 'one-time' : 'recurring',
+        job_type:
+          onboarding.steps?.timeDetails?.scheduleType?.toLowerCase() ===
+          "one-off"
+            ? "one-time"
+            : "recurring",
         recurrence_pattern: {
-          frequency: (onboarding.steps?.timeDetails?.repeatFrequency || "Weekly").toLowerCase(),
-          days: onboarding.steps?.timeDetails?.repeatDays || ["Friday"]
-        }
+          frequency: (
+            onboarding.steps?.timeDetails?.repeatFrequency || "Weekly"
+          ).toLowerCase(),
+          days: onboarding.steps?.timeDetails?.repeatDays || ["Friday"],
+        },
       },
       budget: {
         price_min: parseFloat(onboarding.steps?.timeDetails?.priceMin) || 25.0,
-        price_max: parseFloat(onboarding.steps?.timeDetails?.priceMax) || 35.0
+        price_max: parseFloat(onboarding.steps?.timeDetails?.priceMax) || 35.0,
       },
-      message_to_provider: onboarding.steps?.summary?.messageToProvider || "We need someone reliable."
-    }
+      message_to_provider:
+        onboarding.steps?.summary?.messageToProvider ||
+        "We need someone reliable.",
+    };
 
     // Add service-specific details for housekeeping as example
-    if (onboarding.steps?.careCategory === 'Housekeeping') {
+    if (onboarding.steps?.careCategory === "Housekeeping") {
       job_data.details.housekeeping_information = {
-        kind_of_housekeeping: onboarding.steps?.housekeeping?.housekeepingServices || [],
-        size_of_your_house: onboarding.steps?.housekeeping?.homeSize || '',
-        number_of_bedrooms: onboarding.steps?.housekeeping?.numberOfBedrooms || '',
-        number_of_bathrooms: onboarding.steps?.housekeeping?.numberOfBathrooms || '',
-        number_of_toilets: onboarding.steps?.housekeeping?.numberOfToilets || '',
-        pets_present: onboarding.steps?.housekeeping?.petsPresent || 'No',
-        specify_pet_present: onboarding.steps?.housekeeping?.petDetails || '',
-        additional_care: onboarding.steps?.housekeeping?.additionalCare || []
-      }
+        kind_of_housekeeping:
+          onboarding.steps?.housekeeping?.housekeepingServices || [],
+        size_of_your_house: onboarding.steps?.housekeeping?.homeSize || "",
+        number_of_bedrooms:
+          onboarding.steps?.housekeeping?.numberOfBedrooms || "",
+        number_of_bathrooms:
+          onboarding.steps?.housekeeping?.numberOfBathrooms || "",
+        number_of_toilets:
+          onboarding.steps?.housekeeping?.numberOfToilets || "",
+        pets_present: onboarding.steps?.housekeeping?.petsPresent || "No",
+        specify_pet_present: onboarding.steps?.housekeeping?.petDetails || "",
+        additional_care: onboarding.steps?.housekeeping?.additionalCare || [],
+      };
     }
 
     const payload = {
       job_data: job_data,
-      title: onboarding.preview?.title || '',
-      summary: onboarding.preview?.summary || '',
-      skills_and_expertise: onboarding.preview?.skills || []
-    }
+      title: onboarding.preview?.title || "",
+      summary: onboarding.preview?.summary || "",
+      skills_and_expertise: onboarding.preview?.skills || [],
+    };
 
     try {
-      const resAction = await dispatch(postJob(payload))
+      const resAction = await dispatch(postJob(payload));
       if (resAction.error) {
-        alert('Publish failed: ' + JSON.stringify(resAction.payload || resAction.error))
+        alert(
+          "Publish failed: " +
+            JSON.stringify(resAction.payload || resAction.error)
+        );
       } else {
-        alert('Success: ' + JSON.stringify(resAction.payload))
-        dispatch(saveStep({ stepName: 'published', data: resAction.payload }))
-        setShowPaymentPopup(false)
-        setShowSubscribePopup(false)
-        setShowSignupPopup(false)
+        alert("Success: " + JSON.stringify(resAction.payload));
+        dispatch(saveStep({ stepName: "published", data: resAction.payload }));
+        setShowPaymentPopup(false);
+        setShowSubscribePopup(false);
+        setShowSignupPopup(false);
       }
     } catch (e) {
-      alert('Unexpected error: ' + e.message)
+      alert("Unexpected error: " + e.message);
     }
-  }
+  };
 
   const paymentDetails = {
     Free: { rate: 0, hours: 0, fee: 0, total: 0 },
@@ -113,10 +133,11 @@ function CareProvidersNearYou() {
               className="w-32 h-32 mx-auto mb-4"
             />
             <h2 className="text-xl font-semibold text-center text-gray-800 mb-1">
-              Sign Up to View Care Providers near you  
+              Sign Up to View Care Providers near you
             </h2>
             <p className="text-sm text-gray-500 text-center mb-6">
-              Kindly enter your email address below to view care providers near you. 
+              Kindly enter your email address below to view care providers near
+              you.
             </p>
             <input
               type="email"
@@ -158,17 +179,18 @@ function CareProvidersNearYou() {
         </div>
       )}
 
-
       {/* Main Content (Blurred when signup popup is active) */}
       <div
         className={`font-sfpro w-full bg-white min-h-screen transition ${
-          showSignupPopup || showSubscribePopup || showPaymentPopup ? "blur-sm pointer-events-none" : ""
+          showSignupPopup || showSubscribePopup || showPaymentPopup
+            ? "blur-sm pointer-events-none"
+            : ""
         }`}
       >
         {/* Header */}
         <div className="flex justify-between items-center px-8 pt-8">
           <h2 className="text-3xl font-semibold text-gray-800">
-            Care Providers near you 
+            Care Providers near you
           </h2>
           <div className="flex items-center">
             <span className="text-lg text-[#0093d1] font-bold">Step 8</span>
@@ -272,15 +294,15 @@ function CareProvidersNearYou() {
             </h2>
             <div className="grid grid-cols-3 gap-4 mt-6 w-full">
               {/* Free */}
-                <div
-                  className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center cursor-pointer hover:shadow-lg transition"
-                  onClick={() => {
-                      setSelectedPlan("Free");
-                      setShowSubscribePopup(false);
-                      localStorage.setItem("careProviderPlan", "Free");
-                      window.location.href = "/careseekers/dashboard/careproviders";
-                    }}
-                >
+              <div
+                className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center cursor-pointer hover:shadow-lg transition"
+                onClick={() => {
+                  setSelectedPlan("Free");
+                  setShowSubscribePopup(false);
+                  localStorage.setItem("careProviderPlan", "Free");
+                  window.location.href = "/careseekers/dashboard/careproviders";
+                }}
+              >
                 <div className="text-lg font-bold text-gray-800 mb-1">Free</div>
                 <div className="text-2xl font-bold text-gray-800 mb-1">
                   $00.00
@@ -369,9 +391,9 @@ function CareProvidersNearYou() {
               </div>
             </div>
             <Link to="/careseekers/dashboard/careproviders">
-            <button className="w-full bg-[#0093d1] text-white py-3 px-20 rounded-lg font-semibold text-lg mb-3 hover:bg-[#007bb0] transition">
-              Proceed to Payment
-            </button>
+              <button className="w-full bg-[#0093d1] text-white py-3 px-20 rounded-lg font-semibold text-lg mb-3 hover:bg-[#007bb0] transition">
+                Proceed to Payment
+              </button>
             </Link>
             <button
               className="w-full border border-[#0093d1] text-[#0093d1] py-3 rounded-lg font-semibold text-lg hover:bg-blue-50 transition"

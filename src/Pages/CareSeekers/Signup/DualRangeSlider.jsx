@@ -63,7 +63,7 @@ export default function DualRangeSlider({
   return (
     <div>
       <div className="bg-white border border-gray-200 rounded-lg p-4 font-sfpro">
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 lg:gap-0 mb-2">
           <span className="text-sm text-gray-500">${minValue}</span>
           <span className="text-sm text-gray-500">${maxValue}</span>
         </div>

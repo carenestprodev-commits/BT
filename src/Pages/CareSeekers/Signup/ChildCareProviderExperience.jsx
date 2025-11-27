@@ -12,7 +12,7 @@ function ChildCareProviderExperience({
   const dispatch = useDispatch();
   const [errors, setErrors] = useState({});
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
+    <div className="w-full max-w-3xl mx-auto bg-white p-4 lg:p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
       <div className="flex items-center mb-6">
         <button
           onClick={() => window.history.back()}
@@ -20,13 +20,16 @@ function ChildCareProviderExperience({
         >
           ←
         </button>
-        <h3 className="text-lg text-gray-700 flex-1">
+        <h3 className="text-base lg:text-lg text-gray-700 flex-1">
           Care provider Experience
         </h3>
-        <span className="text-lg text-[#0093d1] font-bold">
+        <span className="text-base lg:text-lg text-[#0093d1] font-bold">
           Step {currentStep}
         </span>{" "}
-        <span className="ml-2 text-lg text-gray-500"> of {totalSteps}</span>
+        <span className="ml-2 text-base lg:text-lg text-gray-500">
+          {" "}
+          of {totalSteps}
+        </span>
       </div>
       <div className="mb-6">
         <h4 className="text-base font-medium text-gray-800 mb-2">Details</h4>
@@ -125,8 +128,9 @@ function ChildCareProviderExperience({
         <div>
           <p className="text-sm text-gray-700 mb-4">
             Special Preferences{" "}
-            <span className="font-normal">Select care giver preference.</span>{" "}
-            <span className="text-red-600">*</span>
+            <span className="font-normal">
+              Select care giver preference (optional).
+            </span>
           </p>
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="relative">
@@ -198,11 +202,7 @@ function ChildCareProviderExperience({
                     ))}
                   </ul>
                 )}
-              {errors.specialPreferences && (
-                <p className="text-sm text-red-600 mt-2">
-                  {errors.specialPreferences}
-                </p>
-              )}
+              {/* specialPreferences is optional - no error shown */}
             </div>
           </div>
         </div>
@@ -279,8 +279,9 @@ function ChildCareProviderExperience({
         <div>
           <p className="text-sm text-gray-700 mb-4">
             Want your care provider to offer more than one type of care?{" "}
-            <span className="font-normal">Select an extra category below.</span>{" "}
-            <span className="text-red-600">*</span>
+            <span className="font-normal">
+              Select an extra category below (optional).
+            </span>
           </p>
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="relative">
@@ -348,11 +349,7 @@ function ChildCareProviderExperience({
                     ))}
                   </ul>
                 )}
-              {errors.extraCareCategory && (
-                <p className="text-sm text-red-600 mt-2">
-                  {errors.extraCareCategory}
-                </p>
-              )}
+              {/* extraCareCategory is optional - no error shown */}
             </div>
           </div>
         </div>
@@ -368,22 +365,10 @@ function ChildCareProviderExperience({
             newErrors.communicationLanguage =
               "Please select at least one communication language.";
           if (
-            !formData.specialPreferences ||
-            formData.specialPreferences.length === 0
-          )
-            newErrors.specialPreferences =
-              "Please select at least one special preference.";
-          if (
             !formData.preferredOption ||
             formData.preferredOption.length === 0
           )
             newErrors.preferredOption = "Please select a preferred option.";
-          if (
-            !formData.extraCareCategory ||
-            formData.extraCareCategory.length === 0
-          )
-            newErrors.extraCareCategory =
-              "Please select at least one extra care category.";
 
           setErrors(newErrors);
           if (Object.keys(newErrors).length > 0) return;
@@ -393,16 +378,16 @@ function ChildCareProviderExperience({
             saveStep({
               stepName: "experience",
               data: {
-                communicationLanguage: formData.communicationLanguage,
-                specialPreferences: formData.specialPreferences,
-                preferredOption: formData.preferredOption,
-                extraCareCategory: formData.extraCareCategory,
+                communicationLanguage: formData.communicationLanguage || [],
+                specialPreferences: formData.specialPreferences || [],
+                preferredOption: formData.preferredOption || [],
+                extraCareCategory: formData.extraCareCategory || [],
               },
             })
           );
           handleNext();
         }}
-        className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8"
+        className="w-full bg-[#0093d1] text-white text-base lg:text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8"
       >
         Next
       </button>

@@ -31,7 +31,7 @@ function ChildSummary({
     }
   }, [preview]);
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
+    <div className="w-full max-w-3xl mx-auto bg-white p-4 lg:p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
       <div className="flex items-center mb-6">
         <button
           onClick={handleBack}
@@ -39,11 +39,11 @@ function ChildSummary({
         >
           ←
         </button>
-        <h3 className="text-lg text-gray-700 flex-1">Summary</h3>
-        <span className="text-lg text-[#0093d1] font-bold">
+        <h3 className="text-base lg:text-lg text-gray-700 flex-1">Summary</h3>
+        <span className="text-base lg:text-lg text-[#0093d1] font-bold">
           Step {currentStep}
         </span>{" "}
-        <span className="ml-2 text-lg text-gray-500"> of {totalSteps}</span>
+        <span className="ml-2 text-base lg:text-lg text-gray-500"> of {totalSteps}</span>
       </div>
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
         <div className="flex items-start">
@@ -136,7 +136,7 @@ function ChildSummary({
           );
           handleNext();
         }}
-        className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition"
+        className="w-full bg-[#0093d1] text-white text-base lg:text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition"
         disabled={
           !formData.acceptedTerms ||
           !formData.messageToProvider ||

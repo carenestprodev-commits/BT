@@ -1,70 +1,86 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import { BASE_URL } from './config'
-const LS_KEY = 'provider_onboarding'
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { BASE_URL } from "./config";
+const LS_KEY = "provider_onboarding";
 
 const readLS = () => {
   try {
-    const raw = localStorage.getItem(LS_KEY)
-    return raw ? JSON.parse(raw) : { steps: {} }
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : { steps: {} };
   } catch {
-    return { steps: {} }
+    return { steps: {} };
   }
-}
+};
 
 const writeLS = (data) => {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(data))
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
   } catch {
     // ignore
   }
-}
+};
 
 export const registerAndCreateProfile = createAsyncThunk(
-  'careProvider/registerAndCreateProfile',
+  "careProvider/registerAndCreateProfile",
   async (payload, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${BASE_URL}/api/provider/public-onboarding/register-and-create-profile/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const res = await fetch(
+        `${BASE_URL}/api/provider/public-onboarding/register-and-create-profile/`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
       if (!res.ok) {
-        const text = await res.text()
-        return rejectWithValue(text)
+        const text = await res.text();
+        return rejectWithValue(text);
       }
-      const data = await res.json()
-      return data
+      const data = await res.json();
+      return data;
     } catch (err) {
-      return rejectWithValue(err.message)
+      return rejectWithValue(err.message);
     }
   }
-)
+);
 
-const initialState = readLS()
+const initialState = readLS();
 
 const slice = createSlice({
-  name: 'careProvider',
+  name: "careProvider",
   initialState,
   reducers: {
     saveStep(state, action) {
-      const { stepName, data } = action.payload
-      state.steps = { ...state.steps, [stepName]: data }
-      writeLS(state)
+      const { stepName, data } = action.payload;
+      state.steps = { ...state.steps, [stepName]: data };
+      writeLS(state);
     },
     clearOnboarding(state) {
-      state.steps = {}
-      writeLS(state)
-    }
+      state.steps = {};
+      writeLS(state);
+    },
   },
   extraReducers: (builder) => {
-    builder
-      .addCase(registerAndCreateProfile.fulfilled, (state, action) => {
-        state.registerResponse = action.payload
-        writeLS(state)
-      })
-  }
-})
+    builder.addCase(registerAndCreateProfile.fulfilled, (state, action) => {
+      state.registerResponse = action.payload;
+      // persist the full API response and tokens/user to localStorage for immediate access
+      try {
+        const data = action.payload;
+        localStorage.setItem(
+          "provider_register_response",
+          JSON.stringify(data)
+        );
+        if (data?.access) localStorage.setItem("access", data.access);
+        if (data?.refresh) localStorage.setItem("refresh", data.refresh);
+        if (data?.user)
+          localStorage.setItem("provider_user", JSON.stringify(data.user));
+      } catch {
+        // ignore storage errors
+      }
+      writeLS(state);
+    });
+  },
+});
 
-export const { saveStep, clearOnboarding } = slice.actions
+export const { saveStep, clearOnboarding } = slice.actions;
 
-export default slice.reducer
+export default slice.reducer;

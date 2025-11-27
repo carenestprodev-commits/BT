@@ -14,28 +14,431 @@ function TutoringInformation({
 }) {
   const dispatch = useDispatch();
   const [countryOptions, setCountryOptions] = useState([
-    "United States",
+    "Afghanistan",
+    "Albania",
+    "Algeria",
+    "Andorra",
+    "Angola",
+    "Antigua and Barbuda",
+    "Argentina",
+    "Armenia",
+    "Australia",
+    "Austria",
+    "Azerbaijan",
+    "Bahamas",
+    "Bahrain",
+    "Bangladesh",
+    "Barbados",
+    "Belarus",
+    "Belgium",
+    "Belize",
+    "Benin",
+    "Bhutan",
+    "Bolivia",
+    "Bosnia and Herzegovina",
+    "Botswana",
+    "Brazil",
+    "Brunei",
+    "Bulgaria",
+    "Burkina Faso",
+    "Burundi",
+    "Cabo Verde",
+    "Cambodia",
+    "Cameroon",
     "Canada",
+    "Central African Republic",
+    "Chad",
+    "Chile",
+    "China",
+    "Colombia",
+    "Comoros",
+    "Congo (Congo-Brazzaville)",
+    "Costa Rica",
+    "Croatia",
+    "Cuba",
+    "Cyprus",
+    "Czechia",
+    "Denmark",
+    "Djibouti",
+    "Dominica",
+    "Dominican Republic",
+    "Ecuador",
+    "Egypt",
+    "El Salvador",
+    "Equatorial Guinea",
+    "Eritrea",
+    "Estonia",
+    "Eswatini",
+    "Ethiopia",
+    "Fiji",
+    "Finland",
+    "France",
+    "Gabon",
+    "Gambia",
+    "Georgia",
+    "Germany",
+    "Ghana",
+    "Greece",
+    "Grenada",
+    "Guatemala",
+    "Guinea",
+    "Guinea-Bissau",
+    "Guyana",
+    "Haiti",
+    "Honduras",
+    "Hungary",
+    "Iceland",
+    "India",
+    "Indonesia",
+    "Iran",
+    "Iraq",
+    "Ireland",
+    "Israel",
+    "Italy",
+    "Jamaica",
+    "Japan",
+    "Jordan",
+    "Kazakhstan",
+    "Kenya",
+    "Kiribati",
+    "Kuwait",
+    "Kyrgyzstan",
+    "Laos",
+    "Latvia",
+    "Lebanon",
+    "Lesotho",
+    "Liberia",
+    "Libya",
+    "Liechtenstein",
+    "Lithuania",
+    "Luxembourg",
+    "Madagascar",
+    "Malawi",
+    "Malaysia",
+    "Maldives",
+    "Mali",
+    "Malta",
+    "Marshall Islands",
+    "Mauritania",
+    "Mauritius",
+    "Mexico",
+    "Micronesia",
+    "Moldova",
+    "Monaco",
+    "Mongolia",
+    "Montenegro",
+    "Morocco",
+    "Mozambique",
+    "Myanmar",
+    "Namibia",
+    "Nauru",
+    "Nepal",
+    "Netherlands",
+    "New Zealand",
+    "Nicaragua",
+    "Niger",
+    "Nigeria",
+    "North Korea",
+    "North Macedonia",
+    "Norway",
+    "Oman",
+    "Pakistan",
+    "Palau",
+    "Panama",
+    "Papua New Guinea",
+    "Paraguay",
+    "Peru",
+    "Philippines",
+    "Poland",
+    "Portugal",
+    "Qatar",
+    "Romania",
+    "Russia",
+    "Rwanda",
+    "Saint Kitts and Nevis",
+    "Saint Lucia",
+    "Saint Vincent and the Grenadines",
+    "Samoa",
+    "San Marino",
+    "Sao Tome and Principe",
+    "Saudi Arabia",
+    "Senegal",
+    "Serbia",
+    "Seychelles",
+    "Sierra Leone",
+    "Singapore",
+    "Slovakia",
+    "Slovenia",
+    "Solomon Islands",
+    "Somalia",
+    "South Africa",
+    "South Korea",
+    "South Sudan",
+    "Spain",
+    "Sri Lanka",
+    "Sudan",
+    "Suriname",
+    "Sweden",
+    "Switzerland",
+    "Syria",
+    "Taiwan",
+    "Tajikistan",
+    "Tanzania",
+    "Thailand",
+    "Timor-Leste",
+    "Togo",
+    "Tonga",
+    "Trinidad and Tobago",
+    "Tunisia",
+    "Turkey",
+    "Turkmenistan",
+    "Tuvalu",
+    "Uganda",
+    "Ukraine",
+    "United Arab Emirates",
     "United Kingdom",
+    "United States",
+    "Uruguay",
+    "Uzbekistan",
+    "Vanuatu",
+    "Vatican City",
+    "Venezuela",
+    "Vietnam",
+    "Yemen",
+    "Zambia",
+    "Zimbabwe",
   ]);
+
   const [stateOptions, setStateOptions] = useState([
-    "California",
-    "New York",
-    "Texas",
+    "Abia",
+    "Adamawa",
+    "Akwa Ibom",
+    "Anambra",
+    "Bauchi",
+    "Bayelsa",
+    "Benue",
+    "Borno",
+    "Cross River",
+    "Delta",
+    "Ebonyi",
+    "Edo",
+    "Ekiti",
+    "Enugu",
+    "Gombe",
+    "Imo",
+    "Jigawa",
+    "Kaduna",
+    "Kano",
+    "Katsina",
+    "Kebbi",
+    "Kogi",
+    "Kwara",
+    "Lagos",
+    "Nasarawa",
+    "Niger",
+    "Ogun",
+    "Ondo",
+    "Osun",
+    "Oyo",
+    "Plateau",
+    "Rivers",
+    "Sokoto",
+    "Taraba",
+    "Yobe",
+    "Zamfara",
+    "Federal Capital Territory (Abuja)",
   ]);
+
   const [languageOptions, setLanguageOptions] = useState([
-    "English",
-    "Spanish",
-    "French",
+    "Afar",
+    "Abkhaz",
+    "Avestan",
+    "Afrikaans",
+    "Akan",
+    "Aragonese",
+    "Arabic",
+    "Assamese",
+    "Avaric",
+    "Aymara",
+    "Azerbaijani",
+    "Bashkir",
+    "Belarusian",
+    "Bulgarian",
+    "Bihari",
+    "Bislama",
+    "Bambara",
     "Bengali",
+    "Tibetan",
+    "Breton",
+    "Bosnian",
+    "Catalan",
+    "Chechen",
+    "Chamorro",
+    "Corsican",
+    "Cree",
+    "Czech",
+    "Church Slavic",
+    "Chuvash",
+    "Welsh",
+    "Danish",
+    "German",
+    "Divehi",
+    "Dzongkha",
+    "Ewe",
+    "Greek",
+    "English",
+    "Esperanto",
+    "Spanish",
+    "Estonian",
+    "Basque",
+    "Persian",
+    "Fulah",
+    "Finnish",
+    "Fijian",
+    "Faroese",
+    "French",
+    "Western Frisian",
+    "Irish",
+    "Scottish Gaelic",
+    "Galician",
+    "Guarani",
+    "Gujarati",
+    "Manx",
+    "Hausa",
+    "Hebrew",
+    "Hindi",
+    "Hiri Motu",
+    "Croatian",
+    "Hungarian",
+    "Armenian",
+    "Herero",
+    "Indonesian",
+    "Interlingue",
+    "Igbo",
+    "Sichuan Yi",
+    "Inupiaq",
+    "Ido",
+    "Icelandic",
+    "Italian",
+    "Inuktitut",
+    "Japanese",
+    "Javanese",
+    "Georgian",
+    "Kongo",
+    "Kikuyu",
+    "Kuanyama",
+    "Kazakh",
+    "Kalaallisut",
+    "Khmer",
+    "Kannada",
+    "Korean",
+    "Kanuri",
+    "Kashmiri",
+    "Kurdish",
+    "Komi",
+    "Cornish",
+    "Kirghiz",
+    "Latin",
+    "Luxembourgish",
+    "Ganda",
+    "Limburgish",
+    "Lingala",
+    "Lao",
+    "Lithuanian",
+    "Luba-Katanga",
+    "Latvian",
+    "Malagasy",
+    "Marshallese",
+    "Maori",
+    "Macedonian",
+    "Malayalam",
+    "Mongolian",
+    "Marathi",
+    "Malay",
+    "Maltese",
+    "Burmese",
+    "Nauru",
+    "Norwegian Bokmål",
+    "North Ndebele",
+    "Nepali",
+    "Ndonga",
+    "Dutch",
+    "Norwegian Nynorsk",
+    "Norwegian",
+    "South Ndebele",
+    "Navajo",
+    "Chichewa",
+    "Occitan",
+    "Ojibwa",
+    "Oromo",
+    "Oriya",
+    "Ossetian",
+    "Panjabi",
+    "Pali",
+    "Polish",
+    "Pashto",
+    "Portuguese",
+    "Quechua",
+    "Romansh",
+    "Rundi",
+    "Romanian",
+    "Russian",
+    "Kinyarwanda",
+    "Sanskrit",
+    "Sardinian",
+    "Sindhi",
+    "Northern Sami",
+    "Sango",
+    "Sinhala",
+    "Slovak",
+    "Slovenian",
+    "Samoan",
+    "Shona",
+    "Somali",
+    "Albanian",
+    "Serbian",
+    "Swati",
+    "Sotho",
+    "Sundanese",
+    "Swedish",
+    "Swahili",
+    "Tamil",
+    "Telugu",
+    "Tajik",
+    "Thai",
+    "Tigrinya",
+    "Turkmen",
+    "Tagalog",
+    "Tswana",
+    "Tonga",
+    "Turkish",
+    "Tsonga",
+    "Tatar",
+    "Twi",
+    "Tahitian",
+    "Uighur",
+    "Ukrainian",
+    "Urdu",
+    "Uzbek",
+    "Venda",
+    "Vietnamese",
+    "Volapük",
+    "Walloon",
+    "Wolof",
+    "Xhosa",
+    "Yiddish",
+    "Yoruba",
+    "Zhuang",
+    "Chinese",
+    "Zulu",
   ]);
   const [errors, setErrors] = useState({});
   return (
     <>
       {/* Location Popup */}
       {showLocationPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 font-sfpro">
-          <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-full relative flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4 font-sfpro">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[400px] relative flex flex-col">
             {/* Close Button */}
             <button
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-xl font-bold z-10"
@@ -125,7 +528,7 @@ function TutoringInformation({
       )}
 
       {/* Main Form Container */}
-      <div className="w-full max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+      <div className="w-full max-w-3xl mx-auto bg-white p-4 lg:p-8 rounded-2xl shadow-lg border border-gray-100">
         {/* Header */}
         <div className="flex items-center mb-6">
           <button
@@ -134,9 +537,13 @@ function TutoringInformation({
           >
             ←
           </button>
-          <h3 className="text-lg text-gray-700 flex-1">Tutoring Information</h3>
-          <span className="text-lg text-[#0093d1] font-bold">Step 2</span>
-          <span className="ml-2 text-lg text-gray-500"> of 5</span>
+          <h3 className="text-base lg:text-lg text-gray-700 flex-1">
+            Tutoring Information
+          </h3>
+          <span className="text-base lg:text-lg text-[#0093d1] font-bold">
+            Step 2
+          </span>
+          <span className="ml-2 text-base lg:text-lg text-gray-500"> of 5</span>
         </div>
 
         <div className="mb-6">
@@ -147,7 +554,7 @@ function TutoringInformation({
         </div>
 
         {/* First & Last name fields */}
-        <div className="grid grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               First Name <span className="text-red-600">*</span>
@@ -203,7 +610,7 @@ function TutoringInformation({
           </div>
 
           {/* Preferred Language & Country */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Preferred Language <span className="text-red-600">*</span>
@@ -255,7 +662,7 @@ function TutoringInformation({
           </div>
 
           {/* State & Nationality */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 State <span className="text-red-600">*</span>
@@ -300,7 +707,7 @@ function TutoringInformation({
           </div>
 
           {/* Zip Code */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Zip Code <span className="text-red-600">*</span>
@@ -349,7 +756,7 @@ function TutoringInformation({
           <hr className="my-6 border-gray-200" />
 
           {/* Tutoring Subjects & Learning Environment */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 What subject(s) need tutoring{" "}
@@ -422,7 +829,7 @@ function TutoringInformation({
           </div>
 
           {/* Learning Purpose & Student Age Range */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 What is the purpose of this learning{" "}
@@ -486,7 +893,7 @@ function TutoringInformation({
           </div>
 
           {/* Additional Care */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Additional Care <span className="text-red-600">*</span>
@@ -577,7 +984,7 @@ function TutoringInformation({
             );
             handleNext();
           }}
-          className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8"
+          className="w-full bg-[#0093d1] text-white text-base lg:text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8"
         >
           Next
         </button>

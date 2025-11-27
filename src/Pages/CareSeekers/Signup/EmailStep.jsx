@@ -48,7 +48,7 @@ function EmailStep({ formData, updateFormData, onClose, onComplete }) {
       <button
         onClick={handleSubmit}
         disabled={!isValidEmail(formData.email)}
-        className={`w-full text-lg font-medium py-3 rounded-md transition mt-4 ${
+        className={`w-full text-base lg:text-lg font-medium py-3 rounded-md transition mt-4 ${
           isValidEmail(formData.email)
             ? "bg-[#0093d1] text-white hover:bg-[#007bb0]"
             : "bg-gray-300 text-gray-500 cursor-not-allowed"

@@ -48,7 +48,19 @@ function MessageDetails() {
           <span className="hidden sm:inline">Back to Messages</span>
         </button>
         <h2 className="text-2xl font-semibold text-gray-800 mb-8">Details</h2>
-        <div className="flex items-center mb-6">
+        <div
+          className="flex items-center mb-6 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition"
+          onClick={() => {
+            const providerId =
+              details?.user?.id ||
+              details?.id ||
+              params?.providerId ||
+              params?.id;
+            if (providerId) {
+              navigate(`/careseekers/dashboard/details/${providerId}`);
+            }
+          }}
+        >
           <img
             src={resolveImage(details?.user?.profile_image_url)}
             alt={details?.user?.full_name}

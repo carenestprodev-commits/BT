@@ -27,6 +27,7 @@ function Signup() {
   const [isEmailComplete, setIsEmailComplete] = useState(false);
   const [isPasswordComplete, setIsPasswordComplete] = useState(false);
   const [showLocationPopup, setShowLocationPopup] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     // Category
@@ -492,20 +493,65 @@ function Signup() {
   };
 
   return (
-    <div className="flex min-h-screen bg-white">
-      {/* Sidebar */}
-      <SidebarSignup
-        activeStep={currentStep}
-        selectedCategory={selectedCategory}
-      />
+    <div className="flex lg:grid lg:grid-cols-[440px_1fr] min-h-screen bg-white">
+      {/* Mobile Header with Hamburger */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white z-30 p-4 border-b border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <img
+              src="/CareLogo.png"
+              alt="CareNestPro Logo"
+              className="h-8 mr-2"
+            />
+            <h1 className="text-lg font-semibold text-[#024a68]">
+              CareNest<span className="text-[#00b3a4]">Pro</span>
+            </h1>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-md hover:bg-gray-100"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Sidebar - Desktop: Fixed, Mobile: Overlay */}
+      <div
+        className={`${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0 fixed lg:relative z-40 transition-transform duration-300 ease-in-out`}
+      >
+        <SidebarSignup
+          activeStep={currentStep}
+          selectedCategory={selectedCategory}
+        />
+      </div>
+
+      {/* Overlay for mobile sidebar */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
 
       {/* Main Content */}
-      <div
-        className="flex-1 flex items-center justify-center min-h-screen font-sfpro"
-        style={{ marginLeft: "440px" }}
-      >
-        <div className="w-full flex flex-col items-center justify-center py-12 px-8">
-          <h2 className="text-4xl font-semibold text-gray-800 mb-8 text-center font-sfpro">
+      <div className="flex-1 flex items-center justify-center min-h-screen font-sfpro pt-16 lg:pt-0">
+        <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center py-12 px-4 lg:px-8">
+          <h2 className="text-2xl lg:text-4xl font-semibold text-gray-800 mb-6 lg:mb-8 text-center font-sfpro">
             Create an account
           </h2>
           <div className="w-full flex justify-center">
@@ -516,8 +562,8 @@ function Signup() {
 
       {/* Email Popup */}
       {showEmailPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-full p-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[400px] p-6 lg:p-8">
             <EmailStep
               formData={formData}
               updateFormData={updateFormData}
@@ -530,8 +576,8 @@ function Signup() {
 
       {/* Password Popup */}
       {showPasswordPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-full p-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[400px] p-6 lg:p-8">
             <PasswordStep
               formData={formData}
               updateFormData={updateFormData}

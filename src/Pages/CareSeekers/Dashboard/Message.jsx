@@ -101,6 +101,7 @@ function Message() {
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedConversationId, setSelectedConversationId] = useState(null); // Track by ID to prevent shifting
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -110,6 +111,10 @@ function Message() {
   // Handle conversation selection
   const handleConversationSelect = (index) => {
     setSelectedIndex(index);
+    const conversation = conversations[index];
+    if (conversation) {
+      setSelectedConversationId(conversation.id);
+    }
     // on small screens, open chat view
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       setShowChatOnMobile(true);
@@ -176,6 +181,18 @@ function Message() {
     }
   }, [dispatch, conversations.length]);
 
+  // Maintain correct selection when conversations array changes (e.g., after sending first message)
+  useEffect(() => {
+    if (selectedConversationId && conversations.length > 0) {
+      const correctIndex = conversations.findIndex(
+        (c) => c.id === selectedConversationId
+      );
+      if (correctIndex >= 0 && correctIndex !== selectedIndex) {
+        setSelectedIndex(correctIndex);
+      }
+    }
+  }, [conversations, selectedConversationId, selectedIndex]);
+
   useEffect(() => {
     const otherUserId = location?.state?.other_user_id;
     if (!otherUserId) return;
@@ -218,6 +235,7 @@ function Message() {
 
       if (idx >= 0) {
         setSelectedIndex(idx);
+        setSelectedConversationId(lastCreatedConversationId);
         dispatch(setActiveConversation(cid));
         dispatch(fetchMessages(cid));
         dispatch(connectWebSocket(cid));
@@ -259,6 +277,7 @@ function Message() {
     if (idx >= 0) {
       const conv = conversations[idx];
       setSelectedIndex(idx);
+      setSelectedConversationId(conv.id);
       dispatch(setActiveConversation(String(conv.id)));
       dispatch(fetchMessages(String(conv.id)));
       dispatch(connectWebSocket(String(conv.id)));
@@ -273,6 +292,7 @@ function Message() {
       // Set to first conversation as fallback
       if (conversations.length > 0) {
         setSelectedIndex(0);
+        setSelectedConversationId(conversations[0].id);
         dispatch(setActiveConversation(String(conversations[0].id)));
         dispatch(fetchMessages(String(conversations[0].id)));
         dispatch(connectWebSocket(String(conversations[0].id)));
@@ -703,24 +723,41 @@ function Message() {
             </button>
             {currentConversation ? (
               <>
-                <img
-                  src={resolveImage(
-                    currentConversation.other_participant?.profile_image_url
-                  )}
-                  alt="avatar"
-                  className="w-10 h-10 rounded-full mr-3 object-cover"
-                />
-                <div className="flex-1 flex items-center">
-                  <div className="font-semibold text-gray-800 text-lg">
-                    {currentConversation.other_participant?.full_name ||
-                      currentConversation.other_participant?.email ||
-                      "Unknown User"}
+                <div
+                  className="flex items-center flex-1 cursor-pointer hover:opacity-80 transition"
+                  onClick={() => {
+                    const fullName =
+                      currentConversation.other_participant?.full_name;
+                    // Don't navigate if it's Support Admin
+                    if (fullName === "Support Admin") return;
+
+                    const providerId =
+                      currentConversation.other_participant?.id ||
+                      currentConversation.provider_id;
+                    if (providerId) {
+                      navigate(`/careseekers/dashboard/details/${providerId}`);
+                    }
+                  }}
+                >
+                  <img
+                    src={resolveImage(
+                      currentConversation.other_participant?.profile_image_url
+                    )}
+                    alt="avatar"
+                    className="w-10 h-10 rounded-full mr-3 object-cover"
+                  />
+                  <div className="flex-1 flex items-center">
+                    <div className="font-semibold text-gray-800 text-lg">
+                      {currentConversation.other_participant?.full_name ||
+                        currentConversation.other_participant?.email ||
+                        "Unknown User"}
+                    </div>
+                    {wsConnected && (
+                      <span className="ml-2 text-xs text-green-500">
+                        {/* ● Online */}
+                      </span>
+                    )}
                   </div>
-                  {wsConnected && (
-                    <span className="ml-2 text-xs text-green-500">
-                      ● Online
-                    </span>
-                  )}
                 </div>
               </>
             ) : (

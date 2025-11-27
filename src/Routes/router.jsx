@@ -97,7 +97,7 @@ export const router = createBrowserRouter([
     element: <CareProvidersNearYouDashboard />,
   },
   {
-    path: "/careseekers/dashboard/details",
+    path: "/careseekers/dashboard/details/:id",
     element: <ViewDetails />,
   },
   {

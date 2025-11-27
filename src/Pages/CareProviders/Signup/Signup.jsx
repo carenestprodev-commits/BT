@@ -17,6 +17,7 @@ function Signup() {
   });
   const [selectedCategory, setSelectedCategory] = useState("");
   const [showLocationPopup, setShowLocationPopup] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const updateFormData = (key, value) => {
     setFormData((prev) => ({
@@ -162,15 +163,63 @@ function Signup() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sfpro">
-      {/* Sidebar */}
-      <SidebarSignup
-        activeStep={getCurrentStepNumber()}
-        selectedCategory={selectedCategory}
-      />
+    <div className="flex lg:grid lg:grid-cols-[440px_1fr] min-h-screen bg-gray-50 font-sfpro">
+      {/* Mobile Header with Hamburger */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white z-30 p-4 border-b border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <img
+              src="/CareLogo.png"
+              alt="CareNestPro Logo"
+              className="h-8 mr-2"
+            />
+            <h1 className="text-lg font-semibold text-[#024a68]">
+              CareNest<span className="text-[#00b3a4]">Pro</span>
+            </h1>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-md hover:bg-gray-100"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Sidebar - Desktop: Fixed, Mobile: Overlay */}
+      <div
+        className={`${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0 fixed lg:relative z-40 transition-transform duration-300 ease-in-out`}
+      >
+        <SidebarSignup
+          activeStep={getCurrentStepNumber()}
+          selectedCategory={selectedCategory}
+        />
+      </div>
+
+      {/* Overlay for mobile when sidebar is open */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
 
       {/* Main content */}
-      <div className="flex-1 ml-[440px] flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center min-h-screen pt-16 lg:pt-0 p-4">
         {renderCurrentStep()}
       </div>
     </div>

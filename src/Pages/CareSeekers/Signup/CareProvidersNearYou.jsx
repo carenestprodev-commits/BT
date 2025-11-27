@@ -82,7 +82,7 @@ function CareProvidersNearYou() {
         setShowPaymentPopup(false);
         setShowSubscribePopup(false);
         setShowSignupPopup(false);
-        navigate("/careseekers/login");
+        navigate("/careseekers/dashboard/home");
       }
     } catch (e) {
       alert("Unexpected error: " + e.message);
@@ -99,8 +99,8 @@ function CareProvidersNearYou() {
     <>
       {/* Signup Blur Overlay */}
       {showSignupPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 font-sfpro">
-          <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-full p-8 dark:bg-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4 font-sfpro">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[400px] p-8 dark:bg-white">
             <img
               src={Girl}
               alt="Signup Illustration"
@@ -204,19 +204,24 @@ function CareProvidersNearYou() {
         }`}
       >
         {/* Header */}
-        <div className="flex justify-between items-center px-8 pt-8">
-          <h2 className="text-3xl font-semibold text-gray-800">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center px-4 lg:px-8 pt-6 lg:pt-8 gap-3 lg:gap-0">
+          <h2 className="text-2xl lg:text-3xl font-semibold text-gray-800">
             Care Providers near you
           </h2>
           <div className="flex items-center">
-            <span className="text-lg text-[#0093d1] font-bold">Step 8</span>
-            <span className="ml-2 text-lg text-gray-500"> of 8</span>
+            <span className="text-base lg:text-lg text-[#0093d1] font-bold">
+              Step 8
+            </span>
+            <span className="ml-2 text-base lg:text-lg text-gray-500">
+              {" "}
+              of 8
+            </span>
           </div>
         </div>
 
         {/* Cards Grid */}
-        <div className="px-8 pb-8">
-          <div className="grid grid-cols-2 gap-6 mt-8">
+        <div className="px-4 lg:px-8 pb-6 lg:pb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mt-6 lg:mt-8">
             {[1, 2, 3, 4, 5, 6].map((provider) => (
               <div
                 key={provider}
@@ -227,20 +232,20 @@ function CareProvidersNearYou() {
                   <img
                     src="https://randomuser.me/api/portraits/women/1.jpg"
                     alt="Provider"
-                    className="w-14 h-14 rounded-full mr-4 object-cover"
+                    className="w-12 h-12 lg:w-14 lg:h-14 rounded-full mr-3 lg:mr-4 object-cover flex-shrink-0"
                   />
-                  <div>
-                    <h4 className="font-semibold text-gray-800 text-lg">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-semibold text-gray-800 text-base lg:text-lg truncate">
                       Aleem Sarah
                     </h4>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs lg:text-sm text-gray-500 truncate">
                       Old Dallas, Salford, UK
                     </p>
                   </div>
                 </div>
 
                 {/* Description */}
-                <p className="text-sm text-gray-500 mb-4 leading-snug">
+                <p className="text-xs lg:text-sm text-gray-500 mb-4 leading-snug">
                   5 years of experience with extensive ways of managing daily
                   routines for multiple children. Skilled in age-appropriate
                   activities, behavioural guidance.
@@ -270,14 +275,14 @@ function CareProvidersNearYou() {
                 </div>
 
                 {/* Buttons */}
-                <div className="flex space-x-2">
+                <div className="flex flex-col lg:flex-row gap-2 lg:space-x-2 lg:gap-0">
                   <button
-                    className="flex-1 bg-[#0093d1] text-white py-2 rounded-md font-medium hover:bg-[#007bb0] transition"
+                    className="w-full lg:flex-1 bg-[#0093d1] text-white py-2 lg:py-2 rounded-md font-medium hover:bg-[#007bb0] transition text-sm lg:text-base"
                     onClick={() => setShowSubscribePopup(true)}
                   >
                     Interested
                   </button>
-                  <button className="flex-1 border border-[#0093d1] text-[#0093d1] py-2 rounded-md font-medium hover:bg-[#f0fbf9] transition">
+                  <button className="w-full lg:flex-1 border border-[#0093d1] text-[#0093d1] py-2 lg:py-2 rounded-md font-medium hover:bg-[#f0fbf9] transition text-sm lg:text-base">
                     Not Interested
                   </button>
                 </div>
@@ -289,8 +294,8 @@ function CareProvidersNearYou() {
 
       {/* Subscribe Popup */}
       {showSubscribePopup && !showPaymentPopup && (
-        <div className="font-sfpro fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-full relative flex flex-col items-center p-8">
+        <div className="font-sfpro fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[400px] relative flex flex-col items-center p-6 lg:p-8">
             <button
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-xl font-bold z-10"
               onClick={() => setShowSubscribePopup(false)}
@@ -369,8 +374,8 @@ function CareProvidersNearYou() {
 
       {/* Payment Popup */}
       {showPaymentPopup && (
-        <div className="font-sfpro fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-full relative flex flex-col items-center p-8">
+        <div className="font-sfpro fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[400px] relative flex flex-col items-center p-8">
             <button
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-xl font-bold z-10"
               onClick={() => {

@@ -19,7 +19,7 @@ function TutoringTimeDetails({
   const onboardingSteps = useSelector((state) => state.careSeeker.steps);
   const [errors, setErrors] = useState({});
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
+    <div className="w-full max-w-3xl mx-auto bg-white p-4 lg:p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
       <div className="flex items-center mb-6">
         <button
           onClick={handleBack}
@@ -27,11 +27,11 @@ function TutoringTimeDetails({
         >
           ←
         </button>
-        <h3 className="text-lg text-gray-700 flex-1">Time/Date details</h3>
-        <span className="text-lg text-[#0093d1] font-bold">
+        <h3 className="text-base lg:text-lg text-gray-700 flex-1">Time/Date details</h3>
+        <span className="text-base lg:text-lg text-[#0093d1] font-bold">
           Step {currentStep}
         </span>{" "}
-        <span className="ml-2 text-lg text-gray-500"> of {totalSteps}</span>
+        <span className="ml-2 text-base lg:text-lg text-gray-500"> of {totalSteps}</span>
       </div>
 
       <div className="mb-6">
@@ -67,7 +67,7 @@ function TutoringTimeDetails({
 
         {formData.scheduleType === "Reoccurring" && (
           <>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Start Date <span className="text-red-600">*</span>
@@ -122,7 +122,7 @@ function TutoringTimeDetails({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Repeat every <span className="text-red-600">*</span>
@@ -257,7 +257,7 @@ function TutoringTimeDetails({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Start Time <span className="text-red-600">*</span>
@@ -381,7 +381,7 @@ function TutoringTimeDetails({
 
           handleNext();
         }}
-        className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8"
+        className="w-full bg-[#0093d1] text-white text-base lg:text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-8"
       >
         Next
       </button>

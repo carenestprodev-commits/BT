@@ -21,7 +21,7 @@ function EmailPasswordStep({ formData, updateFormData, handleNext, onClose }) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
+    <div className="w-full max-w-md mx-auto bg-white p-4 lg:p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
       <div className="flex items-center mb-6">
         <button
           onClick={onClose}
@@ -95,7 +95,7 @@ function EmailPasswordStep({ formData, updateFormData, handleNext, onClose }) {
 
       <button
         onClick={handleNext}
-        className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-4"
+        className="w-full bg-[#0093d1] text-white text-base lg:text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition mt-4"
         disabled={!isFormValid()}
       >
         Continue

@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./../Dashboard/Sidebar";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProviders } from "../../../Redux/CareProviderNearYou";
-import SubscriptionModal from "./SubscriptionModal";
+// Subscription gating removed: buttons always active
 
 function CareProvidersNearYou() {
   const navigate = useNavigate();
@@ -13,9 +13,7 @@ function CareProvidersNearYou() {
       s.careProviderNearYou || { providers: [], loading: false, error: null }
   );
 
-  // Check subscription status from localStorage
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const isSubscribed = localStorage.getItem("is_subscribed") === "true";
+  // No frontend gating by subscription: all actions are active
 
   useEffect(() => {
     dispatch(fetchProviders());
@@ -57,7 +55,7 @@ function CareProvidersNearYou() {
               )}
               {!loading &&
                 !error &&
-                providers.map((p, idx) => (
+                providers.map((p) => (
                   <div
                     key={p.id}
                     className="bg-white border border-gray-200 rounded-2xl p-5 shadow-md hover:shadow-lg transition"
@@ -114,42 +112,25 @@ function CareProvidersNearYou() {
 
                     <div className="flex flex-col sm:flex-row gap-2">
                       <button
-                        className={`w-full sm:flex-1 bg-[#0093d1] text-white py-2 rounded-md font-medium transition ${
-                          !isSubscribed && idx !== 0
-                            ? "opacity-50 cursor-not-allowed hover:bg-[#0093d1]"
-                            : "hover:bg-[#007bb0]"
-                        }`}
-                        onClick={() => {
-                          if (!isSubscribed && idx !== 0) {
-                            setShowSubscriptionModal(true);
-                            return;
-                          }
+                        className="w-full sm:flex-1 bg-[#0093d1] text-white py-2 rounded-md font-medium hover:bg-[#007bb0] transition"
+                        onClick={() =>
                           navigate(
                             "/careseekers/dashboard/message_provider/" +
                               (p?.user?.id || p?.id)
-                          );
-                        }}
+                          )
+                        }
                       >
                         Message
                       </button>
                       <button
-                        className={`w-full sm:flex-1 border border-[#0093d1] text-[#0093d1] py-2 rounded-md font-medium transition ${
-                          !isSubscribed && idx !== 0
-                            ? "opacity-50 cursor-not-allowed hover:bg-white"
-                            : "hover:bg-[#f0fbf9]"
-                        }`}
-                        onClick={() => {
-                          if (!isSubscribed && idx !== 0) {
-                            setShowSubscriptionModal(true);
-                            return;
-                          }
-                          navigate("/careseekers/dashboard/details", {
-                            state: {
-                              providerId: p?.user?.id || p?.id,
-                              provider: p,
-                            },
-                          });
-                        }}
+                        className="w-full sm:flex-1 border border-[#0093d1] text-[#0093d1] py-2 rounded-md font-medium hover:bg-[#f0fbf9] transition"
+                        onClick={() =>
+                          navigate(
+                            `/careseekers/dashboard/details/${
+                              p?.user?.id || p?.id
+                            }`
+                          )
+                        }
                       >
                         View Details
                       </button>
@@ -160,11 +141,6 @@ function CareProvidersNearYou() {
           </div>
         </div>
       </div>
-
-      {/* Subscription Modal */}
-      {showSubscriptionModal && (
-        <SubscriptionModal onClose={() => setShowSubscriptionModal(false)} />
-      )}
     </div>
   );
 }

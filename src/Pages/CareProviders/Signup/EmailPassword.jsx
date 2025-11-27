@@ -284,8 +284,8 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
       } else {
         const res = resultAction.payload;
         alert(res.message || "Account created");
-        // After successful signup, navigate to login page
-        navigate("/careproviders/login");
+
+        navigate("/careproviders/dashboard");
         // Optionally clear onboarding
         // dispatch(clearOnboarding())
       }
@@ -297,7 +297,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white font-sfpro">
       {/* Logo + Title */}
-      <div className="flex items-center mb-8 space-x-2">
+      <div className="flex items-center mb-6 lg:mb-8 space-x-2">
         <img src={CareLogo} alt="CareNestPro Logo" className="h-14" />
         <h1 className="text-2xl font-semibold text-[#024a68]">
           CareNest<span className="text-[#00b3a4]">Pro</span>
@@ -305,8 +305,8 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
       </div>
 
       {/* Login Box */}
-      <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-md">
-        <div className="flex justify-end mb-6">
+      <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-3xl">
+        <div className="flex justify-end mb-4 lg:mb-6">
           <Link to="/">
             <button
               onClick={handleBack}
@@ -317,10 +317,10 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
           </Link>
         </div>
 
-        <h2 className="text-xl font-semibold text-gray-800 font-tomato">
+        <h2 className="text-lg lg:text-xl font-semibold text-gray-800 font-tomato">
           Sign Up
         </h2>
-        <p className="text-gray-500 text-sm mt-1 mb-6">
+        <p className="text-gray-500 text-sm mt-1 mb-4 lg:mb-6">
           Welcome back, Please enter your signup details
         </p>
 

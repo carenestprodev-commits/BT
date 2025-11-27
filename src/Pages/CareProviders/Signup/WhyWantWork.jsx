@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { saveStep } from '../../../Redux/CareProviderAuth';
+import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { saveStep } from "../../../Redux/CareProviderAuth";
 function WhyWantWork({ handleNext, handleBack }) {
-  const [selectedOption, setSelectedOption] = useState('');
+  const [selectedOption, setSelectedOption] = useState("");
   const dispatch = useDispatch();
 
   const options = [
@@ -13,31 +13,42 @@ function WhyWantWork({ handleNext, handleBack }) {
   ];
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow-md mt-8 border border-gray-100 font-sfpro">
+    <div className="w-full max-w-3xl mx-auto bg-white p-4 lg:p-6 rounded-xl shadow-md border border-gray-100 font-sfpro">
       {/* Header */}
-      <div className="flex items-center mb-6">
-        <button onClick={handleBack} className="mr-4 text-gray-500 hover:text-gray-700">←</button>
-        <h2 className="text-xl font-semibold text-gray-800">Details</h2>
-        <div className="flex items-center justify-end w-full">
-          <span className="text-lg text-[#0093d1] font-bold">Step 1</span> 
-          <span className="ml-2 text-lg text-gray-500"> of 4</span>
+      <div className="flex flex-col lg:flex-row lg:items-center mb-4 lg:mb-6 gap-3 lg:gap-0">
+        <div className="flex items-center">
+          <button
+            onClick={handleBack}
+            className="mr-4 text-gray-500 hover:text-gray-700"
+          >
+            ←
+          </button>
+          <h2 className="text-lg lg:text-xl font-semibold text-gray-800">
+            Details
+          </h2>
+        </div>
+        <div className="flex items-center lg:justify-end lg:w-full">
+          <span className="text-base lg:text-lg text-[#0093d1] font-bold">
+            Step 1
+          </span>
+          <span className="ml-2 text-base lg:text-lg text-gray-500"> of 4</span>
         </div>
       </div>
 
       {/* Question */}
-      <h3 className="text-md font-semibold text-gray-700 mb-4">
+      <h3 className="text-sm lg:text-md font-semibold text-gray-700 mb-4">
         Why do you want to work with CareNestPro
       </h3>
 
       {/* Options */}
-      <div className="space-y-4 mb-6">
+      <div className="space-y-3 lg:space-y-4 mb-4 lg:mb-6">
         {options.map((option) => (
           <label
             key={option}
-            className={`flex items-center border rounded-lg px-4 py-3 cursor-pointer transition ${
+            className={`flex items-center border rounded-lg px-3 lg:px-4 py-2 lg:py-3 cursor-pointer transition ${
               selectedOption === option
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-blue-300'
+                ? "border-blue-500 bg-blue-50"
+                : "border-gray-200 hover:border-blue-300"
             }`}
           >
             <input
@@ -48,7 +59,7 @@ function WhyWantWork({ handleNext, handleBack }) {
               onChange={() => setSelectedOption(option)}
               className="mr-3"
             />
-            <span className="text-gray-700">{option}</span>
+            <span className="text-sm lg:text-base text-gray-700">{option}</span>
           </label>
         ))}
       </div>
@@ -56,14 +67,14 @@ function WhyWantWork({ handleNext, handleBack }) {
       {/* Next Button */}
       <button
         onClick={() => {
-          dispatch(saveStep({ stepName: 'whyWantWork', data: selectedOption }))
-          handleNext(selectedOption)
+          dispatch(saveStep({ stepName: "whyWantWork", data: selectedOption }));
+          handleNext(selectedOption);
         }}
         disabled={!selectedOption}
-        className={`w-full py-3 rounded-md text-white text-md font-medium transition ${
+        className={`w-full py-3 rounded-md text-white text-sm lg:text-md font-medium transition ${
           selectedOption
-            ? 'bg-[#0093d1] hover:bg-[#007bb0]'
-            : 'bg-gray-300 cursor-not-allowed'
+            ? "bg-[#0093d1] hover:bg-[#007bb0]"
+            : "bg-gray-300 cursor-not-allowed"
         }`}
       >
         Next

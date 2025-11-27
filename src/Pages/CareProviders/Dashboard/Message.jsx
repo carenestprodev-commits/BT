@@ -587,7 +587,7 @@ function Message() {
                   </div>
                   {wsConnected && (
                     <span className="ml-2 text-xs text-green-500">
-                      ● Online
+                      {/* ● Online */}
                     </span>
                   )}
                 </div>
