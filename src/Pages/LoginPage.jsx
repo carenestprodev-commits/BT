@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from "react";
 import CareLogo from "../../public/CareLogo.png";
 import { Link } from "react-router-dom";
@@ -107,9 +108,12 @@ function LoginPage(handleBack) {
                 )}
               </button>
             </div>
-            <a href="#" className="text-xs text-[#0093d1] mt-1 inline-block">
+            <Link
+              to="/forgot-password"
+              className="text-xs text-[#0093d1] mt-1 inline-block"
+            >
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           {/* Login Button */}

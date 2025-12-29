@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React from "react";
 import { TiTick } from "react-icons/ti";
 import { BsExclamationOctagonFill } from "react-icons/bs";

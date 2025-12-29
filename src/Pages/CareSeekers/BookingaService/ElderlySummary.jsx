@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable no-unused-vars */
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { saveStep } from "../../../Redux/CareSeekerAuth";
@@ -25,7 +27,10 @@ function ElderlySummary({
         <span className="text-base lg:text-lg text-[#0093d1] font-bold">
           Step {currentStep}
         </span>{" "}
-        <span className="ml-2 text-base lg:text-lg text-gray-500"> of {totalSteps}</span>
+        <span className="ml-2 text-base lg:text-lg text-gray-500">
+          {" "}
+          of {totalSteps}
+        </span>
       </div>
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
         <div className="flex items-start">
@@ -66,16 +71,32 @@ function ElderlySummary({
         />
         <label htmlFor="terms" className="text-sm text-gray-700">
           I acknowledge that I have read and accepted{" "}
-          <a href="#" className="text-[#0093d1] underline">
-            CareNestPro's Terms of Use
+          <a
+            href="https://carenestpro.com/terms-of-service/"
+            className="text-[#0093d1] underline"
+          >
+            CareNestPro&apos;s Terms of Use
           </a>
           ,{" "}
-          <a href="#" className="text-[#0093d1] underline">
+          <a
+            href="https://carenestpro.com/care-seeker-agreement/"
+            className="text-[#0093d1] underline"
+          >
             Agreement
           </a>{" "}
           and{" "}
-          <a href="#" className="text-[#0093d1] underline">
+          <a
+            href="https://carenestpro.com/privacy-policy/"
+            className="text-[#0093d1] underline"
+          >
             Privacy policy
+          </a>
+          ,{" "}
+          <a
+            href="https://carenestpro.com/background-check-consent/"
+            className="text-[#0093d1] underline"
+          >
+            Background check consent
           </a>
           .
         </label>

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
 
 export default function DualRangeSlider({
@@ -6,6 +7,9 @@ export default function DualRangeSlider({
   minValue = 10,
   maxValue = 3000,
   onChange,
+  currencySymbol = "₦",
+  currencyCode = null,
+  locale = "en-NG",
 }) {
   const [start, setStart] = useState(valueStart);
   const [end, setEnd] = useState(valueEnd);
@@ -18,6 +22,21 @@ export default function DualRangeSlider({
 
   const getPercentage = (value) =>
     ((value - minValue) / (maxValue - minValue)) * 100;
+
+  const formatValue = (v) => {
+    if (currencyCode) {
+      try {
+        return new Intl.NumberFormat(locale, {
+          style: "currency",
+          currency: currencyCode,
+          maximumFractionDigits: 0,
+        }).format(v);
+      } catch {
+        return `${currencySymbol}${v}`;
+      }
+    }
+    return `${currencySymbol}${v}`;
+  };
 
   const handleSliderClick = (e) => {
     if (!sliderRef.current || isDragging) return;
@@ -64,8 +83,8 @@ export default function DualRangeSlider({
     <div>
       <div className="bg-white border border-gray-200 rounded-lg p-4 font-sfpro">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 lg:gap-0 mb-2">
-          <span className="text-sm text-gray-500">${minValue}</span>
-          <span className="text-sm text-gray-500">${maxValue}</span>
+          <span className="text-sm text-gray-500">{formatValue(minValue)}</span>
+          <span className="text-sm text-gray-500">{formatValue(maxValue)}</span>
         </div>
         <div
           ref={sliderRef}
@@ -116,8 +135,8 @@ export default function DualRangeSlider({
           />
         </div>
         <div className="flex justify-between mt-2 dark: text-blue-500">
-          <span className="text-lg font-semibold">${start}</span>
-          <span className="text-lg font-semibold">${end}</span>
+          <span className="text-lg font-semibold">{formatValue(start)}</span>
+          <span className="text-lg font-semibold">{formatValue(end)}</span>
         </div>
       </div>
     </div>

@@ -1,9 +1,9 @@
-export const BASE_URL = 'https://backend.staging.bristones.com'
+export const BASE_URL = "https://backend.app.carenestpro.com";
 
 export const getAuthHeaders = () => {
-  const token = localStorage.getItem('access') || ''
+  const token = localStorage.getItem("access") || "";
   return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-  }
-}
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};

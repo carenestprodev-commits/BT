@@ -74,7 +74,7 @@ function CareCategory({
               const key = categoryKeyMap[cat.name] || cat.name.toLowerCase();
               dispatch(saveStep({ stepName: "careCategory", data: key }));
             }}
-            className={`border rounded-2xl cursor-pointer transition shadow-sm hover:shadow-md flex flex-col items-center justify-center text-center p-4 lg:p-6 min-h-[180px] lg:aspect-square ${
+            className={`border rounded-2xl cursor-pointer transition shadow-sm hover:shadow-md flex flex-col items-center justify-center text-center p-2 lg:p-3 min-h-[110px] lg:min-h-[120px] ${
               selectedCategory === cat.name
                 ? "border-[#00b3a4] bg-[#f0fbf9]"
                 : "border-gray-200"
@@ -83,7 +83,7 @@ function CareCategory({
             <img
               src={cat.img}
               alt={cat.name}
-              className="h-16 lg:h-30 mb-3 lg:mb-4"
+              className="h-10 lg:h-16 mb-2 lg:mb-3"
             />
             <h4 className="text-base lg:text-lg font-medium text-gray-800">
               {cat.name}

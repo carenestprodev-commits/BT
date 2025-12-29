@@ -4,9 +4,8 @@ import CareLogo from "../../../public/CareLogo.png"; // ✅ use your logo path
 function Navbar() {
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const dropdownOptions = [
-  { label: 'Care Seeker', link: '/careseekers/login' },
-    { label: 'Care Provider', link: '/careproviders/login' },
-
+    { label: "Care Seeker", link: "/careseekers/login" },
+    { label: "Care Provider", link: "/careproviders/login" },
 
     // { label: 'Care Seeker (Childcare)', link: '/login_care_seeker_child' },
     // { label: 'Care Seekers (Elderly care)', link: '/login_care_seeker_elder' },
@@ -19,10 +18,10 @@ function Navbar() {
   // Close dropdown on outside click
   React.useEffect(() => {
     const handleClick = (e) => {
-      if (!e.target.closest('#join-dropdown')) setDropdownOpen(false);
+      if (!e.target.closest("#join-dropdown")) setDropdownOpen(false);
     };
-    if (dropdownOpen) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    if (dropdownOpen) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [dropdownOpen]);
 
   return (
@@ -45,7 +44,7 @@ function Navbar() {
         </button>
         {dropdownOpen && (
           <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 animate-fade-in">
-            {dropdownOptions.map((opt, i) => (
+            {dropdownOptions.map((opt) => (
               <button
                 key={opt.label}
                 className="w-full text-left px-5 py-3 text-gray-700 hover:bg-[#f0fbf9] focus:bg-[#f0fbf9] transition text-sm border-b last:border-b-0 border-gray-100"

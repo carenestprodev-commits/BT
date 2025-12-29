@@ -1,13 +1,13 @@
+/* eslint-disable no-unused-vars */
 
-import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { FaGoogle, FaFacebook, FaEye, FaEyeSlash } from "react-icons/fa"
-import wencong_logo from '../../../public/huntrerboom_logo.png'
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { FaGoogle, FaFacebook, FaEye, FaEyeSlash } from "react-icons/fa";
+import wencong_logo from "../../../public/huntrerboom_logo.png";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
@@ -20,13 +20,11 @@ export default function LoginPage() {
       password: "",
       rememberAccount: false,
     },
-  })
+  });
 
-
-  const onSubmit = (data) =>{
-    console.log(data)
-  }
-
+  const onSubmit = (data) => {
+    console.log(data);
+  };
 
   return (
     <div className="min-h-screen flex">
@@ -47,14 +45,19 @@ export default function LoginPage() {
             <div className="rounded-full flex items-center justify-center mx-auto mb-4">
               <img src={wencong_logo} alt="" />
             </div>
-            <h2 className="text-3xl font-bold text-[#DE472D] text-[24px]">Sign In</h2>
-            <p className="text-[#35465B]  text-[20px] capitalize mt-3">Welcome back</p>
+            <h2 className="text-3xl font-bold text-[#DE472D] text-[24px]">
+              Sign In
+            </h2>
+            <p className="text-[#35465B]  text-[20px] capitalize mt-3">
+              Welcome back
+            </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="">
-    
             <div className="mb-16">
-              <label className="block text-[#F04E24] text-[18px] font-medium mb-1">Email Address</label>
+              <label className="block text-[#F04E24] text-[18px] font-medium mb-1">
+                Email Address
+              </label>
               <input
                 type="email"
                 className={`input input-bordered h-[61px] rounded-[18px] ps-5 w-full bg-[#FFE4DF] border-none text-[16px] text-[#797D8C] font-medium ${
@@ -70,14 +73,18 @@ export default function LoginPage() {
                 })}
               />
               {errors.email && (
-                <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
             {/* Password */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="text-[#F04E24] text-[18px] font-medium ">Password</label>
+                <label className="text-[#F04E24] text-[18px] font-medium ">
+                  Password
+                </label>
                 <button
                   type="button"
                   className="text-sm italic hover:underline text-[#516F90]"
@@ -110,37 +117,42 @@ export default function LoginPage() {
                 </button>
               </div>
               {errors.password && (
-                <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
-          <div className="flex items-center gap-2 pt-3 pb-10">
-            <input type="checkbox" defaultChecked className="checkbox rounded-[3px] h-[20px] w-[20px] bg-[#FFE4DF] border-none checked:bg-[#FFE4DF]" />
-              <p className="italic text-base text-[#7C97B6]">Remember Password</p>
-          </div>
+            <div className="flex items-center gap-2 pt-3 pb-10">
+              <input
+                type="checkbox"
+                defaultChecked
+                className="checkbox rounded-[3px] h-[20px] w-[20px] bg-[#FFE4DF] border-none checked:bg-[#FFE4DF]"
+              />
+              <p className="italic text-base text-[#7C97B6]">
+                Remember Password
+              </p>
+            </div>
 
             {/* Submit Button */}
-           <div className="flex items-center justify-center">
-             <button
-              type="submit"
-            
-              className="h-[58px] w-[252px] bg-[#F04E24] text-[20px] hover:bg-orange-600 rounded-[18px] text-white text-lg font-medium"
-            >
-              {isLoading ? (
-                <>
-                  <span className="loading loading-spinner loading-sm mr-2"></span>
-                  Signing In...
-                </>
-              ) : (
-                "Sign In"
-              )}
-            </button>
-           </div>
+            <div className="flex items-center justify-center">
+              <button
+                type="submit"
+                className="h-[58px] w-[252px] bg-[#F04E24] text-[20px] hover:bg-orange-600 rounded-[18px] text-white text-lg font-medium"
+              >
+                {isLoading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm mr-2"></span>
+                    Signing In...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
+              </button>
+            </div>
           </form>
-
-        
         </div>
       </div>
     </div>
-  )
+  );
 }

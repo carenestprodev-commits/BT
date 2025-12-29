@@ -1,8 +1,8 @@
 import { createBrowserRouter } from "react-router-dom";
 import Home from "../Pages/Home/Home";
-
 import CareSeekerLoginPage from "../Pages/CareSeekers/LoginPage";
 import CareSeekerSignupPage from "../Pages/CareSeekers/Signup/Signup";
+import ForgotPasswordPage from "../Pages/ForgotPasswordPage";
 import CareProviderLoginPage from "../Pages/CareProviders/LoginPage";
 import CareProviderSignupPage from "../Pages/CareProviders/Signup/Signup";
 import CareProvidersNearYouDashboard from "../Pages/CareSeekers/Dashboard/CareProvidersNearYou";
@@ -54,6 +54,10 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <Home />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPasswordPage />,
   },
   {
     path: "/unauthorized",

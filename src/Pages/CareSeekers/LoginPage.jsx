@@ -83,7 +83,7 @@ function LoginPage(handleBack) {
       {/* Login Box */}
       <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-md">
         <div className="flex justify-end mb-6">
-          <Link to="/">
+          <Link to="https://carenestpro.com/">
             <button
               onClick={handleBack}
               className="border border-gray-300 rounded-md py-2 px-4 text-gray-500 hover:text-gray-700 hover:border-gray-400 transition"
@@ -186,12 +186,12 @@ function LoginPage(handleBack) {
                 )}
               </button>
             </div>
-            <a
-              href="#"
-              className="text-xs text-[#007bb0] inline-block mt-5 mb-5"
+            <Link
+              to="/forgot-password"
+              className="text-xs text-[#0093d1] mt-1 inline-block"
             >
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           {/* Login Button */}

@@ -22,6 +22,8 @@ function CareProvidersNearYou() {
     password: "",
     confirmPassword: "",
   });
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -153,32 +155,128 @@ function CareProvidersNearYou() {
               }
               className="w-full mb-3 p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
             />
-            <input
-              type="password"
-              placeholder="Password"
-              value={signupForm.password}
-              onChange={(e) =>
-                setSignupForm({ ...signupForm, password: e.target.value })
-              }
-              className="w-full mb-3 p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
-            />
+            <div className="relative w-full mb-3">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={signupForm.password}
+                onChange={(e) =>
+                  setSignupForm({ ...signupForm, password: e.target.value })
+                }
+                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M13.875 18.825A10.05 10.05 0 0 1 12 19c-5.523 0-10-4.477-10-10a9.96 9.96 0 0 1 1.175-4.875M6.1 6.1A9.958 9.958 0 0 1 12 5c5.523 0 10 4.477 10 10 0 1.096-.18 2.15-.519 3.124M3 3l18 18"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
             {!isStrongPassword(signupForm.password) && signupForm.password && (
               <p className="text-sm text-red-500 mb-2">
                 Password must be at least 8 characters and include a number.
               </p>
             )}
-            <input
-              type="password"
-              placeholder="Confirm Password"
-              value={signupForm.confirmPassword}
-              onChange={(e) =>
-                setSignupForm({
-                  ...signupForm,
-                  confirmPassword: e.target.value,
-                })
-              }
-              className="w-full mb-6 p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
-            />
+            <div className="relative w-full mb-6">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Confirm Password"
+                value={signupForm.confirmPassword}
+                onChange={(e) =>
+                  setSignupForm({
+                    ...signupForm,
+                    confirmPassword: e.target.value,
+                  })
+                }
+                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((s) => !s)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                aria-label={
+                  showConfirmPassword
+                    ? "Hide confirm password"
+                    : "Show confirm password"
+                }
+              >
+                {showConfirmPassword ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M13.875 18.825A10.05 10.05 0 0 1 12 19c-5.523 0-10-4.477-10-10a9.96 9.96 0 0 1 1.175-4.875M6.1 6.1A9.958 9.958 0 0 1 12 5c5.523 0 10 4.477 10 10 0 1.096-.18 2.15-.519 3.124M3 3l18 18"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
             {signupForm.confirmPassword &&
               signupForm.password !== signupForm.confirmPassword && (
                 <p className="text-sm text-red-500 mb-2">

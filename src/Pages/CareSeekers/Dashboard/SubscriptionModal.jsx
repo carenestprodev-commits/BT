@@ -8,22 +8,22 @@ function SubscriptionModal({ onClose, imageSrc }) {
     {
       id: "free",
       title: "Free",
-      price: "$00.00",
+      price: "₦00.00",
       subtitle: "Limited",
       badgeType: "muted",
     },
     {
       id: "quarterly",
       title: "Quarterly",
-      price: "$68.99",
-      subtitle: "($12.22/mo)",
+      price: "₦12,000",
+      subtitle: "(₦3,000/mo)",
       badgeType: "primary",
       badgeText: "32% off",
     },
     {
       id: "monthly",
       title: "Monthly",
-      price: "$23.99",
+      price: "₦5,000",
       subtitle: "",
       badgeType: "muted",
       badgeText: "10% off",
@@ -53,7 +53,7 @@ function SubscriptionModal({ onClose, imageSrc }) {
           </div>
 
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-            Subscribe to have unlimited access to Care Provider
+            Subscribe to have unlimited <br></br> access to Care Provider
           </h2>
 
           <div className="mt-6 w-full grid grid-cols-3 gap-4">

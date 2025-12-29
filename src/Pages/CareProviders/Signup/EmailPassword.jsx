@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState } from "react";
 import CareLogo from "../../../../public/CareLogo.png";
 import { Link, useNavigate } from "react-router-dom";
@@ -17,6 +18,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
   const providerState = useSelector((state) => state.careProvider) || null;
   const navigate = useNavigate();
   const { setUser } = useAuth();
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const isValidEmail = (value) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || "");
@@ -26,7 +28,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
   const handleSignUp = async (e) => {
     e.preventDefault();
 
-    // validate again before submit
+    /// validate again before submit
     if (!isValidEmail(email)) {
       alert("Please provide a valid email address");
       return;
@@ -37,6 +39,11 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
     }
     if (password !== password2) {
       alert("Passwords do not match");
+      return;
+    }
+    // NEW: Add terms acceptance check
+    if (!acceptedTerms) {
+      alert("Please accept the Terms of Use and Privacy Policy to continue");
       return;
     }
 
@@ -306,9 +313,9 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white font-sfpro">
+    <div className="flex flex-col items-center justify-start min-h-screen bg-white font-sfpro pt-8">
       {/* Logo + Title */}
-      <div className="flex items-center mb-6 lg:mb-8 space-x-2">
+      <div className="flex items-center mb-0 space-x-2">
         <img src={CareLogo} alt="CareNestPro Logo" className="h-14" />
         <h1 className="text-2xl font-semibold text-[#024a68]">
           CareNest<span className="text-[#00b3a4]">Pro</span>
@@ -483,6 +490,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
                 )}
               </button>
             </div>
+
             {/* Sign Up */}
             <p className="text-center text-sm text-gray-500 mt-6 mb-5">
               Already have an account?{" "}
@@ -491,7 +499,44 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
               </Link>
             </p>
           </div>
-
+          <input
+            type="checkbox"
+            id="terms"
+            className="mr-3 mt-1"
+            checked={acceptedTerms}
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+          />
+          <label htmlFor="terms" className="text-sm text-gray-700">
+            I acknowledge that I have read and accepted{" "}
+            <a
+              href="https://carenestpro.com/terms-of-service/"
+              className="text-[#0093d1] underline"
+            >
+              CareNestPro&apos;s Terms of Use
+            </a>
+            ,{" "}
+            <a
+              href="https://carenestpro.com/care-provider-agreement/"
+              className="text-[#0093d1] underline"
+            >
+              Agreement
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://carenestpro.com/privacy-policy/"
+              className="text-[#0093d1] underline"
+            >
+              Privacy policy
+            </a>
+            ,{" "}
+            <a
+              href="https://carenestpro.com/background-check-consent/"
+              className="text-[#0093d1] underline"
+            >
+              Background check consent
+            </a>
+            .
+          </label>
           {/* Sign Up Button */}
           <button
             type="submit"

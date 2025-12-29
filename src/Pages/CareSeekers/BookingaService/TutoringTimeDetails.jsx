@@ -306,8 +306,8 @@ function TutoringTimeDetails({
           </label>
           <div className="bg-green-100 text-green-700 text-sm p-2 rounded mb-4">
             <span className="inline-flex items-center">
-              <span className="mr-1">ℹ️</span> average range in your area is $32
-              - $55
+              <span className="mr-1">ℹ️</span>
+              average range in your area is ₦1000 - ₦3000
             </span>
           </div>
           <DualRangeSlider
@@ -390,10 +390,10 @@ function TutoringTimeDetails({
             endTime: formData.endTime,
             priceMin: formData.hourlyRateStart
               ? Number(formData.hourlyRateStart).toFixed(2)
-              : "35.00",
+              : "1000",
             priceMax: formData.hourlyRateEnd
               ? Number(formData.hourlyRateEnd).toFixed(2)
-              : "55.00",
+              : "3000",
           };
 
           dispatch(

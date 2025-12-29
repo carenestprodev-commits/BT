@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 
 import React, { useState } from "react";
 import SidebarSignup from "./SidebarSignup";
@@ -21,10 +22,6 @@ import EmailStep from "./EmailStep";
 import PasswordStep from "./PasswordStep";
 
 function CareSeekerSignup() {
-
-
-    
-    
   return (
     <div className="flex items-center justify-center min-h-screen bg-white">
       <h1 className="text-2xl font-semibold text-gray-800">

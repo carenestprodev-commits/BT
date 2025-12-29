@@ -1,8 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
 
 export default function DualRangeSlider({
-  valueStart = 80,
-  valueEnd = 1230,
+  valueStart = 1000,
+  valueEnd = 3000,
   minValue = 10,
   maxValue = 3000,
   onChange,
@@ -64,8 +66,8 @@ export default function DualRangeSlider({
     <div>
       <div className="bg-white border border-gray-200 rounded-lg p-4 font-sfpro">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 lg:gap-0 mb-2">
-          <span className="text-sm text-gray-500">${minValue}</span>
-          <span className="text-sm text-gray-500">${maxValue}</span>
+          <span className="text-sm text-gray-500">₦{minValue}</span>
+          <span className="text-sm text-gray-500">₦{maxValue}</span>
         </div>
         <div
           ref={sliderRef}
@@ -116,8 +118,8 @@ export default function DualRangeSlider({
           />
         </div>
         <div className="flex justify-between mt-2 dark: text-blue-500">
-          <span className="text-lg font-semibold">${start}</span>
-          <span className="text-lg font-semibold">${end}</span>
+          <span className="text-lg font-semibold">₦{start}</span>
+          <span className="text-lg font-semibold">₦{end}</span>
         </div>
       </div>
     </div>

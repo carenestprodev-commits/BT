@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { FaCheckCircle } from "react-icons/fa";
 import Sidebar from "./Sidebar";
 import pattern from "../../../../public/pattern.svg";
+import CurrencyNaira from "../../../../public/NiCurrency.svg";
 import folder from "../../../../public/folder.svg";
 import calender from "../../../../public/calender.svg";
 import provider from "../../../../public/provider.png";
@@ -92,11 +93,7 @@ function Home() {
             {/* Right: Amount Spent */}
             <div className="flex-1 text-right">
               <div className="flex items-center justify-end text-[#0093d1] text-[28px] font-semibold leading-none">
-                <img
-                  src="/NiCurrency.svg"
-                  alt="Naira"
-                  className="w-7 h-7 mr-2"
-                />
+                <img src={CurrencyNaira} alt="Naira" className="w-7 h-7 mr-2" />
                 <span>{loading ? "..." : Number(totalSpent).toFixed(2)}</span>
               </div>
               <p className="text-[13px] mt-1 text-[#0093d1]">

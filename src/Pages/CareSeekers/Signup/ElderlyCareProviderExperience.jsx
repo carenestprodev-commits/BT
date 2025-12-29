@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from "react";
 
 function ElderlyCareProviderExperience({
@@ -29,7 +30,10 @@ function ElderlyCareProviderExperience({
             <span className="text-base lg:text-lg text-[#0093d1] font-bold">
               Step {currentStep}
             </span>{" "}
-            <span className="ml-2 text-base lg:text-lg text-gray-500"> of {totalSteps}</span>
+            <span className="ml-2 text-base lg:text-lg text-gray-500">
+              {" "}
+              of {totalSteps}
+            </span>
           </div>
         </div>
       </div>
@@ -43,7 +47,7 @@ function ElderlyCareProviderExperience({
             Select the ones that feel right.
           </p>
           <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {["Gentle", "Attentive", "Responsible", "Respectful"].map(
                 (quality) => (
                   <label key={quality} className="flex items-center">
@@ -87,7 +91,7 @@ function ElderlyCareProviderExperience({
             Select the ones that feel right.
           </p>
           <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 "Hypertension",
                 "Diabetes",

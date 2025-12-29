@@ -662,6 +662,25 @@ function ChildInformation({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Country
+              </label>
+              <select
+                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
+                value={formData.country}
+                required
+                aria-required="true"
+                onChange={(e) => updateFormData("country", e.target.value)}
+              >
+                <option value="">Select country</option>
+                {countryOptions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Preferred Language
               </label>
               <select
@@ -677,25 +696,6 @@ function ChildInformation({
                 {languageOptions.map((l) => (
                   <option key={l} value={l}>
                     {l}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country
-              </label>
-              <select
-                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
-                value={formData.country}
-                required
-                aria-required="true"
-                onChange={(e) => updateFormData("country", e.target.value)}
-              >
-                <option value="">Select country</option>
-                {countryOptions.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
                   </option>
                 ))}
               </select>

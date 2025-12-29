@@ -433,6 +433,7 @@ function TutoringInformation({
     "Zulu",
   ]);
   const [errors, setErrors] = useState({});
+  const [otherSubject, setOtherSubject] = useState("");
   return (
     <>
       {/* Location Popup */}
@@ -613,6 +614,28 @@ function TutoringInformation({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Country <span className="text-red-600">*</span>
+              </label>
+              <select
+                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
+                value={formData.country || ""}
+                required
+                aria-required="true"
+                onChange={(e) => updateFormData("country", e.target.value)}
+              >
+                <option value="">Select country</option>
+                {countryOptions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              {errors.country && (
+                <p className="text-sm text-red-600 mt-1">{errors.country}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Preferred Language <span className="text-red-600">*</span>
               </label>
               <select
@@ -635,28 +658,6 @@ function TutoringInformation({
                 <p className="text-sm text-red-600 mt-1">
                   {errors.preferredLanguage}
                 </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Country <span className="text-red-600">*</span>
-              </label>
-              <select
-                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
-                value={formData.country || ""}
-                required
-                aria-required="true"
-                onChange={(e) => updateFormData("country", e.target.value)}
-              >
-                <option value="">Select country</option>
-                {countryOptions.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              {errors.country && (
-                <p className="text-sm text-red-600 mt-1">{errors.country}</p>
               )}
             </div>
           </div>
@@ -770,29 +771,41 @@ function TutoringInformation({
                   "Phonetics",
                   "Others",
                 ].map((subject) => (
-                  <label
-                    key={subject}
-                    className="flex items-center py-2 border-b last:border-b-0 border-gray-100"
-                  >
-                    <input
-                      type="checkbox"
-                      name="tutoringSubject"
-                      required
-                      aria-required="true"
-                      className="mr-2"
-                      checked={formData.tutoringSubject?.includes(subject)}
-                      onChange={(e) => {
-                        let arr = formData.tutoringSubject || [];
-                        updateFormData(
-                          "tutoringSubject",
-                          e.target.checked
-                            ? [...arr, subject]
-                            : arr.filter((s) => s !== subject)
-                        );
-                      }}
-                    />
-                    <span className="text-gray-700">{subject}</span>
-                  </label>
+                  <div key={subject}>
+                    <label className="flex items-center py-2 border-b last:border-b-0 border-gray-100">
+                      <input
+                        type="checkbox"
+                        name="tutoringSubject"
+                        required
+                        aria-required="true"
+                        className="mr-2"
+                        checked={formData.tutoringSubject?.includes(subject)}
+                        onChange={(e) => {
+                          let arr = formData.tutoringSubject || [];
+                          updateFormData(
+                            "tutoringSubject",
+                            e.target.checked
+                              ? [...arr, subject]
+                              : arr.filter((s) => s !== subject)
+                          );
+                          if (!e.target.checked && subject === "Others") {
+                            setOtherSubject("");
+                          }
+                        }}
+                      />
+                      <span className="text-gray-700">{subject}</span>
+                    </label>
+                    {subject === "Others" &&
+                      formData.tutoringSubject?.includes("Others") && (
+                        <textarea
+                          placeholder="Please specify other subjects (e.g., Physics, Chemistry, History)"
+                          className="w-full mt-2 mb-2 p-2 border border-gray-300 rounded-md text-sm"
+                          rows="3"
+                          value={otherSubject}
+                          onChange={(e) => setOtherSubject(e.target.value)}
+                        />
+                      )}
+                  </div>
                 ))}
               </div>
               {errors.tutoringSubject && (
@@ -899,7 +912,7 @@ function TutoringInformation({
                 Additional Care <span className="text-red-600">*</span>
               </label>
               <div className="bg-white rounded-lg border border-gray-200 p-4">
-                {["Child Care", "Elderly Care"].map((care) => (
+                {["Child Care", "Elderly Care", "Housekeeping"].map((care) => (
                   <label
                     key={care}
                     className="flex items-center py-2 border-b last:border-b-0 border-gray-100"
@@ -956,6 +969,11 @@ function TutoringInformation({
               formData.tutoringSubject.length === 0
             )
               newErrors.tutoringSubject = "Select at least one subject.";
+            else if (
+              formData.tutoringSubject?.includes("Others") &&
+              !otherSubject.trim()
+            )
+              newErrors.tutoringSubject = "Please specify the other subjects.";
             if (!formData.learningEnvironment)
               newErrors.learningEnvironment =
                 "Learning environment is required.";
@@ -972,6 +990,13 @@ function TutoringInformation({
 
             setErrors(newErrors);
             if (Object.keys(newErrors).length > 0) return;
+
+            if (
+              formData.tutoringSubject?.includes("Others") &&
+              otherSubject.trim()
+            ) {
+              updateFormData("otherSubjectText", otherSubject);
+            }
 
             dispatch(
               saveStep({

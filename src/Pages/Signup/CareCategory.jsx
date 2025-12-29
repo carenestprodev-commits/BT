@@ -1,6 +1,12 @@
+/* eslint-disable no-unused-vars */
 import React from "react";
 
-function CareCategory({ selectedCategory, setSelectedCategory, updateFormData, handleNext }) {
+function CareCategory({
+  selectedCategory,
+  setSelectedCategory,
+  updateFormData,
+  handleNext,
+}) {
   const categories = [
     {
       name: "Childcare",
@@ -17,7 +23,11 @@ function CareCategory({ selectedCategory, setSelectedCategory, updateFormData, h
       desc: "Find Expert Tutors For Every Subject Area",
       img: "/box3.svg",
     },
-    { name: "Housekeeping", desc: "Find Reliable House Keepers", img: "/box4.svg" },
+    {
+      name: "Housekeeping",
+      desc: "Find Reliable House Keepers",
+      img: "/box4.svg",
+    },
   ];
 
   return (
@@ -27,7 +37,8 @@ function CareCategory({ selectedCategory, setSelectedCategory, updateFormData, h
           What category of Care are you interested in
         </h3>
         <div className="flex items-center">
-          <span className="text-lg text-[#0093d1] font-bold">Step 1</span> <span className="ml-2 text-lg text-gray-500"> of 8</span>
+          <span className="text-lg text-[#0093d1] font-bold">Step 1</span>{" "}
+          <span className="ml-2 text-lg text-gray-500"> of 8</span>
         </div>
       </div>
       <p className="text-sm text-gray-500 mb-8">
@@ -40,7 +51,7 @@ function CareCategory({ selectedCategory, setSelectedCategory, updateFormData, h
             key={cat.name}
             onClick={() => {
               setSelectedCategory(cat.name);
-              updateFormData('careCategory', cat.name);
+              updateFormData("careCategory", cat.name);
             }}
             className={`border rounded-2xl cursor-pointer transition shadow-sm hover:shadow-md flex flex-col items-center justify-center text-center aspect-square ${
               selectedCategory === cat.name
@@ -49,17 +60,13 @@ function CareCategory({ selectedCategory, setSelectedCategory, updateFormData, h
             }`}
           >
             <img src={cat.img} alt={cat.name} className="h-20 mb-4" />
-            <h4 className="text-lg font-medium text-gray-800">
-              {cat.name}
-            </h4>
-            <p className="text-sm text-gray-500 mt-2 max-w-[80%]">
-              {cat.desc}
-            </p>
+            <h4 className="text-lg font-medium text-gray-800">{cat.name}</h4>
+            <p className="text-sm text-gray-500 mt-2 max-w-[80%]">{cat.desc}</p>
           </div>
         ))}
       </div>
 
-      <button 
+      <button
         onClick={handleNext}
         className="w-full bg-[#0093d1] text-white text-lg font-medium py-3 rounded-md hover:bg-[#007bb0] transition"
       >

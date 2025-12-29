@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from "react";
 import WhyWantWork from "./WhyWantWork";
 import CareCategory from "./CareCategory";
@@ -169,7 +170,7 @@ function Signup() {
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <img
-              src="/CareLogo.png"
+              src="CareLogo.png" // Changed from "/CareLogo.png"
               alt="CareNestPro Logo"
               className="h-8 mr-2"
             />

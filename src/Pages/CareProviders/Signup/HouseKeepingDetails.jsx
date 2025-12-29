@@ -658,7 +658,7 @@ function HouseKeepingDetails({
           <CheckboxGroup
             name="otherServices"
             label="Other Services you can Offer"
-            options={["Child Care", "Elderly Care", "House keeping"]}
+            options={["Child Care", "Elderly Care", "Tutoring"]}
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
           />
@@ -681,7 +681,7 @@ function HouseKeepingDetails({
               <p className="text-sm text-red-600 mt-1">{errors.hourlyRate}</p>
             ) : (
               <p className="text-sm text-green-600 mt-1">
-                Average hourly rate is ₦5,500
+                Average hourly rate is between ₦1000 - ₦3000
               </p>
             )}
           </div>

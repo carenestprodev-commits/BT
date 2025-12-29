@@ -1,5 +1,6 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from "react";
-import ChildImg from "../../../public/WhatWeDo (1).png"; 
+import ChildImg from "../../../public/WhatWeDo (1).png";
 import ElderImg from "../../../public/WhatWeDo (1).svg";
 import TutorImg from "../../../public/WhatWeDo (2).svg";
 import HouseImg from "../../../public/WhatWeDo (3).svg";
@@ -38,9 +39,12 @@ function WhatWeDo() {
       {/* Content */}
       <div className="max-w-6xl mx-auto px-6 -mt-10 ">
         {/* Heading */}
-        <h2 className="text-4xl font-semibold text-gray-800 mb-2 mt-5">What we do</h2>
+        <h2 className="text-4xl font-semibold text-gray-800 mb-2 mt-5">
+          What we do
+        </h2>
         <p className="text-gray-600 text-lg mb-10">
-          Connecting families with trusted, professional caregivers for personalized in-home support across all life stages
+          Connecting families with trusted, professional caregivers for
+          personalized in-home support across all life stages
         </p>
 
         {/* Cards */}
@@ -58,15 +62,23 @@ function WhatWeDo() {
               {/* Image */}
               <div className="flex justify-center mb-4">
                 <div className="bg-white rounded-full p-6 shadow-sm">
-                  <img src={service.img} alt={service.name} className="h-20 w-auto" />
+                  <img
+                    src={service.img}
+                    alt={service.name}
+                    className="h-20 w-auto"
+                  />
                 </div>
               </div>
 
               {/* Title */}
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">{service.name}</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                {service.name}
+              </h3>
 
               {/* Description */}
-              <p className="text-sm text-gray-500 leading-snug">{service.desc}</p>
+              <p className="text-sm text-gray-500 leading-snug">
+                {service.desc}
+              </p>
             </div>
           ))}
         </div>
