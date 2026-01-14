@@ -60,11 +60,6 @@ function Home() {
         }`}
       >
         {/* Ensure sidebar highlights Home when this component is used inside dashboard layout */}
-        {/* Header */}
-        <div className="border-b border-gray-200 mb-4">
-          <span className="text-[#0a0a0a]   mb-4  text-2xl">Homepage</span>
-        </div>
-
         {/* Greeting */}
         <div className="flex items-center space-x-2 mb-4">
           <FaCheckCircle className="text-[#00b894] text-lg" />

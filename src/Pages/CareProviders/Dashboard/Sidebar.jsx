@@ -1,144 +1,222 @@
-import React, { useState } from "react";
-import CareLogo from "../../../../public/CareLogo.png";
+/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable no-unused-vars */
+import React from "react";
 import { useNavigate } from "react-router-dom";
+
+import CareLogo from "../../../../public/CareLogo.png";
+
 import { PiSquaresFour } from "react-icons/pi";
-import { TbTrianglePlus } from "react-icons/tb";
-import { MdMessage } from "react-icons/md";
 import { MdOutlineSettings } from "react-icons/md";
-import { MdAccountBalanceWallet } from "react-icons/md";
+import { FiLogOut } from "react-icons/fi";
+
 import Triangle from "../../../../public/triangle.svg";
 import Message from "../../../../public/receipt-text.svg";
 import WalletIcon from "../../../../public/wallet.svg";
+
+/* ---------------- NAV ITEMS ---------------- */
 
 const navItems = [
   { label: "Home", icon: <PiSquaresFour className="h-6 w-6" /> },
   {
     label: "Requests",
-    icon: <img src={Triangle} alt="Triangle Icon" className="h-6 w-6" />,
+    icon: <img src={Triangle} alt="Requests" className="h-6 w-6" />,
   },
   {
     label: "Wallet",
-    icon: <img src={WalletIcon} alt="Wallet Icon" className="h-6 w-6" />,
+    icon: <img src={WalletIcon} alt="Wallet" className="h-6 w-6" />,
   },
   {
     label: "Message",
-    icon: <img src={Message} alt="Message Icon" className="h-6 w-6" />,
+    icon: <img src={Message} alt="Message" className="h-6 w-6" />,
   },
-  { label: "Setting", icon: <MdOutlineSettings className="h-6 w-6" /> },
+  {
+    label: "Settings",
+    icon: <MdOutlineSettings className="h-6 w-6" />,
+  },
 ];
+
+/* ---------------- COMPONENT ---------------- */
 
 function Sidebar({ active = "Home", onNav }) {
   const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
+
   const handleNav = (label) => {
-    if (onNav) {
-      onNav(label);
-    }
-    if (label === "Home") {
-      navigate("/careproviders/dashboard");
-    } else if (label === "Requests") {
-      navigate("/careproviders/dashboard/requests");
-    } else if (label === "Message") {
-      navigate("/careproviders/dashboard/message");
-    } else if (label === "Wallet") {
-      navigate("/careproviders/dashboard/wallet");
-    } else if (label === "Setting") {
-      navigate("/careproviders/dashboard/setting");
-    }
-    setMobileOpen(false);
+    if (onNav) onNav(label);
+
+    if (label === "Home") navigate("/careproviders/dashboard/home");
+    if (label === "Requests") navigate("/careproviders/dashboard/requests");
+    if (label === "Wallet") navigate("/careproviders/dashboard/wallet");
+    if (label === "Message") navigate("/careproviders/dashboard/message");
+    if (label === "Settings") navigate("/careproviders/dashboard/settings");
   };
+
+  const [profileCompletion, setProfileCompletion] = React.useState(null);
+  const [showCompletion, setShowCompletion] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchProfileCompletion = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.warn("No authentication token found");
+          return;
+        }
+
+        const response = await fetch("/api/profile/completion", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`API returned status ${response.status}`);
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Response is not valid JSON");
+        }
+
+        const data = await response.json();
+        setProfileCompletion(data.percentage);
+      } catch (error) {
+        console.error("Failed to fetch profile completion", error);
+        // Silently fail - don't block UI
+      }
+    };
+
+    fetchProfileCompletion();
+  }, []);
+
+  const handleLogout = () => {
+    try {
+      localStorage.clear();
+    } catch (e) {
+      console.warn("Failed to clear localStorage", e);
+    }
+
+    navigate("/careproviders/login/", { replace: true });
+    window.location.reload();
+  };
+
   return (
     <>
-      {/* Mobile hamburger */}
-      <button
-        aria-label="Open menu"
-        onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-50 bg-white text-[#0e2f43] p-2 rounded-md shadow"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 6h16M4 12h16M4 18h16"
-          />
-        </svg>
-      </button>
-
-      {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-40 font-sfpro">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setMobileOpen(false)}
-          />
-          <div className="relative h-full w-64 bg-[#0e2f43] flex flex-col py-8 px-6 text-white font-sfpro">
-            <div className="flex items-center mb-6">
-              <img src={CareLogo} alt="CareNestPro Logo" className="h-8 mr-3" />
-              <span className="text-lg tracking-wide">CareNestPro</span>
+      {/* ================= MOBILE BOTTOM NAV ================= */}
+      {active !== "Message" && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 font-sfpro">
+          <nav className="flex justify-around items-center py-2">
+            {navItems.map((item) => (
               <button
-                aria-label="Close menu"
-                onClick={() => setMobileOpen(false)}
-                className="ml-auto bg-white text-[#0e2f43] p-1 rounded"
+                key={item.label}
+                onClick={() => handleNav(item.label)}
+                className={`flex flex-col items-center justify-center text-xs transition ${
+                  active === item.label ? "text-[#0e2f43]" : "text-gray-400"
+                }`}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <span className="mb-1">{item.icon}</span>
+                <span>{item.label}</span>
               </button>
-            </div>
-            <nav className="flex flex-col gap-2 flex-1">
-              {navItems.map((item) => (
-                <button
-                  key={item.label}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition font-medium text-base hover:bg-[#4a6576] focus:outline-none ${
-                    active === item.label ? "bg-[#4a6576]" : ""
-                  }`}
-                  onClick={() => handleNav(item.label)}
-                >
-                  <span className="sidebar-icon mr-2 text-xl">{item.icon}</span>
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          </div>
+            ))}
+          </nav>
         </div>
       )}
 
-      {/* Desktop sidebar */}
-      <div className="hidden md:flex md:h-screen md:w-64 md:bg-[#0e2f43] md:flex-col md:py-8 md:px-6 md:text-white md:font-sfpro md:fixed md:top-0 md:left-0 z-40">
+      {/* ================= DESKTOP SIDEBAR ================= */}
+      <div className="hidden md:flex md:fixed md:top-0 md:left-0 md:h-screen md:w-64 md:flex-col md:bg-[#0e2f43] md:px-6 md:py-8 md:text-white md:font-sfpro z-40">
+        {/* Logo */}
         <div className="flex items-center mb-12">
           <img src={CareLogo} alt="CareNestPro Logo" className="h-10 mr-3" />
-          <span className="text-xl  tracking-wide font-sfpro">CareNestPro</span>
+          <span className="text-xl tracking-wide">CareNestPro</span>
         </div>
+
+        {/* Navigation */}
         <nav className="flex flex-col gap-2 flex-1">
           {navItems.map((item) => (
             <button
               key={item.label}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition font-medium text-base hover:bg-[#4a6576] focus:outline-none ${
+              onClick={() => handleNav(item.label)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition hover:bg-[#4a6576] ${
                 active === item.label ? "bg-[#4a6576]" : ""
               }`}
-              onClick={() => handleNav(item.label)}
             >
-              <span className="sidebar-icon mr-2 text-xl">{item.icon}</span>
+              <span className="text-xl">{item.icon}</span>
               {item.label}
             </button>
           ))}
         </nav>
+
+        {/* Profile Completion Card */}
+        {profileCompletion !== null &&
+          profileCompletion < 100 &&
+          showCompletion && (
+            <div className="relative bg-[#1a4a5e] rounded-lg p-4 mb-4">
+              <button
+                onClick={() => setShowCompletion(false)}
+                className="absolute top-2 right-2 text-white/60 hover:text-white"
+              >
+                ×
+              </button>
+
+              <div className="flex items-center gap-4 mb-3">
+                <div className="relative w-16 h-16">
+                  <svg className="transform -rotate-90 w-16 h-16">
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="28"
+                      stroke="currentColor"
+                      strokeWidth="6"
+                      fill="none"
+                      className="text-[#2d5f73]"
+                    />
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="28"
+                      stroke="currentColor"
+                      strokeWidth="6"
+                      fill="none"
+                      strokeDasharray={`${2 * Math.PI * 28}`}
+                      strokeDashoffset={`${
+                        2 * Math.PI * 28 * (1 - profileCompletion / 100)
+                      }`}
+                      className="text-white transition-all duration-500"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">
+                    {profileCompletion}%
+                  </div>
+                </div>
+              </div>
+
+              <h4 className="text-white font-semibold text-base mb-1">
+                Almost complete
+              </h4>
+              <p className="text-white/80 text-sm mb-3">
+                You're almost set. Complete your profile?
+              </p>
+
+              <button
+                onClick={() => navigate("/careproviders/dashboard/setting")}
+                className="flex items-center gap-2 text-[#4fd1c5] hover:text-[#3fb9ad] transition text-sm font-medium"
+              >
+                Complete profile now
+                <span>→</span>
+              </button>
+            </div>
+          )}
+
+        {/* Logout (Bottom, like Figma) */}
+        <div className="pt-6 mt-6 border-t border-white/20">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-base font-medium text-[#4fd1c5] hover:bg-[#4a6576] transition"
+          >
+            <FiLogOut className="h-5 w-5" />
+            Sign Out
+          </button>
+        </div>
       </div>
     </>
   );

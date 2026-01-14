@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate, useParams } from "react-router-dom";
@@ -85,7 +86,7 @@ function MessageDetails() {
           <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start w-full sm:min-w-[120px]">
             <span className="text-gray-500 text-xs mb-1">Rate</span>
             <span className="text-gray-800 font-semibold text-lg">
-              {details?.hourly_rate ? `$${details.hourly_rate}/hr` : "N/A"}
+              {details?.hourly_rate ? `₦${details.hourly_rate}/hr` : "N/A"}
             </span>
           </div>
           <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start w-full sm:min-w-[120px]">

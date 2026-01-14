@@ -1,17 +1,25 @@
-import { useEffect } from "react";
+/* eslint-disable no-unused-vars */
+import { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { RiVerifiedBadgeFill } from "react-icons/ri";
+import { IoMdClose } from "react-icons/io";
+import { AiOutlineCheckCircle } from "react-icons/ai";
+import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import {
   fetchJobById,
   clearSelectedJob,
   submitBooking,
 } from "../../../Redux/JobsFeed";
+import avatar_user from "../../../../public/avatar_user.png";
 
 function JobDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+
   const {
     selectedJob: job,
     loading,
@@ -29,14 +37,15 @@ function JobDetails() {
       }
   );
 
+  // Get current user info from Redux store
+  // Adjust the selector based on your actual Redux state structure
+  const currentUser = useSelector((s) => s.auth?.user || s.user?.profile || {});
+
   useEffect(() => {
     const jobFromState = location?.state?.job;
     const jobId = location?.state?.jobId || jobFromState?.id;
     if (jobFromState) {
-      // if job object was provided in navigation state, use it by setting selectedJob via the store thunk is optional
-      // we still clear previous selection
       dispatch(clearSelectedJob());
-      // set via fetchJobById to keep a single source (lightweight)
       dispatch(fetchJobById(jobFromState.id));
     } else if (jobId) {
       dispatch(fetchJobById(jobId));
@@ -47,112 +56,263 @@ function JobDetails() {
     };
   }, [dispatch, location]);
 
+  // Extract skills and expertise from job details
+  const getSkillsAndExpertise = () => {
+    const skills = [];
+    const details = job?.details;
+
+    if (!details) return skills;
+
+    // Provider experience skills
+    const providerExp = details.provider_experience;
+    if (providerExp) {
+      if (providerExp.sleep_in) skills.push("sleep-in");
+      if (providerExp.non_smoker) skills.push("Non-smoker");
+      if (providerExp.experience_with_twins)
+        skills.push("Experience with twins");
+      if (providerExp.help_with_homework) skills.push("help with homework");
+      if (providerExp.sign_language) skills.push("Sign language");
+      if (providerExp.special_needs_experience)
+        skills.push("Special needs experience");
+      if (providerExp.cook_basic_meals) skills.push("cook basic meals");
+      if (providerExp.experience_with_speech_delay)
+        skills.push("Experience with speech delay");
+      if (providerExp.live_in) skills.push("live-in");
+      if (providerExp.behavioral_support) skills.push("Behavioral support");
+      if (providerExp.experience_with_autism)
+        skills.push("Experience with autism");
+
+      // Languages
+      if (Array.isArray(providerExp.languages)) {
+        providerExp.languages.forEach((lang) => {
+          skills.push(`Speaks ${lang} Fluently`);
+        });
+      }
+    }
+
+    // Additional skills from other fields
+    if (details.additional_skills && Array.isArray(details.additional_skills)) {
+      skills.push(...details.additional_skills);
+    }
+
+    return skills;
+  };
+
+  const handleApplyClick = () => {
+    // Check if user is verified
+    if (!currentUser?.is_verified) {
+      setShowVerificationModal(true);
+      return;
+    }
+
+    // If verified, proceed directly to submit application
+    handleSubmitApplication();
+  };
+
+  const handleSubmitApplication = async () => {
+    if (!job?.id) return;
+
+    try {
+      const resAction = await dispatch(submitBooking(job.id));
+      if (submitBooking.fulfilled.match(resAction)) {
+        const payload = resAction.payload || {};
+        alert(payload.message || "Application submitted");
+        navigate("/careproviders/dashboard/requests", {
+          state: { tab: 2 },
+        });
+      } else {
+        const payload = resAction.payload || resAction.error;
+        alert(
+          (payload && (payload.error || payload.message)) ||
+            "Failed to submit application"
+        );
+      }
+    } catch {
+      alert("Failed to submit application");
+    }
+  };
+
+  const handleVerificationProceed = () => {
+    // After user completes verification and returns, submit the application
+    handleSubmitApplication();
+  };
+
+  const handleVerificationCancel = () => {
+    setShowVerificationModal(false);
+  };
+
   return (
-    <div className="flex min-h-screen bg-white font-sfpro">
+    <div className="flex min-h-screen bg-gray-50 font-sfpro">
       <Sidebar active="Home" />
-      <div className="flex-1 font-sfpro px-4 md:px-8 py-8 md:ml-64">
-        <button
-          className="mb-8 text-gray-500 hover:text-gray-700 text-2xl font-bold"
-          onClick={() => window.history.back()}
-        >
-          ←
-        </button>
-        <h2 className="text-2xl font-semibold text-gray-800 mb-8">Details</h2>
+      <div className="flex-1 font-sfpro md:ml-64">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
+          <button
+            className="text-gray-600 hover:text-gray-800 text-xl sm:text-2xl font-semibold flex items-center gap-2"
+            onClick={() => window.history.back()}
+          >
+            ← <span className="text-lg sm:text-xl">Details</span>
+          </button>
+        </div>
 
-        {loading && <div className="text-gray-500">Loading job details…</div>}
-        {error && (
-          <div className="text-red-600">
-            Failed to load job: {error.error || error?.message || "Unknown"}
-          </div>
-        )}
-
-        {job && (
-          <>
-            <div className="font-semibold text-lg text-gray-800 mb-1">
-              {job.title}
+        {/* Content */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          {loading && (
+            <div className="text-gray-500 text-center py-8">
+              Loading job details…
             </div>
-            <div className="text-gray-400 text-xs mb-4">{job.posted_ago}</div>
-            <div className="text-gray-700 text-base mb-6">{job.summary}</div>
+          )}
 
-            <div className="mb-6">
-              <div className="text-gray-700 font-medium mb-2">Location</div>
-              <div className="text-sm text-gray-600">
-                {job.details?.location_information?.city || ""}{" "}
-                {job.details?.location_information?.state
-                  ? `, ${job.details.location_information.state}`
-                  : ""}{" "}
-                {job.details?.location_information?.country
-                  ? `, ${job.details.location_information.country}`
-                  : ""}
-              </div>
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600">
+              Failed to load job: {error.error || error?.message || "Unknown"}
             </div>
+          )}
 
-            <div className="mb-6">
-              <div className="text-gray-700 font-medium mb-2">
-                Service category
+          {job && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8">
+              {/* Job Poster Info */}
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
+                <img
+                  src={job.poster_avatar || avatar_user}
+                  alt="Job poster"
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-gray-800 text-base sm:text-lg">
+                      {job.poster_name || "Aleem Sarah"}
+                    </span>
+                    <RiVerifiedBadgeFill className="text-blue-500 text-sm sm:text-base" />
+                  </div>
+                </div>
               </div>
-              <div className="text-sm text-gray-600">
-                {job.service_category}
+
+              {/* Job Title */}
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-2">
+                {job.title}
+              </h1>
+
+              {/* Posted Time */}
+              <div className="text-gray-400 text-xs sm:text-sm mb-6">
+                Posted {job.posted_ago || "5 minutes ago"}
               </div>
+
+              {/* Job Description */}
+              <div className="text-gray-600 text-sm sm:text-base leading-relaxed mb-8 whitespace-pre-line">
+                {job.summary || job.description}
+              </div>
+
+              {/* Skills and Expertise Section */}
+              {getSkillsAndExpertise().length > 0 && (
+                <div className="mb-8">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-4">
+                    Skills and expertise
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {getSkillsAndExpertise().map((skill, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs sm:text-sm rounded-full border border-gray-200"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Additional Details Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                {/* Location */}
+                {job.details?.location_information && (
+                  <div>
+                    <div className="text-gray-800 font-semibold mb-2 text-sm sm:text-base">
+                      Location
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      {[
+                        job.details.location_information.city,
+                        job.details.location_information.state,
+                        job.details.location_information.country,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </div>
+                  </div>
+                )}
+
+                {/* Service Category */}
+                {job.service_category && (
+                  <div>
+                    <div className="text-gray-800 font-semibold mb-2 text-sm sm:text-base">
+                      Service category
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      {job.service_category}
+                    </div>
+                  </div>
+                )}
+
+                {/* Job Type */}
+                {job.job_type && (
+                  <div>
+                    <div className="text-gray-800 font-semibold mb-2 text-sm sm:text-base">
+                      Job type
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      {job.job_type}
+                      {job.start_date && ` · starts ${job.start_date}`}
+                    </div>
+                  </div>
+                )}
+
+                {/* Budget */}
+                {job.budget_display && (
+                  <div>
+                    <div className="text-gray-800 font-semibold mb-2 text-sm sm:text-base">
+                      Budget
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      {job.budget_display}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Apply Now Button */}
+              <button
+                className={`w-full bg-[#0093d1] text-white py-3.5 sm:py-4 rounded-lg font-semibold text-sm sm:text-base hover:bg-[#007bb0] transition-colors shadow-sm ${
+                  bookingLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                onClick={handleApplyClick}
+                disabled={bookingLoading}
+              >
+                {bookingLoading ? "Applying…" : "Apply Now"}
+              </button>
+
+              {bookingError && (
+                <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm">
+                  {bookingError.error ||
+                    bookingError?.message ||
+                    "Failed to submit application"}
+                </div>
+              )}
             </div>
-
-            <div className="mb-6">
-              <div className="text-gray-700 font-medium mb-2">Job type</div>
-              <div className="text-sm text-gray-600">
-                {job.job_type}{" "}
-                {job.start_date ? `· starts ${job.start_date}` : ""}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <div className="text-gray-700 font-medium mb-2">Languages</div>
-              <div className="text-sm text-gray-600">
-                {Array.isArray(job.details?.provider_experience?.languages)
-                  ? job.details.provider_experience.languages.join(", ")
-                  : "Not specified"}
-              </div>
-            </div>
-
-            <button
-              className={`w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition ${
-                bookingLoading ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-              onClick={async () => {
-                if (!job?.id) return;
-                try {
-                  const resAction = await dispatch(submitBooking(job.id));
-                  if (submitBooking.fulfilled.match(resAction)) {
-                    // show response message then navigate
-                    const payload = resAction.payload || {};
-                    alert(payload.message || "Application submitted");
-                    navigate("/careproviders/dashboard/requests", {
-                      state: { tab: 2 },
-                    });
-                  } else {
-                    const payload = resAction.payload || resAction.error;
-                    alert(
-                      (payload && (payload.error || payload.message)) ||
-                        "Failed to submit application"
-                    );
-                  }
-                } catch {
-                  alert("Failed to submit application");
-                }
-              }}
-              disabled={bookingLoading}
-            >
-              {bookingLoading ? "Applying…" : "Apply Now"}
-            </button>
-            {bookingError && (
-              <div className="text-red-600 mt-2">
-                {bookingError.error ||
-                  bookingError?.message ||
-                  "Failed to submit application"}
-              </div>
-            )}
-          </>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Verification Check Modal */}
+      <VerificationCheckModal
+        isOpen={showVerificationModal}
+        user={currentUser}
+        userType="provider"
+        actionType="apply"
+        onProceed={handleVerificationProceed}
+        onCancel={handleVerificationCancel}
+        isLoading={bookingLoading}
+      />
     </div>
   );
 }

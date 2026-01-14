@@ -1,8 +1,12 @@
+/* eslint-disable no-unused-vars */
 import { createBrowserRouter } from "react-router-dom";
 import Home from "../Pages/Home/Home";
 import CareSeekerLoginPage from "../Pages/CareSeekers/LoginPage";
 import CareSeekerSignupPage from "../Pages/CareSeekers/Signup/Signup";
 import ForgotPasswordPage from "../Pages/ForgotPasswordPage";
+import OTPVerificationPage from "../Pages/OTPVerificationPage";
+import ResetPasswordPage from "../Pages/ResetPasswordPage";
+import PasswordResetSuccessPage from "../Pages/PasswordResetSuccessPage";
 import CareProviderLoginPage from "../Pages/CareProviders/LoginPage";
 import CareProviderSignupPage from "../Pages/CareProviders/Signup/Signup";
 import CareProvidersNearYouDashboard from "../Pages/CareSeekers/Dashboard/CareProvidersNearYou";
@@ -58,6 +62,18 @@ export const router = createBrowserRouter([
   {
     path: "/forgot-password",
     element: <ForgotPasswordPage />,
+  },
+  {
+    path: "/verify-otp",
+    element: <OTPVerificationPage />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordPage />,
+  },
+  {
+    path: "/password-reset-success",
+    element: <PasswordResetSuccessPage />,
   },
   {
     path: "/unauthorized",
@@ -259,6 +275,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/careproviders/dashboard/home",
+    element: (
+      <RoleProtectedRoute allowedRole="provider">
+        <HomePage />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
     path: "/careproviders/dashboard/job_details",
     element: (
       <RoleProtectedRoute allowedRole="provider">
@@ -300,6 +324,14 @@ export const router = createBrowserRouter([
   },
   {
     path: "/careproviders/dashboard/setting",
+    element: (
+      <RoleProtectedRoute allowedRole="provider">
+        <SettingsProvider />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
+    path: "/careproviders/dashboard/settings",
     element: (
       <RoleProtectedRoute allowedRole="provider">
         <SettingsProvider />

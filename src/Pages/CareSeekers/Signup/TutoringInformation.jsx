@@ -1,8 +1,10 @@
+/* eslint-disable no-unused-vars */
 // React not directly referenced
 import { useDispatch } from "react-redux";
 import { useState } from "react";
 import { reverseGeocode } from "../../../Redux/Location";
 import { saveStep } from "../../../Redux/CareSeekerAuth";
+import mappopup from "../../../../public/mappopup.png";
 
 function TutoringInformation({
   formData,
@@ -432,6 +434,69 @@ function TutoringInformation({
     "Chinese",
     "Zulu",
   ]);
+
+  //Define handleGetLocation on its own first
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          // Added 'addressdetails=1' to get more specific location info
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+          );
+          const data = await response.json();
+          const address = data.address;
+
+          if (address) {
+            // 1. Update Country & Nationality
+            const country = address.country || "";
+            updateFormData("country", country);
+            updateFormData("nationality", country);
+
+            // 2. Update State (Checking common API variations)
+            const state =
+              address.state || address.region || address.state_district || "";
+            updateFormData("state", state);
+
+            // 3. Update City (Checking all possible local names)
+            const city =
+              address.city ||
+              address.town ||
+              address.village ||
+              address.suburb ||
+              address.city_district ||
+              "";
+            updateFormData("city", city);
+
+            // 4. Update Zip
+            const zip = address.postcode || "";
+            updateFormData("zipCode", zip);
+
+            // Close the popup once done
+            setShowLocationPopup(false);
+          }
+        } catch (error) {
+          console.error("Error fetching location:", error);
+          alert("Could not retrieve address details. Please enter manually.");
+          setShowLocationPopup(false);
+        }
+      },
+      (error) => {
+        console.error("Geo Error:", error);
+        alert("Please enable location services in your browser settings.");
+        setShowLocationPopup(false);
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 } // Production settings for better accuracy
+    );
+  };
+
   const [errors, setErrors] = useState({});
   const [otherSubject, setOtherSubject] = useState("");
   return (
@@ -450,7 +515,7 @@ function TutoringInformation({
             </button>
             {/* Full-width Image */}
             <img
-              src="/mappopup.png"
+              src={mappopup}
               alt="Map Popup"
               className="w-full h-40 object-cover rounded-t-2xl"
             />
@@ -465,54 +530,8 @@ function TutoringInformation({
               </p>
               <div className="w-full flex flex-col gap-4">
                 <button
-                  className="w-full py-3 rounded-md bg-[#0093d1] text-white text-lg font-medium hover:bg-[#007bb0] transition"
-                  onClick={() => {
-                    setShowLocationPopup(false);
-                    // trigger location permission logic here
-                    dispatch(reverseGeocode())
-                      .then((res) => {
-                        if (res && res.payload) {
-                          const d = res.payload;
-                          if (d.country) {
-                            updateFormData("country", d.country);
-                            if (!countryOptions.includes(d.country))
-                              setCountryOptions((prev) => [d.country, ...prev]);
-                          }
-                          if (d.state) {
-                            updateFormData("state", d.state);
-                            if (!stateOptions.includes(d.state))
-                              setStateOptions((prev) => [d.state, ...prev]);
-                          }
-                          updateFormData("city", d.city || formData.city);
-                          updateFormData(
-                            "zipCode",
-                            d.zip_code || d.postcode || formData.zipCode
-                          );
-                          updateFormData(
-                            "nationality",
-                            d.nationality || formData.nationality
-                          );
-                          if (
-                            d.common_languages &&
-                            d.common_languages.length > 0
-                          ) {
-                            const code = d.common_languages[0];
-                            const map = {
-                              en: "English",
-                              es: "Spanish",
-                              fr: "French",
-                              bn: "Bengali",
-                            };
-                            const lang =
-                              map[code] || (code === "en" ? "English" : code);
-                            updateFormData("preferredLanguage", lang);
-                            if (!languageOptions.includes(lang))
-                              setLanguageOptions((prev) => [lang, ...prev]);
-                          }
-                        }
-                      })
-                      .catch(() => {});
-                  }}
+                  className="w-full py-3 rounded-md bg-[#0093d1] text-white text-base lg:text-lg font-medium hover:bg-[#007bb0] transition"
+                  onClick={handleGetLocation}
                 >
                   Allow only while using this App
                 </button>
@@ -705,10 +724,23 @@ function TutoringInformation({
                 </p>
               )}
             </div>
-          </div>
-
-          {/* Zip Code */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                City <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                aria-required="true"
+                placeholder="Input city"
+                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
+                value={formData.city}
+                onChange={(e) => updateFormData("city", e.target.value)}
+              />
+              {errors.city && (
+                <p className="text-sm text-red-600 mt-1">{errors.city}</p>
+              )}
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Zip Code <span className="text-red-600">*</span>
@@ -726,6 +758,10 @@ function TutoringInformation({
                 <p className="text-sm text-red-600 mt-1">{errors.zipCode}</p>
               )}
             </div>
+          </div>
+
+          {/* Zip Code */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             {/* Preferred Location */}
             <div className="w-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -756,9 +792,9 @@ function TutoringInformation({
 
           <hr className="my-6 border-gray-200" />
 
-          {/* Tutoring Subjects & Learning Environment */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-            <div>
+          {/* Tutoring Subjects & Learning Environment (right column pushed down) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start">
+            <div className="h-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 What subject(s) need tutoring{" "}
                 <span className="text-red-600">*</span>
@@ -795,6 +831,7 @@ function TutoringInformation({
                       />
                       <span className="text-gray-700">{subject}</span>
                     </label>
+
                     {subject === "Others" &&
                       formData.tutoringSubject?.includes("Others") && (
                         <textarea
@@ -815,11 +852,12 @@ function TutoringInformation({
               )}
             </div>
 
-            <div>
+            <div className="h-full pt-2 lg:pt-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 What is the learning environment needed{" "}
                 <span className="text-red-600">*</span>
               </label>
+
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
                 value={formData.learningEnvironment || ""}
@@ -838,70 +876,70 @@ function TutoringInformation({
                   {errors.learningEnvironment}
                 </p>
               )}
-            </div>
-          </div>
 
-          {/* Learning Purpose & Student Age Range */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                What is the purpose of this learning{" "}
-                <span className="text-red-600">*</span>
-              </label>
-              <select
-                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
-                value={formData.learningPurpose || ""}
-                required
-                aria-required="true"
-                onChange={(e) =>
-                  updateFormData("learningPurpose", e.target.value)
-                }
-              >
-                <option value="">Select purpose</option>
-                <option value="Exam preparation">Exam preparation</option>
-                <option value="Homework help">Homework help</option>
-                <option value="Special needs tutoring">
-                  Special needs tutoring
-                </option>
-                <option value="Homeschooling (onsite)">
-                  Homeschooling (onsite)
-                </option>
-                <option value="Online Tutoring">Online Tutoring</option>
-              </select>
-              {errors.learningPurpose && (
-                <p className="text-sm text-red-600 mt-1">
-                  {errors.learningPurpose}
-                </p>
-              )}
-            </div>
+              {/* Stacked selects placed under the environment select for alignment */}
+              <div className="mt-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    What is the purpose of this learning{" "}
+                    <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    value={formData.learningPurpose || ""}
+                    required
+                    aria-required="true"
+                    onChange={(e) =>
+                      updateFormData("learningPurpose", e.target.value)
+                    }
+                  >
+                    <option value="">Select purpose</option>
+                    <option value="Exam preparation">Exam preparation</option>
+                    <option value="Homework help">Homework help</option>
+                    <option value="Special needs tutoring">
+                      Special needs tutoring
+                    </option>
+                    <option value="Homeschooling (onsite)">
+                      Homeschooling (onsite)
+                    </option>
+                    <option value="Online Tutoring">Online Tutoring</option>
+                  </select>
+                  {errors.learningPurpose && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {errors.learningPurpose}
+                    </p>
+                  )}
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Age range of student <span className="text-red-600">*</span>
-              </label>
-              <select
-                className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
-                value={formData.studentAgeRange || ""}
-                required
-                aria-required="true"
-                onChange={(e) =>
-                  updateFormData("studentAgeRange", e.target.value)
-                }
-              >
-                <option value="">Select age range</option>
-                <option value="1 - 5 years">1 - 5 years</option>
-                <option value="6 - 10 years">6 - 10 years</option>
-                <option value="11 - 15 years">11 - 15 years</option>
-                <option value="16 - 20 years">16 - 20 years</option>
-                <option value="21 - 25 years">21 - 25 years</option>
-                <option value="26 - 30 years">26 - 30 years</option>
-                <option value="Above 30">Above 30</option>
-              </select>
-              {errors.studentAgeRange && (
-                <p className="text-sm text-red-600 mt-1">
-                  {errors.studentAgeRange}
-                </p>
-              )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Age range of student <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    value={formData.studentAgeRange || ""}
+                    required
+                    aria-required="true"
+                    onChange={(e) =>
+                      updateFormData("studentAgeRange", e.target.value)
+                    }
+                  >
+                    <option value="">Select age range</option>
+                    <option value="1 - 5 years">1 - 5 years</option>
+                    <option value="6 - 10 years">6 - 10 years</option>
+                    <option value="11 - 15 years">11 - 15 years</option>
+                    <option value="16 - 20 years">16 - 20 years</option>
+                    <option value="21 - 25 years">21 - 25 years</option>
+                    <option value="26 - 30 years">26 - 30 years</option>
+                    <option value="Above 30">Above 30</option>
+                  </select>
+                  {errors.studentAgeRange && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {errors.studentAgeRange}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

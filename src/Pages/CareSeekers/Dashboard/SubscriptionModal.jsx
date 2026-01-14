@@ -1,8 +1,15 @@
-import { useState } from "react";
-import { BASE_URL, getAuthHeaders } from "../../../Redux/config";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { initiateSeekerCheckout } from "../../../Redux/SeekerPayment";
+import { nairaToKobo } from "../../../utils/paystackService";
 
 function SubscriptionModal({ onClose, imageSrc }) {
+  const dispatch = useDispatch();
   const [selected, setSelected] = useState("quarterly");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { initiating, authorizationUrl, error } = useSelector(
+    (s) => s.seekerPayment || {}
+  );
 
   const plans = [
     {
@@ -11,6 +18,7 @@ function SubscriptionModal({ onClose, imageSrc }) {
       price: "₦00.00",
       subtitle: "Limited",
       badgeType: "muted",
+      amount: 0,
     },
     {
       id: "quarterly",
@@ -19,6 +27,7 @@ function SubscriptionModal({ onClose, imageSrc }) {
       subtitle: "(₦3,000/mo)",
       badgeType: "primary",
       badgeText: "32% off",
+      amount: 12000,
     },
     {
       id: "monthly",
@@ -27,10 +36,64 @@ function SubscriptionModal({ onClose, imageSrc }) {
       subtitle: "",
       badgeType: "muted",
       badgeText: "10% off",
+      amount: 5000,
     },
   ];
 
   const imgSrc = imageSrc || "/subscription.svg";
+
+  // Redirect to Paystack when authorization URL is available
+  useEffect(() => {
+    if (authorizationUrl && !isProcessing) {
+      window.location.href = authorizationUrl;
+      setIsProcessing(false);
+    }
+  }, [authorizationUrl, isProcessing]);
+
+  const handleContinue = async () => {
+    // Free plan: just close
+    if (selected === "free") {
+      onClose && onClose();
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      // Get the selected plan
+      const selectedPlan = plans.find((p) => p.id === selected);
+      if (!selectedPlan) {
+        alert("Invalid plan selected");
+        setIsProcessing(false);
+        return;
+      }
+
+      // Convert amount to kobo for Paystack
+      const amountInKobo = nairaToKobo(selectedPlan.amount);
+
+      // Dispatch the checkout initiation
+      const result = await dispatch(
+        initiateSeekerCheckout({
+          bookingId: 0, // For subscription, booking ID might be 0 or handled by backend
+          amount: amountInKobo,
+          bookingDetails: {
+            plan_type: selected,
+            plan_id: selected === "quarterly" ? 1 : 2,
+          },
+        })
+      );
+
+      if (!result.payload?.success && result.payload?.error) {
+        alert("Checkout initiation failed: " + result.payload.error);
+        setIsProcessing(false);
+      }
+      // If successful, useEffect will handle the redirect
+    } catch (err) {
+      console.error("Checkout error:", err);
+      alert("Checkout failed. Please try again.");
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -39,6 +102,7 @@ function SubscriptionModal({ onClose, imageSrc }) {
           aria-label="Close"
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl"
+          disabled={isProcessing || initiating}
         >
           ×
         </button>
@@ -53,7 +117,7 @@ function SubscriptionModal({ onClose, imageSrc }) {
           </div>
 
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-            Subscribe to have unlimited <br></br> access to Care Provider
+            Subscribe to have unlimited <br /> access to Care Provider
           </h2>
 
           <div className="mt-6 w-full grid grid-cols-3 gap-4">
@@ -62,7 +126,7 @@ function SubscriptionModal({ onClose, imageSrc }) {
               return (
                 <div
                   key={p.id}
-                  onClick={() => setSelected(p.id)}
+                  onClick={() => !isProcessing && setSelected(p.id)}
                   className={
                     `cursor-pointer rounded-lg p-6 flex flex-col items-center justify-between border transition ` +
                     (isSelected
@@ -99,67 +163,34 @@ function SubscriptionModal({ onClose, imageSrc }) {
             })}
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mt-4 w-full bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+
           <div className="mt-6 w-full flex justify-center">
             <button
-              onClick={async () => {
-                // Free plan: just close
-                if (selected === "free") {
-                  onClose && onClose();
-                  return;
-                }
-
-                // Map plan to plan_id
-                const planMap = { quarterly: 1, monthly: 2 };
-                const plan_id = planMap[selected] || 0;
-                if (!plan_id) {
-                  alert("Invalid plan selected");
-                  return;
-                }
-
-                try {
-                  // Show a simple loading feedback via changing button text
-                  // Make the POST request to checkout endpoint
-                  const res = await fetch(
-                    `${BASE_URL}/api/payments/checkout/`,
-                    {
-                      method: "POST",
-                      headers: {
-                        ...(getAuthHeaders ? getAuthHeaders() : {}),
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        plan_id,
-                        payment_gateway: "stripe",
-                      }),
-                    }
-                  );
-
-                  const data = await res.json().catch(() => ({}));
-                  if (!res.ok) {
-                    const err =
-                      data?.detail || data?.message || "Checkout failed";
-                    alert(err);
-                    return;
-                  }
-
-                  const checkoutUrl =
-                    data.checkout_url || data.url || data.checkout_url;
-                  if (checkoutUrl) {
-                    // open in new tab
-                    window.open(checkoutUrl, "_blank");
-                    onClose && onClose();
-                  } else {
-                    alert("Checkout URL not returned by server");
-                  }
-                } catch (err) {
-                  console.error("Checkout error:", err);
-                  alert("Checkout failed. Please try again.");
-                }
-              }}
-              className="bg-[#0093d1] hover:bg-[#007bb0] text-white font-medium py-3 px-8 rounded-md"
+              onClick={handleContinue}
+              disabled={isProcessing || initiating}
+              className={`bg-[#0093d1] hover:bg-[#007bb0] text-white font-medium py-3 px-8 rounded-md transition ${
+                isProcessing || initiating
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }`}
             >
-              Continue
+              {isProcessing || initiating ? "Processing..." : "Continue"}
             </button>
+          </div>
+
+          {/* Payment Info */}
+          <div className="mt-6 text-xs text-gray-600 flex items-center justify-center gap-2">
+            <span>🔒</span>
+            <span>
+              Secure payment via{" "}
+              <span className="text-[#0093d1] font-semibold">Paystack</span>
+            </span>
           </div>
         </div>
       </div>
