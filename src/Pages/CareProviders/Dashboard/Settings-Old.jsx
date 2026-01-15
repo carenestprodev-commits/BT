@@ -1,30 +1,25 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
+import { useNavigate } from "react-router-dom";
 import PaymentModal from "./PaymentModal";
-import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
 
 function Settings() {
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useDispatch();
-
   const {
     profile,
     loading: profileLoading,
     error: profileError,
   } = useSelector(
-      (s) => s.providerSettings || { profile: null, loading: false, error: null }
+    (s) => s.providerSettings || { profile: null, loading: false, error: null }
   );
-
   const [activeTab, setActiveTab] = useState("personal");
-
-  const emptyForm = {
+  const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
@@ -48,19 +43,15 @@ function Settings() {
     otherServices: "",
     otherLanguages: "",
     autoSend: false,
-    uploadedPhoto: null, // URL only
-    uploadedId: null, // URL only
-  };
+    uploadedPhoto: null,
+    uploadedId: null,
+  });
 
-  const [formData, setFormData] = useState(emptyForm);
-  const [originalFormData, setOriginalFormData] = useState(emptyForm);
-
-  const [hasChanges, setHasChanges] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
-
+  // Add state for payment modal
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const CLOUDINARY_CLOUD_NAME = "your_cloud_name";
+  const CLOUDINARY_UPLOAD_PRESET = "carenest_unsigned";
 
   const [showPassword, setShowPassword] = useState({
     current: false,
@@ -68,52 +59,82 @@ function Settings() {
     confirm: false,
   });
 
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
   const [uploadProgress, setUploadProgress] = useState({
     uploadedPhoto: 0,
     uploadedId: 0,
   });
 
-  const [preview, setPreview] = useState({
+  const [originalFormData, setOriginalFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    country: "",
+    state: "",
+    city: "",
+    zipCode: "",
+    nationality: "",
+    nationalId: "",
+    language: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    about: "",
+    title: "",
+    yearsOfExperience: "",
+    nativeLanguage: "",
+    housekeeping: "",
+    hourlyRate: "",
+    otherServices: "",
+    otherLanguages: "",
+    autoSend: false,
     uploadedPhoto: null,
     uploadedId: null,
   });
 
-  const CLOUDINARY_CLOUD_NAME = "your_cloud_name";
-  const CLOUDINARY_UPLOAD_PRESET = "carenest_unsigned";
+  const [dragActive, setDragActive] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  const MAX_FILE_SIZE = 15 * 1024 * 1024;
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const newFormData = {
+      ...formData,
+      [name]: type === "checkbox" ? checked : value,
+    };
+    setFormData(newFormData);
+
+    // Check if form data differs from original
+    const isModified =
+      JSON.stringify(newFormData) !== JSON.stringify(originalFormData);
+    setHasChanges(isModified);
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPassword((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
+
+  const tabs = [
+    { id: "verify", label: "Verify Identity" },
+    { id: "personal", label: "Personal Information" },
+    { id: "password", label: "Password" },
+    { id: "other", label: "Other details" },
+  ];
+
+  const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/svg+xml"];
+
   const ALLOWED_ID_TYPES = [
     "image/jpeg",
     "image/png",
     "image/svg+xml",
     "application/pdf",
   ];
-
-  /* -------------------- HELPERS -------------------- */
-
-  const detectChanges = (newData) =>
-      Object.keys(newData).some(
-          (key) => newData[key] !== originalFormData[key]
-      );
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-
-    const updated = {
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    };
-
-    setFormData(updated);
-    setHasChanges(detectChanges(updated));
-  };
-
-  const togglePasswordVisibility = (field) => {
-    setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
-  };
-
-  /* -------------------- FILE UPLOAD -------------------- */
 
   const handleFileUpload = async (file, field) => {
     if (!file) return;
@@ -124,30 +145,54 @@ function Settings() {
     }
 
     const allowed =
-        field === "uploadedPhoto" ? ALLOWED_IMAGE_TYPES : ALLOWED_ID_TYPES;
+      field === "uploadedPhoto" ? ALLOWED_IMAGE_TYPES : ALLOWED_ID_TYPES;
 
     if (!allowed.includes(file.type)) {
       alert("Invalid file type");
       return;
     }
 
+    // Local preview (image & SVG)
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreview((prev) => ({ ...prev, [field]: reader.result }));
+        setFormData((prev) => {
+          const updated = {
+            ...prev,
+            [field]: reader.result,
+          };
+          // Check if form data differs from original
+          const isModified =
+            JSON.stringify(updated) !== JSON.stringify(originalFormData);
+          setHasChanges(isModified);
+          return updated;
+        });
       };
       reader.readAsDataURL(file);
     }
 
+    // Upload to Cloudinary
     try {
       const url = await uploadToCloudinary(file, field);
 
-      const updated = { ...formData, [field]: url };
-      setFormData(updated);
-      setHasChanges(detectChanges(updated));
-    } catch {
+      // Replace preview with final CDN URL
+      setFormData((prev) => {
+        const updated = {
+          ...prev,
+          [field]: url,
+        };
+        // Check if form data differs from original
+        const isModified =
+          JSON.stringify(updated) !== JSON.stringify(originalFormData);
+        setHasChanges(isModified);
+        return updated;
+      });
+    } catch (err) {
       alert("Upload failed");
-      setUploadProgress((p) => ({ ...p, [field]: 0 }));
+      setUploadProgress((prev) => ({
+        ...prev,
+        [field]: 0,
+      }));
     }
   };
 
@@ -161,30 +206,186 @@ function Settings() {
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
-          setUploadProgress((p) => ({
-            ...p,
-            [field]: Math.round((e.loaded / e.total) * 100),
+          const percent = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress((prev) => ({
+            ...prev,
+            [field]: percent,
           }));
         }
       };
 
       xhr.onload = () => {
         if (xhr.status === 200) {
-          resolve(JSON.parse(xhr.responseText).secure_url);
-        } else reject();
+          const res = JSON.parse(xhr.responseText);
+          resolve(res.secure_url); // ✅ This is what backend needs
+        } else {
+          reject("Cloudinary upload failed");
+        }
       };
 
-      xhr.onerror = reject;
+      xhr.onerror = () => reject("Upload error");
 
       xhr.open(
-          "POST",
-          `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
+        "POST",
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
       );
       xhr.send(data);
     });
   };
 
-  /* -------------------- SAVE -------------------- */
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragActive(false);
+  };
+
+  const handleDrop = (e, field) => {
+    e.preventDefault();
+    setDragActive(false);
+    const file = e.dataTransfer.files[0];
+    handleFileUpload(file, field);
+  };
+
+  // Modified saveSettings function for Verify tab
+  const saveSettings = async () => {
+    // If on verify tab, show payment modal instead of saving directly
+    if (activeTab === "verify") {
+      // First validate that required files are uploaded
+      if (!formData.uploadedPhoto || !formData.uploadedId) {
+        setMessage({
+          type: "error",
+          text: "Please upload both profile photo and government ID",
+        });
+        return;
+      }
+      // Show payment modal
+      setShowPaymentModal(true);
+      return;
+    }
+
+    // Original save logic for other tabs
+    if (!validateForm()) return;
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const response = await fetch("/api/user/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save settings");
+      }
+
+      const data = await response.json();
+      setOriginalFormData(formData);
+      setHasChanges(false); // Reset hasChanges after successful save
+
+      if (activeTab === "password") {
+        setFormData((prev) => ({
+          ...prev,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        }));
+      }
+
+      setMessage({ type: "success", text: "Settings saved successfully!" });
+      setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to save settings. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle payment processing
+  const handlePayment = async () => {
+    setPaymentLoading(true);
+
+    try {
+      // TODO: INTEGRATE YOUR PAYMENT GATEWAY HERE
+      // Example for Paystack:
+      /*
+      const paymentResponse = await fetch("/api/payment/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          amount: 150000, // 1500 * 100 (Paystack uses kobo)
+          metadata: {
+            purpose: "verification",
+            userId: currentUser.id,
+          },
+        }),
+      });
+
+      const paymentData = await paymentResponse.json();
+      
+      if (paymentData.authorization_url) {
+        // Redirect to Paystack payment page
+        window.location.href = paymentData.authorization_url;
+      }
+      */
+
+      // After successful payment, save verification data
+      const response = await fetch("/api/user/verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uploadedPhoto: formData.uploadedPhoto,
+          uploadedId: formData.uploadedId,
+          // Add payment reference if needed
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Verification submission failed");
+      }
+
+      setOriginalFormData(formData);
+      setShowPaymentModal(false);
+      setHasChanges(false); // Reset hasChanges after successful verification
+      setMessage({
+        type: "success",
+        text: "Verification submitted successfully!",
+      });
+      setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+    } catch (error) {
+      console.error("Payment error:", error);
+      setMessage({
+        type: "error",
+        text: error.message || "Payment failed. Please try again.",
+      });
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // Close payment modal
+  const closePaymentModal = () => {
+    if (!paymentLoading) {
+      setShowPaymentModal(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData(originalFormData);
+    setUploadProgress({
+      uploadedPhoto: 0,
+      uploadedId: 0,
+    });
+    setHasChanges(false);
+  };
 
   const validateForm = () => {
     if (activeTab === "password") {
@@ -197,114 +398,53 @@ function Settings() {
         return false;
       }
     }
+    // Add more validations...
     return true;
   };
 
-  const saveSettings = async () => {
-    if (activeTab === "verify") {
-      if (!formData.uploadedPhoto || !formData.uploadedId) {
-        setMessage({
-          type: "error",
-          text: "Upload profile photo and government ID",
-        });
-        return;
-      }
-      setShowPaymentModal(true);
-      return;
-    }
-
-    if (!validateForm()) return;
-
-    setLoading(true);
-    setMessage({ type: "", text: "" });
-
-    try {
-      const res = await fetch("/api/user/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (!res.ok) throw new Error("Save failed");
-
-      setOriginalFormData(formData);
-      setHasChanges(false);
-      setMessage({ type: "success", text: "Settings saved!" });
-    } catch (e) {
-      setMessage({ type: "error", text: e.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* -------------------- PAYMENT -------------------- */
-
-  const handlePayment = async () => {
-    setPaymentLoading(true);
-    try {
-      await fetch("/api/user/verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uploadedPhoto: formData.uploadedPhoto,
-          uploadedId: formData.uploadedId,
-        }),
-      });
-
-      setOriginalFormData(formData);
-      setHasChanges(false);
-      setShowPaymentModal(false);
-      setMessage({ type: "success", text: "Verification submitted!" });
-    } catch {
-      setMessage({ type: "error", text: "Payment failed" });
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
-  /* -------------------- EFFECTS -------------------- */
-
   useEffect(() => {
+    // Fetch provider profile from Redux
     dispatch(fetchProviderProfile());
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
-    if (!profile) return;
-
-    const populated = {
-      firstName: profile.first_name ?? "",
-      lastName: profile.last_name ?? "",
-      email: profile.email ?? "",
-      phone: profile.phone ?? "",
-      country: profile.country ?? "",
-      state: profile.state ?? "",
-      city: profile.city ?? "",
-      zipCode: profile.zip_code ?? "",
-      nationality: profile.nationality ?? "",
-      nationalId: profile.national_id ?? "",
-      language: profile.language ?? "",
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-      about: profile.about ?? "",
-      title: profile.title ?? "",
-      yearsOfExperience: profile.years_of_experience ?? "",
-      nativeLanguage: profile.native_language ?? "",
-      housekeeping: profile.housekeeping ?? "",
-      hourlyRate: profile.hourly_rate ?? "",
-      otherServices: profile.other_services ?? "",
-      otherLanguages: profile.other_languages ?? "",
-      autoSend: profile.auto_send ?? false,
-      uploadedPhoto: profile.profile_photo ?? null,
-      uploadedId: profile.government_id ?? null,
-    };
-
-    setFormData(populated);
-    setOriginalFormData(populated);
-    setHasChanges(false);
+    // Populate form with fetched profile data
+    if (profile) {
+      const populatedData = {
+        firstName: profile.first_name || "",
+        lastName: profile.last_name || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        country: profile.country || "",
+        state: profile.state || "",
+        city: profile.city || "",
+        zipCode: profile.zip_code || "",
+        nationality: profile.nationality || "",
+        nationalId: profile.national_id || "",
+        language: profile.language || "",
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+        about: profile.about || "",
+        title: profile.title || "",
+        yearsOfExperience: profile.years_of_experience || "",
+        nativeLanguage: profile.native_language || "",
+        housekeeping: profile.housekeeping || "",
+        hourlyRate: profile.hourly_rate || "",
+        otherServices: profile.other_services || "",
+        otherLanguages: profile.other_languages || "",
+        autoSend: profile.auto_send || false,
+        uploadedPhoto: profile.profile_photo || null,
+        uploadedId: profile.government_id || null,
+      };
+      setFormData(populatedData);
+      setOriginalFormData(populatedData);
+      setHasChanges(false);
+    }
   }, [profile]);
 
   useEffect(() => {
+    // Check if there's a tab specified in location state
     if (location?.state?.activeTab) {
       setActiveTab(location.state.activeTab);
     }
