@@ -268,6 +268,13 @@ function Settings() {
     }
   };
 
+  // Close payment modal
+  const closePaymentModal = () => {
+    if (!paymentLoading) {
+      setShowPaymentModal(false);
+    }
+  };
+
   /* -------------------- EFFECTS -------------------- */
 
   useEffect(() => {
