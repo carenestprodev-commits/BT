@@ -91,6 +91,8 @@ function Settings() {
     "application/pdf",
   ];
 
+  const [dragActive, setDragActive] = useState(false);
+
   /* -------------------- HELPERS -------------------- */
 
   const detectChanges = (newData) =>
@@ -274,6 +276,32 @@ function Settings() {
       setShowPaymentModal(false);
     }
   };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragActive(false);
+  };
+
+  const handleDrop = (e, field) => {
+    e.preventDefault();
+    setDragActive(false);
+    const file = e.dataTransfer.files[0];
+    handleFileUpload(file, field);
+  };
+
+  const resetForm = () => {
+    setFormData(originalFormData);
+    setUploadProgress({
+      uploadedPhoto: 0,
+      uploadedId: 0,
+    });
+    setHasChanges(false);
+  };
+
 
   /* -------------------- EFFECTS -------------------- */
 
