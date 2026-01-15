@@ -57,37 +57,23 @@ function Sidebar({ active = "Home", onNav }) {
   React.useEffect(() => {
     const fetchProfileCompletion = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          console.warn("No authentication token found");
-          return;
-        }
-
-        const response = await fetchWithAuth("/api/profile/completion", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await fetchWithAuth("/api/profile/completion");
 
         if (!response.ok) {
           throw new Error(`API returned status ${response.status}`);
-        }
-
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Response is not valid JSON");
         }
 
         const data = await response.json();
         setProfileCompletion(data.percentage);
       } catch (error) {
         console.error("Failed to fetch profile completion", error);
-        // Silently fail - don't block UI
+        // Silently fail – UI should not break
       }
     };
 
     fetchProfileCompletion();
   }, []);
+
 
   const handleLogout = () => {
     try {
