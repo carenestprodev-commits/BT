@@ -1,7 +1,9 @@
+/* eslint-disable no-unused-vars */
 import { useDispatch } from "react-redux";
 import { useState } from "react";
 import { reverseGeocode } from "../../../Redux/Location";
 import { saveStep } from "../../../Redux/CareSeekerAuth";
+import mappopup from "../../../../public/mappopup.png";
 
 function HousekeeperInformation({
   formData,
@@ -433,6 +435,69 @@ function HousekeeperInformation({
     "Chinese",
     "Zulu",
   ]);
+
+  // 1. Define handleGetLocation on its own first
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          // Added 'addressdetails=1' to get more specific location info
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+          );
+          const data = await response.json();
+          const address = data.address;
+
+          if (address) {
+            // 1. Update Country & Nationality
+            const country = address.country || "";
+            updateFormData("country", country);
+            updateFormData("nationality", country);
+
+            // 2. Update State (Checking common API variations)
+            const state =
+              address.state || address.region || address.state_district || "";
+            updateFormData("state", state);
+
+            // 3. Update City (Checking all possible local names)
+            const city =
+              address.city ||
+              address.town ||
+              address.village ||
+              address.suburb ||
+              address.city_district ||
+              "";
+            updateFormData("city", city);
+
+            // 4. Update Zip
+            const zip = address.postcode || "";
+            updateFormData("zipCode", zip);
+
+            // Close the popup once done
+            setShowLocationPopup(false);
+          }
+        } catch (error) {
+          console.error("Error fetching location:", error);
+          alert("Could not retrieve address details. Please enter manually.");
+          setShowLocationPopup(false);
+        }
+      },
+      (error) => {
+        console.error("Geo Error:", error);
+        alert("Please enable location services in your browser settings.");
+        setShowLocationPopup(false);
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 } // Production settings for better accuracy
+    );
+  };
+
   const [errors, setErrors] = useState({});
   return (
     <>
@@ -448,7 +513,7 @@ function HousekeeperInformation({
               ×
             </button>
             <img
-              src="/mappopup.png"
+              src={mappopup}
               alt="Map Popup"
               className="w-full h-40 object-cover rounded-t-2xl"
             />
@@ -462,52 +527,8 @@ function HousekeeperInformation({
               </p>
               <div className="w-full flex flex-col gap-4">
                 <button
-                  className="w-full py-3 rounded-md bg-[#0093d1] text-white text-lg font-medium hover:bg-[#007bb0] transition"
-                  onClick={() => {
-                    setShowLocationPopup(false);
-                    // dispatch reverse geocode
-                    dispatch(reverseGeocode()).then((res) => {
-                      if (res && res.payload) {
-                        const d = res.payload;
-                        if (d.country) {
-                          updateFormData("country", d.country);
-                          if (!countryOptions.includes(d.country))
-                            setCountryOptions((prev) => [d.country, ...prev]);
-                        }
-                        if (d.state) {
-                          updateFormData("state", d.state);
-                          if (!stateOptions.includes(d.state))
-                            setStateOptions((prev) => [d.state, ...prev]);
-                        }
-                        updateFormData("city", d.city || formData.city);
-                        updateFormData(
-                          "zipCode",
-                          d.zip_code || d.postcode || formData.zipCode
-                        );
-                        updateFormData(
-                          "nationality",
-                          d.nationality || formData.nationality
-                        );
-                        if (
-                          d.common_languages &&
-                          d.common_languages.length > 0
-                        ) {
-                          const code = d.common_languages[0];
-                          const map = {
-                            en: "English",
-                            es: "Spanish",
-                            fr: "French",
-                            bn: "Bengali",
-                          };
-                          const lang =
-                            map[code] || (code === "en" ? "English" : code);
-                          updateFormData("preferredLanguage", lang);
-                          if (!languageOptions.includes(lang))
-                            setLanguageOptions((prev) => [lang, ...prev]);
-                        }
-                      }
-                    });
-                  }}
+                  className="w-full py-3 rounded-md bg-[#0093d1] text-white text-base lg:text-lg font-medium hover:bg-[#007bb0] transition"
+                  onClick={handleGetLocation}
                 >
                   Allow only while using this App
                 </button>

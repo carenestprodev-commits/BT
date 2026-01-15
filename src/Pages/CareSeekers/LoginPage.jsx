@@ -6,7 +6,7 @@ import { loginUser, logout } from "../../Redux/Login";
 import formatAuthError from "../../utils/formatAuthError";
 import { useAuth } from "../../Context/AuthContext";
 
-function LoginPage(handleBack) {
+function LoginPage({ handleBack }) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

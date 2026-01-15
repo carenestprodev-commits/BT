@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate, useParams } from "react-router-dom";
@@ -101,7 +102,7 @@ function RequestDetails() {
             <span className="text-gray-500 text-xs mb-1">Rate</span>
             <span className="text-gray-800 font-semibold text-lg">
               {currentRequest?.provider?.hourly_rate
-                ? `$${currentRequest.provider.hourly_rate}`
+                ? `₦${currentRequest.provider.hourly_rate}`
                 : "N/A"}
             </span>
           </div>

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React from "react";
 import CareLogo from "../../../../public/CareLogo.png";
 import { useNavigate } from "react-router-dom";

@@ -92,7 +92,7 @@ function CareProvidersNearYou() {
                       <div className="p-2 text-center border-b sm:border-b-0 sm:border-r border-gray-200">
                         <div className="text-xs text-gray-500">Rate</div>
                         <div className="font-semibold text-sm text-gray-700">
-                          ${p.hourly_rate ?? p.hourly_rate}
+                          ₦{p.hourly_rate ?? p.hourly_rate}
                         </div>
                       </div>
                       <div className="p-2 text-center">

@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { FaStar } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import Sidebar from "./Sidebar";
+import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import {
   fetchProviderDetails,
   clearProviderDetails,
@@ -13,6 +14,8 @@ function ViewDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+
   // Check plan from localStorage
   const plan =
     typeof window !== "undefined"
@@ -22,6 +25,14 @@ function ViewDetails() {
   const { details, loading, error } = useSelector(
     (s) => s.providersDetails || { details: null, loading: false, error: null }
   );
+
+  // Get current user from Auth context or Redux
+  const currentUser = useSelector((s) =>
+    s.auth?.user || s.user?.profile || localStorage.getItem("user")
+      ? JSON.parse(localStorage.getItem("user"))
+      : {}
+  );
+
   const resolveImage = (url) => {
     if (!url)
       return "https://ui-avatars.com/api/?name=User&background=E5E7EB&color=374151&size=64";
@@ -29,6 +40,7 @@ function ViewDetails() {
     if (url.startsWith("/")) return `${BASE_URL}${url}`;
     return url;
   };
+
   useEffect(() => {
     // Try to obtain provider id from location.state or route params or fallback to 48 (example)
     const id = location?.state?.providerId || params?.id || 48;
@@ -38,6 +50,37 @@ function ViewDetails() {
       dispatch(clearProviderDetails());
     };
   }, [dispatch, location, params]);
+
+  const handleMessageClick = () => {
+    // Check if user is verified
+    if (!currentUser?.is_verified) {
+      setShowVerificationModal(true);
+      return;
+    }
+
+    // If verified, proceed with messaging
+    proceedToMessage();
+  };
+
+  const proceedToMessage = () => {
+    try {
+      const otherId =
+        details?.user?.id ||
+        details?.user?.pk ||
+        details?.user?.user_id ||
+        details?.user?.uid ||
+        details?.id;
+      navigate("/careseekers/dashboard/message", {
+        state: { other_user_id: otherId },
+      });
+    } catch (err) {
+      console.error("Failed to navigate to message page", err);
+    }
+  };
+
+  const handleVerificationCancel = () => {
+    setShowVerificationModal(false);
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
@@ -99,7 +142,7 @@ function ViewDetails() {
               <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-left">
                 <span className="text-xs text-gray-500">Rate</span>
                 <span className="font-semibold text-gray-800 text-lg">
-                  {details?.hourly_rate ? `$${details.hourly_rate}` : "N/A"}
+                  {details?.hourly_rate ? `₦${details.hourly_rate}` : "N/A"}
                 </span>
               </div>
               <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-left">
@@ -197,25 +240,20 @@ function ViewDetails() {
                 plan === "Free" &&
                 !(location.state && location.state.messageable)
               }
-              onClick={() => {
-                // Navigate to Message page and pass the provider's user id as other_user_id
-                try {
-                  const otherId =
-                    details?.user?.id ||
-                    details?.user?.pk ||
-                    details?.user?.user_id ||
-                    details?.user?.uid ||
-                    details?.id;
-                  navigate("/careseekers/dashboard/message", {
-                    state: { other_user_id: otherId },
-                  });
-                } catch (err) {
-                  console.error("Failed to navigate to message page", err);
-                }
-              }}
+              onClick={handleMessageClick}
             >
               Message
             </button>
+
+            {/* Verification Check Modal */}
+            <VerificationCheckModal
+              isOpen={showVerificationModal}
+              user={currentUser}
+              userType="seeker"
+              actionType="message"
+              onProceed={proceedToMessage}
+              onCancel={handleVerificationCancel}
+            />
           </>
         )}
       </div>
