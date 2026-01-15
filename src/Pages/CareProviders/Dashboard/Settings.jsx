@@ -257,16 +257,17 @@ function Settings() {
 
   const saveSettings = async () => {
     if (activeTab === "verify") {
-      console.log(formData);
-      if (!formData.uploadedPhoto || !formData.uploadedId) {
+      if (!uploadedFiles.uploadedPhoto || !uploadedFiles.uploadedId) {
         setMessage({
           type: "error",
-          text: "Upload profile photo and government ID",
+          text: "Please upload both profile photo and government ID",
         });
         return;
       }
-      setShowPaymentModal(true);
+
+      setShowPaymentModal(true); // modal opens
       return;
+
     }
 
     if (!validateForm()) return;
@@ -326,9 +327,9 @@ function Settings() {
         const updated = { ...prev, [field]: true };
 
         // ✅ Auto-show payment modal if verify tab and both files are uploaded
-        if (activeTab === "verify" && updated.uploadedPhoto && updated.uploadedId) {
-          setShowPaymentModal(true);
-        }
+        // if (activeTab === "verify" && updated.uploadedPhoto && updated.uploadedId) {
+        //   setShowPaymentModal(true);
+        // }
 
         return updated;
       });
