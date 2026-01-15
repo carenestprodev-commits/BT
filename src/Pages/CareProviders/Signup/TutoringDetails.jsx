@@ -4,6 +4,7 @@ import { useState } from "react";
 import { saveStep } from "../../../Redux/CareProviderAuth";
 import { reverseGeocode } from "../../../Redux/Location";
 import mappopup from "../../../../public/mappopup.png";
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 function TutoringDetails({
   formData,
@@ -435,6 +436,12 @@ function TutoringDetails({
     "Zulu",
   ]);
 
+  const getAddressComponent = (components, type) => {
+    const comp = components.find((c) => c.types.includes(type));
+    return comp ? comp.long_name : "";
+  };
+
+
   //Define handleGetLocation on its own first
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
@@ -447,41 +454,47 @@ function TutoringDetails({
         const { latitude, longitude } = position.coords;
 
         try {
-          // Added 'addressdetails=1' to get more specific location info
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
           );
+
           const data = await response.json();
-          const address = data.address;
 
-          if (address) {
-            // 1. Update Country & Nationality
-            const country = address.country || "";
-            updateFormData("country", country);
-            updateFormData("nationality", country);
-
-            // 2. Update State (Checking common API variations)
-            const state =
-              address.state || address.region || address.state_district || "";
-            updateFormData("state", state);
-
-            // 3. Update City (Checking all possible local names)
-            const city =
-              address.city ||
-              address.town ||
-              address.village ||
-              address.suburb ||
-              address.city_district ||
-              "";
-            updateFormData("city", city);
-
-            // 4. Update Zip
-            const zip = address.postcode || "";
-            updateFormData("zipCode", zip);
-
-            // Close the popup once done
-            setShowLocationPopup(false);
+          if (!data.results || !data.results.length) {
+            throw new Error("No address results found");
           }
+
+          // Always take the MOST SPECIFIC result (street_address / premise)
+          const result =
+              data.results.find((r) =>
+                  r.types.includes("street_address") ||
+                  r.types.includes("premise")
+              ) || data.results[0];
+
+          const components = result.address_components;
+
+          const get = (type) =>
+              components.find((c) => c.types.includes(type))?.long_name || "";
+
+          // ✅ Extract fields
+          const address = result.formatted_address || "";
+          const country = get("country");
+          const state = get("administrative_area_level_1"); // Lagos
+          const city =
+              get("locality") || // Lagos
+              get("sublocality") ||
+              get("administrative_area_level_2"); // Shomolu fallback
+          const zipCode = get("postal_code");
+
+          // ✅ Update form
+          updateFormData("address", address);
+          updateFormData("country", country);
+          updateFormData("nationality", country);
+          updateFormData("state", state);
+          updateFormData("city", city);
+          updateFormData("zipCode", zipCode);
+
+          setShowLocationPopup(false);
         } catch (error) {
           console.error("Error fetching location:", error);
           alert("Could not retrieve address details. Please enter manually.");
