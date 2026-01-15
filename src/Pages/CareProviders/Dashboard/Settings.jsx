@@ -76,9 +76,14 @@ function Settings() {
     uploadedId: 0,
   });
 
-  const [preview, setPreview] = useState({
-    uploadedPhoto: null,
-    uploadedId: null,
+  // const [preview, setPreview] = useState({
+  //   uploadedPhoto: null,
+  //   uploadedId: null,
+  // });
+
+  const [uploadedFiles, setUploadedFiles] = useState({
+    uploadedPhoto: false,
+    uploadedId: false,
   });
 
   const CLOUDINARY_CLOUD_NAME = "your_cloud_name";
@@ -125,7 +130,7 @@ function Settings() {
 
   /* -------------------- FILE UPLOAD -------------------- */
 
-  const handleFileUpload = async (file, field) => {
+  const handleFileUploadOld = async (file, field) => {
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
@@ -194,21 +199,18 @@ function Settings() {
     });
   };
 
+// Upload file to backend with Bearer token
   const uploadToCloudinary = (file, field) => {
     const data = new FormData();
-    data.append("file", file); // 🔁 change if backend expects a different key
+    data.append("image", file); // <-- ensure backend expects this key
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
-      // ✅ Track upload progress
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
           const percent = Math.round((e.loaded / e.total) * 100);
-          setUploadProgress((prev) => ({
-            ...prev,
-            [field]: percent,
-          }));
+          setUploadProgress((prev) => ({ ...prev, [field]: percent }));
         }
       };
 
@@ -216,9 +218,7 @@ function Settings() {
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const res = JSON.parse(xhr.responseText);
-
-            // ✅ Adjust this depending on backend response
-            resolve(res.url || res.image_url || res.path);
+            resolve(res.url || res.image_url || res.path); // adjust to backend response
           } catch (err) {
             reject("Invalid server response");
           }
@@ -229,18 +229,15 @@ function Settings() {
 
       xhr.onerror = () => reject("Network error during upload");
 
-      xhr.open("POST", API_URL + "/api/auth/profile/upload_image/");
+      xhr.open("PATCH", API_URL  + "/api/auth/profile/upload_image/"); // backend endpoint
 
-      // 🔐 If you use auth tokens (JWT)
-      const token = localStorage.getItem("token");
-      if (token) {
-        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-      }
+      // Add Bearer token
+      const token = localStorage.getItem("access"); // or wherever JWT is stored
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
       xhr.send(data);
     });
   };
-
 
   /* -------------------- SAVE -------------------- */
 
@@ -260,6 +257,7 @@ function Settings() {
 
   const saveSettings = async () => {
     if (activeTab === "verify") {
+      console.log(formData);
       if (!formData.uploadedPhoto || !formData.uploadedId) {
         setMessage({
           type: "error",
@@ -283,6 +281,9 @@ function Settings() {
         body: JSON.stringify(formData),
       });
 
+      alert('sam');
+      console.log(res);
+
       if (!res.ok) throw new Error("Save failed");
 
       setOriginalFormData(formData);
@@ -294,6 +295,52 @@ function Settings() {
       setLoading(false);
     }
   };
+
+  // Handle file selection or drop
+  const handleFileUpload = async (file, field) => {
+    if (!file) return;
+
+    // Validate size (15MB max)
+    if (file.size > 15 * 1024 * 1024) {
+      alert("File must be less than 15MB");
+      return;
+    }
+
+    // Validate type
+    const allowed =
+        field === "uploadedPhoto"
+            ? ["image/jpeg", "image/png", "image/svg+xml"]
+            : ["image/jpeg", "image/png", "image/svg+xml", "application/pdf"];
+
+    if (!allowed.includes(file.type)) {
+      alert("Invalid file type");
+      return;
+    }
+
+    try {
+      // Upload to backend
+      const url = await uploadToCloudinary(file, field);
+
+      // Update formData
+      setUploadedFiles((prev) => {
+        const updated = { ...prev, [field]: true };
+
+        // ✅ Auto-show payment modal if verify tab and both files are uploaded
+        if (activeTab === "verify" && updated.uploadedPhoto && updated.uploadedId) {
+          setShowPaymentModal(true);
+        }
+
+        return updated;
+      });
+
+      alert(`${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`);
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed. Please try again.");
+      setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
+    }
+  };
+
 
   /* -------------------- PAYMENT -------------------- */
 
