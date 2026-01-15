@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
@@ -19,7 +20,7 @@ function Settings() {
     loading: profileLoading,
     error: profileError,
   } = useSelector(
-      (s) => s.providerSettings || { profile: null, loading: false, error: null }
+    (s) => s.providerSettings || { profile: null, loading: false, error: null }
   );
 
   const [activeTab, setActiveTab] = useState("personal");
@@ -93,9 +94,7 @@ function Settings() {
   /* -------------------- HELPERS -------------------- */
 
   const detectChanges = (newData) =>
-      Object.keys(newData).some(
-          (key) => newData[key] !== originalFormData[key]
-      );
+    Object.keys(newData).some((key) => newData[key] !== originalFormData[key]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -124,7 +123,7 @@ function Settings() {
     }
 
     const allowed =
-        field === "uploadedPhoto" ? ALLOWED_IMAGE_TYPES : ALLOWED_ID_TYPES;
+      field === "uploadedPhoto" ? ALLOWED_IMAGE_TYPES : ALLOWED_ID_TYPES;
 
     if (!allowed.includes(file.type)) {
       alert("Invalid file type");
@@ -177,8 +176,8 @@ function Settings() {
       xhr.onerror = reject;
 
       xhr.open(
-          "POST",
-          `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
+        "POST",
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
       );
       xhr.send(data);
     });
