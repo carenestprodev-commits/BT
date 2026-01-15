@@ -9,6 +9,8 @@ import PaymentModal from "./PaymentModal";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
+const API_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 function Settings() {
   const navigate = useNavigate();
@@ -227,7 +229,7 @@ function Settings() {
 
       xhr.onerror = () => reject("Network error during upload");
 
-      xhr.open("POST", "/api/auth/profile/upload_image/");
+      xhr.open("POST", API_URL + "/api/auth/profile/upload_image/");
 
       // 🔐 If you use auth tokens (JWT)
       const token = localStorage.getItem("token");
