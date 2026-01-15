@@ -12,6 +12,7 @@ import { FiLogOut } from "react-icons/fi";
 import Triangle from "../../../../public/triangle.svg";
 import Message from "../../../../public/receipt-text.svg";
 import WalletIcon from "../../../../public/wallet.svg";
+import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
 
 /* ---------------- NAV ITEMS ---------------- */
 
@@ -62,7 +63,7 @@ function Sidebar({ active = "Home", onNav }) {
           return;
         }
 
-        const response = await fetch("/api/profile/completion", {
+        const response = await fetchWithAuth("/api/profile/completion", {
           headers: {
             Authorization: `Bearer ${token}`,
           },

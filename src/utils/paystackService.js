@@ -5,6 +5,7 @@
  */
 
 import tokenService from "./tokenService";
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 const BASE_URL = "https://backend.app.carenestpro.com";
 
@@ -32,7 +33,7 @@ export const paystackService = {
 
       console.log("Initiating payment with:", payload);
 
-      let response = await fetch(
+      let response = await fetchWithAuth(
         `${BASE_URL}/api/payments/provider-plans/subscribe/`,
         {
           method: "POST",
@@ -54,7 +55,7 @@ export const paystackService = {
         }
 
         // Retry the request with new token
-        response = await fetch(
+        response = await fetchWithAuth(
           `${BASE_URL}/api/payments/provider-plans/subscribe/`,
           {
             method: "POST",
@@ -152,7 +153,7 @@ export const paystackService = {
         throw new Error("Authentication required");
       }
 
-      const response = await fetch(`${BASE_URL}/api/payments/checkout/`, {
+      const response = await fetchWithAuth(`${BASE_URL}/api/payments/checkout/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

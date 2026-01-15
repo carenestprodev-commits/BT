@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import Sidebar from "./Sidebar";
 import UploadIcon from "../../../../public/upload.svg";
 import { BASE_URL } from "../../../Redux/config";
+import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
 
 function VerifyIdentity() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -39,7 +40,7 @@ function VerifyIdentity() {
       const formData = new FormData();
       formData.append("image", selectedFile);
 
-      const res = await fetch(`${BASE_URL}/api/auth/profile/upload_image/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/auth/profile/upload_image/`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,

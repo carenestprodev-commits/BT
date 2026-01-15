@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
 
 function Settings() {
   const navigate = useNavigate();
@@ -236,7 +237,7 @@ function Settings() {
     setMessage({ type: "", text: "" });
 
     try {
-      const response = await fetch("/api/user/settings", {
+      const response = await fetchWithAuth("/api/user/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

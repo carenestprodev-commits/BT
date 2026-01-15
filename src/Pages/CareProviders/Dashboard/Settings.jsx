@@ -9,6 +9,7 @@ import PaymentModal from "./PaymentModal";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
+import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 function Settings() {
@@ -275,13 +276,12 @@ function Settings() {
     setMessage({ type: "", text: "" });
 
     try {
-      const res = await fetch("/api/user/settings", {
+      const res = await fetchWithAuth("/api/user/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
-      alert("sam");
       console.log(res);
 
       if (!res.ok) throw new Error("Save failed");
@@ -348,7 +348,7 @@ function Settings() {
   const handlePayment = async () => {
     setPaymentLoading(true);
     try {
-      await fetch("/api/user/verification", {
+      await fetchWithAuth("/api/user/verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

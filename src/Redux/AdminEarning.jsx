@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const fetchEarningsStats = createAsyncThunk(
   'adminEarning/fetchEarningsStats',
@@ -7,7 +8,7 @@ export const fetchEarningsStats = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/earnings/stats/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/earnings/stats/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return data
@@ -23,7 +24,7 @@ export const fetchSeekerTransactions = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/earnings/seeker-transactions/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/earnings/seeker-transactions/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return Array.isArray(data) ? data : []
@@ -39,7 +40,7 @@ export const fetchPlatformTransactions = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/earnings/platform-transactions/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/earnings/platform-transactions/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return Array.isArray(data) ? data : []
@@ -55,7 +56,7 @@ export const fetchTransactionById = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/earnings/transactions/${id}/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/earnings/transactions/${id}/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return data
