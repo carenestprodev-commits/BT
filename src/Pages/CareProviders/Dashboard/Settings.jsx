@@ -11,7 +11,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-
 function Settings() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,6 +34,7 @@ function Settings() {
     country: "",
     state: "",
     city: "",
+    address: "",
     zipCode: "",
     nationality: "",
     nationalId: "",
@@ -199,7 +199,7 @@ function Settings() {
     });
   };
 
-// Upload file to backend with Bearer token
+  // Upload file to backend with Bearer token
   const uploadToCloudinary = (file, field) => {
     const data = new FormData();
     data.append("image", file); // <-- ensure backend expects this key
@@ -229,7 +229,7 @@ function Settings() {
 
       xhr.onerror = () => reject("Network error during upload");
 
-      xhr.open("PATCH", API_URL  + "/api/auth/profile/upload_image/"); // backend endpoint
+      xhr.open("PATCH", API_URL + "/api/auth/profile/upload_image/"); // backend endpoint
 
       // Add Bearer token
       const token = localStorage.getItem("access"); // or wherever JWT is stored
@@ -267,7 +267,6 @@ function Settings() {
 
       setShowPaymentModal(true); // modal opens
       return;
-
     }
 
     if (!validateForm()) return;
@@ -282,7 +281,7 @@ function Settings() {
         body: JSON.stringify(formData),
       });
 
-      alert('sam');
+      alert("sam");
       console.log(res);
 
       if (!res.ok) throw new Error("Save failed");
@@ -309,9 +308,9 @@ function Settings() {
 
     // Validate type
     const allowed =
-        field === "uploadedPhoto"
-            ? ["image/jpeg", "image/png", "image/svg+xml"]
-            : ["image/jpeg", "image/png", "image/svg+xml", "application/pdf"];
+      field === "uploadedPhoto"
+        ? ["image/jpeg", "image/png", "image/svg+xml"]
+        : ["image/jpeg", "image/png", "image/svg+xml", "application/pdf"];
 
     if (!allowed.includes(file.type)) {
       alert("Invalid file type");
@@ -334,14 +333,15 @@ function Settings() {
         return updated;
       });
 
-      alert(`${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`);
+      alert(
+        `${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`
+      );
     } catch (err) {
       console.error(err);
       alert("Upload failed. Please try again.");
       setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
     }
   };
-
 
   /* -------------------- PAYMENT -------------------- */
 
@@ -399,7 +399,6 @@ function Settings() {
     });
     setHasChanges(false);
   };
-
 
   /* -------------------- EFFECTS -------------------- */
 
@@ -892,6 +891,20 @@ function Settings() {
                         className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                      Address
+                    </label>
+                    <textarea
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      placeholder="Enter your address"
+                      rows={3}
+                      className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm resize-none"
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">

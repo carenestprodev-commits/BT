@@ -449,7 +449,7 @@ function ElderlyCareDetails({
 
         try {
           const response = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
           );
 
           const data = await response.json();
@@ -460,24 +460,25 @@ function ElderlyCareDetails({
 
           // Always take the MOST SPECIFIC result (street_address / premise)
           const result =
-              data.results.find((r) =>
-                  r.types.includes("street_address") ||
-                  r.types.includes("premise")
-              ) || data.results[0];
+            data.results.find(
+              (r) =>
+                r.types.includes("street_address") ||
+                r.types.includes("premise")
+            ) || data.results[0];
 
           const components = result.address_components;
 
           const get = (type) =>
-              components.find((c) => c.types.includes(type))?.long_name || "";
+            components.find((c) => c.types.includes(type))?.long_name || "";
 
           // ✅ Extract fields
           const address = result.formatted_address || "";
           const country = get("country");
           const state = get("administrative_area_level_1"); // Lagos
           const city =
-              get("locality") || // Lagos
-              get("sublocality") ||
-              get("administrative_area_level_2"); // Shomolu fallback
+            get("locality") || // Lagos
+            get("sublocality") ||
+            get("administrative_area_level_2"); // Shomolu fallback
           const zipCode = get("postal_code");
 
           // ✅ Update form
@@ -607,6 +608,14 @@ function ElderlyCareDetails({
           <label htmlFor="useLocation" className="text-sm text-gray-700">
             Use my current Location instead
           </label>
+        </div>
+
+        <div className="mb-4 lg:mb-6">
+          <TextField
+            label="Address"
+            value={formData.address || ""}
+            onChange={(val) => updateFormData("address", val)}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:p-6">
