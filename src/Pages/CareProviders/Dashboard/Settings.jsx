@@ -112,6 +112,13 @@ function Settings() {
     setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
+  const tabs = [
+    { id: "verify", label: "Verify Identity" },
+    { id: "personal", label: "Personal Information" },
+    { id: "password", label: "Password" },
+    { id: "other", label: "Other details" },
+  ];
+
   /* -------------------- FILE UPLOAD -------------------- */
 
   const handleFileUpload = async (file, field) => {
