@@ -159,7 +159,7 @@ function Settings() {
     }
   };
 
-  const uploadToCloudinary = (file, field) => {
+  const uploadToCloudinaryOld = (file, field) => {
     const data = new FormData();
     data.append("file", file);
     data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
@@ -191,6 +191,54 @@ function Settings() {
       xhr.send(data);
     });
   };
+
+  const uploadToCloudinary = (file, field) => {
+    const data = new FormData();
+    data.append("file", file); // 🔁 change if backend expects a different key
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      // ✅ Track upload progress
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress((prev) => ({
+            ...prev,
+            [field]: percent,
+          }));
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const res = JSON.parse(xhr.responseText);
+
+            // ✅ Adjust this depending on backend response
+            resolve(res.url || res.image_url || res.path);
+          } catch (err) {
+            reject("Invalid server response");
+          }
+        } else {
+          reject(`Upload failed with status ${xhr.status}`);
+        }
+      };
+
+      xhr.onerror = () => reject("Network error during upload");
+
+      xhr.open("POST", "/api/auth/profile/upload_image/");
+
+      // 🔐 If you use auth tokens (JWT)
+      const token = localStorage.getItem("token");
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
+
+      xhr.send(data);
+    });
+  };
+
 
   /* -------------------- SAVE -------------------- */
 
