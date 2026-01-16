@@ -454,8 +454,22 @@ function TutoringInformation({
 
           const data = await response.json();
 
+          console.log("Geocoding API Response:", data);
+          console.log("API Key:", GOOGLE_API_KEY ? "Present" : "Missing");
+
+          if (data.error_message) {
+            console.error("API Error:", data.error_message);
+            throw new Error(`API Error: ${data.error_message}`);
+          }
+
           if (!data.results || !data.results.length) {
-            throw new Error("No address results found");
+            console.error("Empty results from Geocoding API for coordinates:", {
+              latitude,
+              longitude,
+            });
+            throw new Error(
+              "No address results found. Please ensure Google Maps Geocoding API is enabled in your Google Cloud Console."
+            );
           }
 
           // Always take the MOST SPECIFIC result (street_address / premise)
@@ -492,7 +506,10 @@ function TutoringInformation({
           setShowLocationPopup(false);
         } catch (error) {
           console.error("Error fetching location:", error);
-          alert("Could not retrieve address details. Please enter manually.");
+          alert(
+            error.message ||
+              "Could not retrieve address details. Please enter manually."
+          );
           setShowLocationPopup(false);
         }
       },
