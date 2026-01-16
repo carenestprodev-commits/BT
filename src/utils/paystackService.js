@@ -26,7 +26,7 @@ export const paystackService = {
 
       // Prepare the payload based on what backend expects
       const payload = {
-        plan_id: 2, // The ₦80,000 subscription plan ID
+        plan_id: 4, // The ₦80,000 subscription plan ID
         payment_gateway: "paystack",
       };
 

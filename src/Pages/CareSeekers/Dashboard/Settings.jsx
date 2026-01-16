@@ -1,13 +1,29 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import PaymentModal from "./PaymentModal";
+import { fetchSeekerProfile } from "../../../Redux/CareSeekerAuth";
+
+const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 function Settings() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useDispatch();
+
+  const {
+    profile,
+    loading: profileLoading,
+    error: profileError,
+  } = useSelector(
+    (s) => s.careSeekerAuth || { profile: null, loading: false, error: null }
+  );
+
   const [activeTab, setActiveTab] = useState("personal");
   const [formData, setFormData] = useState({
     firstName: "",
@@ -66,6 +82,14 @@ function Settings() {
   const [dragActive, setDragActive] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+
+  const [uploadedFiles, setUploadedFiles] = useState({
+    uploadedPhoto: false,
+    uploadedId: false,
+  });
+
   const CLOUDINARY_CLOUD_NAME = "your_cloud_name";
   const CLOUDINARY_UPLOAD_PRESET = "carenest_unsigned";
 
@@ -75,25 +99,25 @@ function Settings() {
     { id: "password", label: "Password" },
   ];
 
+  /* -------------------- HELPERS -------------------- */
+
+  const detectChanges = (newData) =>
+    Object.keys(newData).some((key) => newData[key] !== originalFormData[key]);
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const newFormData = {
+
+    const updated = {
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     };
-    setFormData(newFormData);
 
-    // Check if form data differs from original
-    const isModified =
-      JSON.stringify(newFormData) !== JSON.stringify(originalFormData);
-    setHasChanges(isModified);
+    setFormData(updated);
+    setHasChanges(detectChanges(updated));
   };
 
   const togglePasswordVisibility = (field) => {
-    setShowPassword((prev) => ({
-      ...prev,
-      [field]: !prev[field],
-    }));
+    setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
   const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
@@ -106,70 +130,12 @@ function Settings() {
     "application/pdf",
   ];
 
-  const handleFileUpload = async (file, field) => {
-    if (!file) return;
+  /* -------------------- FILE UPLOAD -------------------- */
 
-    if (file.size > MAX_FILE_SIZE) {
-      alert("File must be less than 15MB");
-      return;
-    }
-
-    const allowed =
-      field === "uploadedPhoto" ? ALLOWED_IMAGE_TYPES : ALLOWED_ID_TYPES;
-
-    if (!allowed.includes(file.type)) {
-      alert("Invalid file type");
-      return;
-    }
-
-    // Local preview (image & SVG)
-    if (file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => {
-          const updated = {
-            ...prev,
-            [field]: reader.result,
-          };
-          // Check if form data differs from original
-          const isModified =
-            JSON.stringify(updated) !== JSON.stringify(originalFormData);
-          setHasChanges(isModified);
-          return updated;
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-
-    // Upload to Cloudinary
-    try {
-      const url = await uploadToCloudinary(file, field);
-
-      // Replace preview with final CDN URL
-      setFormData((prev) => {
-        const updated = {
-          ...prev,
-          [field]: url,
-        };
-        // Check if form data differs from original
-        const isModified =
-          JSON.stringify(updated) !== JSON.stringify(originalFormData);
-        setHasChanges(isModified);
-        return updated;
-      });
-    } catch (err) {
-      alert("Upload failed");
-      setUploadProgress((prev) => ({
-        ...prev,
-        [field]: 0,
-      }));
-    }
-  };
-
+  // Upload file to backend with Bearer token
   const uploadToCloudinary = (file, field) => {
     const data = new FormData();
-    data.append("file", file);
-    data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    data.append("image", file); // <-- ensure backend expects this key
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -177,30 +143,75 @@ function Settings() {
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
           const percent = Math.round((e.loaded / e.total) * 100);
-          setUploadProgress((prev) => ({
-            ...prev,
-            [field]: percent,
-          }));
+          setUploadProgress((prev) => ({ ...prev, [field]: percent }));
         }
       };
 
       xhr.onload = () => {
-        if (xhr.status === 200) {
-          const res = JSON.parse(xhr.responseText);
-          resolve(res.secure_url);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            resolve(res.url || res.image_url || res.path); // adjust to backend response
+          } catch (err) {
+            reject("Invalid server response");
+          }
         } else {
-          reject("Cloudinary upload failed");
+          reject(`Upload failed with status ${xhr.status}`);
         }
       };
 
-      xhr.onerror = () => reject("Upload error");
+      xhr.onerror = () => reject("Network error during upload");
 
-      xhr.open(
-        "POST",
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
-      );
+      xhr.open("PATCH", API_URL + "/api/auth/profile/upload_image/"); // backend endpoint
+
+      // Add Bearer token
+      const token = localStorage.getItem("access"); // or wherever JWT is stored
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
       xhr.send(data);
     });
+  };
+
+  // Handle file selection or drop
+  const handleFileUpload = async (file, field) => {
+    if (!file) return;
+
+    // Validate size (15MB max)
+    if (file.size > 15 * 1024 * 1024) {
+      alert("File must be less than 15MB");
+      return;
+    }
+
+    // Validate type
+    const allowed =
+      field === "uploadedPhoto"
+        ? ["image/jpeg", "image/png", "image/svg+xml"]
+        : ["image/jpeg", "image/png", "image/svg+xml", "application/pdf"];
+
+    if (!allowed.includes(file.type)) {
+      alert("Invalid file type");
+      return;
+    }
+
+    try {
+      // Upload to backend
+      const url = await uploadToCloudinary(file, field);
+
+      // Update formData and uploadedFiles
+      setFormData((prev) => ({ ...prev, [field]: url }));
+      setUploadedFiles((prev) => {
+        const updated = { ...prev, [field]: true };
+        return updated;
+      });
+
+      alert(
+        `${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed. Please try again.");
+      setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
+    }
   };
 
   const handleDragOver = (e) => {
@@ -219,16 +230,35 @@ function Settings() {
     handleFileUpload(file, field);
   };
 
+  /* -------------------- SAVE -------------------- */
+
+  const validateForm = () => {
+    if (activeTab === "password") {
+      if (formData.newPassword.length < 8) {
+        setMessage({ type: "error", text: "Password must be 8+ characters" });
+        return false;
+      }
+      if (formData.newPassword !== formData.confirmPassword) {
+        setMessage({ type: "error", text: "Passwords don't match" });
+        return false;
+      }
+    }
+    return true;
+  };
+
   const saveSettings = async () => {
     // If on verify tab, validate files are uploaded
     if (activeTab === "verify") {
-      if (!formData.uploadedPhoto || !formData.uploadedId) {
+      if (!uploadedFiles.uploadedPhoto || !uploadedFiles.uploadedId) {
         setMessage({
           type: "error",
           text: "Please upload both profile photo and government ID",
         });
         return;
       }
+
+      setShowPaymentModal(true); // modal opens
+      return;
     }
 
     if (!validateForm()) return;
@@ -272,6 +302,38 @@ function Settings() {
     }
   };
 
+  /* -------------------- PAYMENT -------------------- */
+
+  const handlePayment = async () => {
+    setPaymentLoading(true);
+    try {
+      await fetch("/api/user/verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uploadedPhoto: formData.uploadedPhoto,
+          uploadedId: formData.uploadedId,
+        }),
+      });
+
+      setOriginalFormData(formData);
+      setHasChanges(false);
+      setShowPaymentModal(false);
+      setMessage({ type: "success", text: "Verification submitted!" });
+    } catch {
+      setMessage({ type: "error", text: "Payment failed" });
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // Close payment modal
+  const closePaymentModal = () => {
+    if (!paymentLoading) {
+      setShowPaymentModal(false);
+    }
+  };
+
   const resetForm = () => {
     setFormData(originalFormData);
     setUploadProgress({
@@ -281,19 +343,45 @@ function Settings() {
     setHasChanges(false);
   };
 
-  const validateForm = () => {
-    if (activeTab === "password") {
-      if (formData.newPassword.length < 8) {
-        setMessage({ type: "error", text: "Password must be 8+ characters" });
-        return false;
-      }
-      if (formData.newPassword !== formData.confirmPassword) {
-        setMessage({ type: "error", text: "Passwords don't match" });
-        return false;
-      }
+  /* -------------------- EFFECTS -------------------- */
+
+  useEffect(() => {
+    dispatch(fetchSeekerProfile());
+  }, []);
+
+  useEffect(() => {
+    if (!profile) return;
+
+    const populated = {
+      firstName: profile.first_name ?? "",
+      lastName: profile.last_name ?? "",
+      email: profile.email ?? "",
+      phone: profile.phone ?? "",
+      country: profile.country ?? "",
+      state: profile.state ?? "",
+      city: profile.city ?? "",
+      address: profile.address ?? "",
+      zipCode: profile.zip_code ?? "",
+      nationality: profile.nationality ?? "",
+      nationalId: profile.national_id ?? "",
+      language: profile.language ?? "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+      uploadedPhoto: profile.profile_photo ?? null,
+      uploadedId: profile.government_id ?? null,
+    };
+
+    setFormData(populated);
+    setOriginalFormData(populated);
+    setHasChanges(false);
+  }, [profile]);
+
+  useEffect(() => {
+    if (location?.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
     }
-    return true;
-  };
+  }, [location]);
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
@@ -1080,6 +1168,13 @@ function Settings() {
           </div>
         </div>
       </div>
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={closePaymentModal}
+        onPayment={handlePayment}
+        loading={paymentLoading}
+      />
     </div>
   );
 }

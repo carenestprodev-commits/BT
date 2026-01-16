@@ -40,7 +40,7 @@ export default function VerificationCheckModal({
         apply: {
           title: "Verify Your Account",
           description:
-            "To access and connect with verified care providers, we need to confirm your identity.",
+            "To access and connect with verified care seekers, we need to confirm your identity.",
           subtitle: "Help us keep the care community safe and trusted.",
           benefit1: "Protect care providers from fake requests",
           benefit2: "Build trust and accountability",
@@ -100,15 +100,15 @@ export default function VerificationCheckModal({
       : "/careseekers/dashboard/setting";
 
   const handleProceedClick = () => {
+    // Call the onProceed callback first
+    if (onProceed) {
+      onProceed();
+    }
+
     // Navigate to settings verification tab
     navigate(settingRoute, {
       state: { activeTab: "verify" },
     });
-
-    // Call the onProceed callback
-    if (onProceed) {
-      onProceed();
-    }
   };
 
   return (

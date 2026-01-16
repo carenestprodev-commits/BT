@@ -1,14 +1,28 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { BASE_URL } from "./config";
+import { BASE_URL, getAuthHeaders } from "./config";
 
 const LS_KEY = "seeker_onboarding";
 
 const readLS = () => {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    return raw ? JSON.parse(raw) : { steps: {}, preview: null };
+    return raw
+      ? JSON.parse(raw)
+      : {
+          steps: {},
+          preview: null,
+          profile: null,
+          loading: false,
+          error: null,
+        };
   } catch (e) {
-    return { steps: {}, preview: null };
+    return {
+      steps: {},
+      preview: null,
+      profile: null,
+      loading: false,
+      error: null,
+    };
   }
 };
 
@@ -19,6 +33,26 @@ const writeLS = (data) => {
     // ignore
   }
 };
+
+// Fetch seeker profile
+export const fetchSeekerProfile = createAsyncThunk(
+  "careSeekerAuth/fetchProfile",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/profile/info/`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        return rejectWithValue(text);
+      }
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
 
 // Async thunk to generate preview
 export const generatePreview = createAsyncThunk(
@@ -253,6 +287,18 @@ const slice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(fetchSeekerProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchSeekerProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        state.profile = action.payload;
+      })
+      .addCase(fetchSeekerProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error.message;
+      })
       .addCase(generatePreview.fulfilled, (state, action) => {
         state.preview = action.payload;
         writeLS(state);

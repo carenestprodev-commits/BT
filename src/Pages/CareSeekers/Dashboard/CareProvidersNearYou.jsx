@@ -1,13 +1,20 @@
-import { useEffect } from "react";
+/* eslint-disable no-unused-vars */
+import { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./../Dashboard/Sidebar";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProviders } from "../../../Redux/CareProviderNearYou";
+import VerificationCheckModal from "../../../Components/VerificationCheckModal";
+import { AuthContext } from "../../../Context/AuthContext";
 // Subscription gating removed: buttons always active
 
 function CareProvidersNearYou() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user } = useContext(AuthContext);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [selectedProviderId, setSelectedProviderId] = useState(null);
+
   const { providers, loading, error } = useSelector(
     (s) =>
       s.careProviderNearYou || { providers: [], loading: false, error: null }
@@ -18,6 +25,28 @@ function CareProvidersNearYou() {
   useEffect(() => {
     dispatch(fetchProviders());
   }, [dispatch]);
+
+  const handleMessageClick = (providerId) => {
+    // Check if user is verified
+    if (!user?.is_verified) {
+      // Show verification modal
+      setSelectedProviderId(providerId);
+      setShowVerificationModal(true);
+    } else {
+      // Proceed with messaging
+      navigate("/careseekers/dashboard/message_provider/" + providerId);
+    }
+  };
+
+  const handleVerificationProceed = () => {
+    // Modal will handle navigation to settings with verify tab
+    setShowVerificationModal(false);
+  };
+
+  const handleVerificationCancel = () => {
+    setShowVerificationModal(false);
+    setSelectedProviderId(null);
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
@@ -113,12 +142,7 @@ function CareProvidersNearYou() {
                     <div className="flex flex-col sm:flex-row gap-2">
                       <button
                         className="w-full sm:flex-1 bg-[#0093d1] text-white py-2 rounded-md font-medium hover:bg-[#007bb0] transition"
-                        onClick={() =>
-                          navigate(
-                            "/careseekers/dashboard/message_provider/" +
-                              (p?.user?.id || p?.id)
-                          )
-                        }
+                        onClick={() => handleMessageClick(p?.user?.id || p?.id)}
                       >
                         Message
                       </button>
@@ -141,6 +165,16 @@ function CareProvidersNearYou() {
           </div>
         </div>
       </div>
+
+      {/* Verification Check Modal */}
+      <VerificationCheckModal
+        isOpen={showVerificationModal}
+        user={user}
+        userType="seeker"
+        actionType="message"
+        onProceed={handleVerificationProceed}
+        onCancel={handleVerificationCancel}
+      />
     </div>
   );
 }

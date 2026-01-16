@@ -5,6 +5,7 @@ import { useState } from "react";
 import { reverseGeocode } from "../../../Redux/Location";
 import { saveStep } from "../../../Redux/CareSeekerAuth";
 import mappopup from "../../../../public/mappopup.png";
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 function ElderlyInformation({
   formData,
@@ -450,41 +451,48 @@ function ElderlyInformation({
         const { latitude, longitude } = position.coords;
 
         try {
-          // Added 'addressdetails=1' to get more specific location info
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
           );
+
           const data = await response.json();
-          const address = data.address;
 
-          if (address) {
-            // 1. Update Country & Nationality
-            const country = address.country || "";
-            updateFormData("country", country);
-            updateFormData("nationality", country);
-
-            // 2. Update State (Checking common API variations)
-            const state =
-              address.state || address.region || address.state_district || "";
-            updateFormData("state", state);
-
-            // 3. Update City (Checking all possible local names)
-            const city =
-              address.city ||
-              address.town ||
-              address.village ||
-              address.suburb ||
-              address.city_district ||
-              "";
-            updateFormData("city", city);
-
-            // 4. Update Zip
-            const zip = address.postcode || "";
-            updateFormData("zipCode", zip);
-
-            // Close the popup once done
-            setShowLocationPopup(false);
+          if (!data.results || !data.results.length) {
+            throw new Error("No address results found");
           }
+
+          // Always take the MOST SPECIFIC result (street_address / premise)
+          const result =
+            data.results.find(
+              (r) =>
+                r.types.includes("street_address") ||
+                r.types.includes("premise")
+            ) || data.results[0];
+
+          const components = result.address_components;
+
+          const get = (type) =>
+            components.find((c) => c.types.includes(type))?.long_name || "";
+
+          // Extract fields
+          const address = result.formatted_address || "";
+          const country = get("country");
+          const state = get("administrative_area_level_1");
+          const city =
+            get("locality") ||
+            get("sublocality") ||
+            get("administrative_area_level_2");
+          const zipCode = get("postal_code");
+
+          // Update form
+          updateFormData("address", address);
+          updateFormData("country", country);
+          updateFormData("nationality", country);
+          updateFormData("state", state);
+          updateFormData("city", city);
+          updateFormData("zipCode", zipCode);
+
+          setShowLocationPopup(false);
         } catch (error) {
           console.error("Error fetching location:", error);
           alert("Could not retrieve address details. Please enter manually.");
@@ -496,7 +504,7 @@ function ElderlyInformation({
         alert("Please enable location services in your browser settings.");
         setShowLocationPopup(false);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 } // Production settings for better accuracy
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
   };
 
@@ -620,14 +628,28 @@ function ElderlyInformation({
               type="checkbox"
               id="useLocation"
               checked={formData.useCurrentLocation}
-              onChange={(e) =>
-                updateFormData("useCurrentLocation", e.target.checked)
-              }
+              onChange={(e) => {
+                updateFormData("useCurrentLocation", e.target.checked);
+                if (e.target.checked) setShowLocationPopup(true);
+              }}
               className="mr-3"
             />
             <label htmlFor="useLocation" className="text-sm text-gray-700">
               Use my current Location instead
             </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Address
+            </label>
+            <input
+              type="text"
+              placeholder="Address"
+              className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
+              value={formData.address || ""}
+              onChange={(e) => updateFormData("address", e.target.value)}
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
