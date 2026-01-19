@@ -6,6 +6,7 @@ import React, {
   useContext,
 } from "react";
 import { useToast } from "./ToastContext";
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const DataContext = createContext();
 
@@ -337,7 +338,7 @@ export const DataProvider = ({ children }) => {
         return;
       }
 
-      const res = await fetch(`${API_URL}/`, {
+      const res = await fetchWithAuth(`${API_URL}/`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -372,7 +373,7 @@ export const DataProvider = ({ children }) => {
         formData.append("image", updatedPost.image);
       }
 
-      const res = await fetch(`${API_URL}/${id}/`, {
+      const res = await fetchWithAuth(`${API_URL}/${id}/`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -396,7 +397,7 @@ export const DataProvider = ({ children }) => {
     try {
       if (!window.confirm("Are you sure you want to delete this post?")) return;
 
-      await fetch(`${API_URL}/${id}/`, {
+      await fetchWithAuth(`${API_URL}/${id}/`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

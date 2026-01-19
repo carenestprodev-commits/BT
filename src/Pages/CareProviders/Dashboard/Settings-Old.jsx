@@ -1,23 +1,17 @@
-/* eslint-disable no-undef */
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
+import { useNavigate } from "react-router-dom";
 import PaymentModal from "./PaymentModal";
-import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
 import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
-const API_URL = import.meta.env.VITE_API_BASE_URL;
-
 
 function Settings() {
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useDispatch();
-
   const {
     profile,
     loading: profileLoading,
@@ -25,12 +19,8 @@ function Settings() {
   } = useSelector(
     (s) => s.providerSettings || { profile: null, loading: false, error: null }
   );
-
-  const [plans, setPlans] = useState([]);
-
   const [activeTab, setActiveTab] = useState("personal");
-
-  const emptyForm = {
+  const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
@@ -38,7 +28,6 @@ function Settings() {
     country: "",
     state: "",
     city: "",
-    address: "",
     zipCode: "",
     nationality: "",
     nationalId: "",
@@ -55,16 +44,15 @@ function Settings() {
     otherServices: "",
     otherLanguages: "",
     autoSend: false,
-    uploadedPhoto: null, // URL only
-    uploadedId: null, // URL only
-  };
+    uploadedPhoto: null,
+    uploadedId: null,
+  });
 
-  const [formData, setFormData] = useState(emptyForm);
-  const [originalFormData, setOriginalFormData] = useState(emptyForm);
-
-  const [hasChanges, setHasChanges] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+  // Add state for payment modal
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const CLOUDINARY_CLOUD_NAME = "your_cloud_name";
+  const CLOUDINARY_UPLOAD_PRESET = "carenest_unsigned";
 
   const [showPassword, setShowPassword] = useState({
     current: false,
@@ -72,54 +60,64 @@ function Settings() {
     confirm: false,
   });
 
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
   const [uploadProgress, setUploadProgress] = useState({
     uploadedPhoto: 0,
     uploadedId: 0,
   });
 
-  // const [preview, setPreview] = useState({
-  //   uploadedPhoto: null,
-  //   uploadedId: null,
-  // });
-
-  const [uploadedFiles, setUploadedFiles] = useState({
-    uploadedPhoto: false,
-    uploadedId: false,
+  const [originalFormData, setOriginalFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    country: "",
+    state: "",
+    city: "",
+    zipCode: "",
+    nationality: "",
+    nationalId: "",
+    language: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    about: "",
+    title: "",
+    yearsOfExperience: "",
+    nativeLanguage: "",
+    housekeeping: "",
+    hourlyRate: "",
+    otherServices: "",
+    otherLanguages: "",
+    autoSend: false,
+    uploadedPhoto: null,
+    uploadedId: null,
   });
 
-  const CLOUDINARY_CLOUD_NAME = "your_cloud_name";
-  const CLOUDINARY_UPLOAD_PRESET = "carenest_unsigned";
-
-  const MAX_FILE_SIZE = 15 * 1024 * 1024;
-  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/svg+xml"];
-  const ALLOWED_ID_TYPES = [
-    "image/jpeg",
-    "image/png",
-    "image/svg+xml",
-    "application/pdf",
-  ];
-
   const [dragActive, setDragActive] = useState(false);
-
-  /* -------------------- HELPERS -------------------- */
-
-  const detectChanges = (newData) =>
-    Object.keys(newData).some((key) => newData[key] !== originalFormData[key]);
+  const [hasChanges, setHasChanges] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-
-    const updated = {
+    const newFormData = {
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     };
+    setFormData(newFormData);
 
-    setFormData(updated);
-    setHasChanges(detectChanges(updated));
+    // Check if form data differs from original
+    const isModified =
+      JSON.stringify(newFormData) !== JSON.stringify(originalFormData);
+    setHasChanges(isModified);
   };
 
   const togglePasswordVisibility = (field) => {
-    setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
+    setShowPassword((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
   };
 
   const tabs = [
@@ -129,9 +127,17 @@ function Settings() {
     { id: "other", label: "Other details" },
   ];
 
-  /* -------------------- FILE UPLOAD -------------------- */
+  const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/svg+xml"];
 
-  const handleFileUploadOld = async (file, field) => {
+  const ALLOWED_ID_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/svg+xml",
+    "application/pdf",
+  ];
+
+  const handleFileUpload = async (file, field) => {
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
@@ -147,27 +153,51 @@ function Settings() {
       return;
     }
 
+    // Local preview (image & SVG)
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreview((prev) => ({ ...prev, [field]: reader.result }));
+        setFormData((prev) => {
+          const updated = {
+            ...prev,
+            [field]: reader.result,
+          };
+          // Check if form data differs from original
+          const isModified =
+            JSON.stringify(updated) !== JSON.stringify(originalFormData);
+          setHasChanges(isModified);
+          return updated;
+        });
       };
       reader.readAsDataURL(file);
     }
 
+    // Upload to Cloudinary
     try {
       const url = await uploadToCloudinary(file, field);
 
-      const updated = { ...formData, [field]: url };
-      setFormData(updated);
-      setHasChanges(detectChanges(updated));
-    } catch {
+      // Replace preview with final CDN URL
+      setFormData((prev) => {
+        const updated = {
+          ...prev,
+          [field]: url,
+        };
+        // Check if form data differs from original
+        const isModified =
+          JSON.stringify(updated) !== JSON.stringify(originalFormData);
+        setHasChanges(isModified);
+        return updated;
+      });
+    } catch (err) {
       alert("Upload failed");
-      setUploadProgress((p) => ({ ...p, [field]: 0 }));
+      setUploadProgress((prev) => ({
+        ...prev,
+        [field]: 0,
+      }));
     }
   };
 
-  const uploadToCloudinaryOld = (file, field) => {
+  const uploadToCloudinary = (file, field) => {
     const data = new FormData();
     data.append("file", file);
     data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
@@ -177,20 +207,24 @@ function Settings() {
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
-          setUploadProgress((p) => ({
-            ...p,
-            [field]: Math.round((e.loaded / e.total) * 100),
+          const percent = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress((prev) => ({
+            ...prev,
+            [field]: percent,
           }));
         }
       };
 
       xhr.onload = () => {
         if (xhr.status === 200) {
-          resolve(JSON.parse(xhr.responseText).secure_url);
-        } else reject();
+          const res = JSON.parse(xhr.responseText);
+          resolve(res.secure_url); // ✅ This is what backend needs
+        } else {
+          reject("Cloudinary upload failed");
+        }
       };
 
-      xhr.onerror = reject;
+      xhr.onerror = () => reject("Upload error");
 
       xhr.open(
         "POST",
@@ -198,197 +232,6 @@ function Settings() {
       );
       xhr.send(data);
     });
-  };
-
-  // Upload file to backend with Bearer token
-  const uploadToCloudinary = (file, field) => {
-    const data = new FormData();
-    data.append("image", file); // <-- ensure backend expects this key
-
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 100);
-          setUploadProgress((prev) => ({ ...prev, [field]: percent }));
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const res = JSON.parse(xhr.responseText);
-            resolve(res.url || res.image_url || res.path); // adjust to backend response
-          } catch (err) {
-            reject("Invalid server response");
-          }
-        } else {
-          reject(`Upload failed with status ${xhr.status}`);
-        }
-      };
-
-      xhr.onerror = () => reject("Network error during upload");
-
-      xhr.open("PATCH", API_URL + "/api/auth/profile/upload_image/"); // backend endpoint
-
-      // Add Bearer token
-      const token = localStorage.getItem("access"); // or wherever JWT is stored
-      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-
-      xhr.send(data);
-    });
-  };
-
-  /* -------------------- SAVE -------------------- */
-
-  const validateForm = () => {
-    if (activeTab === "password") {
-      if (formData.newPassword.length < 8) {
-        setMessage({ type: "error", text: "Password must be 8+ characters" });
-        return false;
-      }
-      if (formData.newPassword !== formData.confirmPassword) {
-        setMessage({ type: "error", text: "Passwords don't match" });
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const saveSettings = async () => {
-    if (activeTab === "verify") {
-      if (!uploadedFiles.uploadedPhoto || !uploadedFiles.uploadedId) {
-        setMessage({
-          type: "error",
-          text: "Please upload both profile photo and government ID",
-        });
-        return;
-      }
-
-      try {
-        setLoading(true);
-
-        const res = await fetchWithAuth(API_URL + "/api/payments/subscription-plans/");
-        if (!res.ok) throw new Error("Failed to fetch plans");
-
-        const data = await res.json();
-        console.log(data);
-        setPlans(data);
-        setShowPlanModal(true); // open plan modal
-      } catch (e) {
-        setMessage({ type: "error", text: e.message });
-      } finally {
-        setLoading(false);
-      }
-
-      // setShowPaymentModal(true); // modal opens
-      return;
-    }
-
-    if (!validateForm()) return;
-
-    setLoading(true);
-    setMessage({ type: "", text: "" });
-
-    try {
-      const res = await fetchWithAuth("/api/user/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      console.log(res);
-
-      if (!res.ok) throw new Error("Save failed");
-
-      setOriginalFormData(formData);
-      setHasChanges(false);
-      setMessage({ type: "success", text: "Settings saved!" });
-    } catch (e) {
-      setMessage({ type: "error", text: e.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle file selection or drop
-  const handleFileUpload = async (file, field) => {
-    if (!file) return;
-
-    // Validate size (15MB max)
-    if (file.size > 15 * 1024 * 1024) {
-      alert("File must be less than 15MB");
-      return;
-    }
-
-    // Validate type
-    const allowed =
-      field === "uploadedPhoto"
-        ? ["image/jpeg", "image/png", "image/svg+xml"]
-        : ["image/jpeg", "image/png", "image/svg+xml", "application/pdf"];
-
-    if (!allowed.includes(file.type)) {
-      alert("Invalid file type");
-      return;
-    }
-
-    try {
-      // Upload to backend
-      const url = await uploadToCloudinary(file, field);
-
-      // Update formData
-      setUploadedFiles((prev) => {
-        const updated = { ...prev, [field]: true };
-
-        // ✅ Auto-show payment modal if verify tab and both files are uploaded
-        // if (activeTab === "verify" && updated.uploadedPhoto && updated.uploadedId) {
-        //   setShowPaymentModal(true);
-        // }
-
-        return updated;
-      });
-
-      alert(
-        `${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Upload failed. Please try again.");
-      setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
-    }
-  };
-
-  /* -------------------- PAYMENT -------------------- */
-
-  const handlePayment = async () => {
-    setPaymentLoading(true);
-    try {
-      await fetchWithAuth("/api/user/verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uploadedPhoto: formData.uploadedPhoto,
-          uploadedId: formData.uploadedId,
-        }),
-      });
-
-      setOriginalFormData(formData);
-      setHasChanges(false);
-      setShowPaymentModal(false);
-      setMessage({ type: "success", text: "Verification submitted!" });
-    } catch {
-      setMessage({ type: "error", text: "Payment failed" });
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
-  // Close payment modal
-  const closePaymentModal = () => {
-    if (!paymentLoading) {
-      setShowPaymentModal(false);
-    }
   };
 
   const handleDragOver = (e) => {
@@ -407,6 +250,135 @@ function Settings() {
     handleFileUpload(file, field);
   };
 
+  // Modified saveSettings function for Verify tab
+  const saveSettings = async () => {
+    // If on verify tab, show payment modal instead of saving directly
+    if (activeTab === "verify") {
+      // First validate that required files are uploaded
+      if (!formData.uploadedPhoto || !formData.uploadedId) {
+        setMessage({
+          type: "error",
+          text: "Please upload both profile photo and government ID",
+        });
+        return;
+      }
+      // Show payment modal
+      setShowPaymentModal(true);
+      return;
+    }
+
+    // Original save logic for other tabs
+    if (!validateForm()) return;
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const response = await fetchWithAuth("/api/user/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save settings");
+      }
+
+      const data = await response.json();
+      setOriginalFormData(formData);
+      setHasChanges(false); // Reset hasChanges after successful save
+
+      if (activeTab === "password") {
+        setFormData((prev) => ({
+          ...prev,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        }));
+      }
+
+      setMessage({ type: "success", text: "Settings saved successfully!" });
+      setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to save settings. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle payment processing
+  const handlePayment = async () => {
+    setPaymentLoading(true);
+
+    try {
+      // TODO: INTEGRATE YOUR PAYMENT GATEWAY HERE
+      // Example for Paystack:
+      /*
+      const paymentResponse = await fetch("/api/payment/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          amount: 150000, // 1500 * 100 (Paystack uses kobo)
+          metadata: {
+            purpose: "verification",
+            userId: currentUser.id,
+          },
+        }),
+      });
+
+      const paymentData = await paymentResponse.json();
+      
+      if (paymentData.authorization_url) {
+        // Redirect to Paystack payment page
+        window.location.href = paymentData.authorization_url;
+      }
+      */
+
+      // After successful payment, save verification data
+      const response = await fetch("/api/user/verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uploadedPhoto: formData.uploadedPhoto,
+          uploadedId: formData.uploadedId,
+          // Add payment reference if needed
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Verification submission failed");
+      }
+
+      setOriginalFormData(formData);
+      setShowPaymentModal(false);
+      setHasChanges(false); // Reset hasChanges after successful verification
+      setMessage({
+        type: "success",
+        text: "Verification submitted successfully!",
+      });
+      setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+    } catch (error) {
+      console.error("Payment error:", error);
+      setMessage({
+        type: "error",
+        text: error.message || "Payment failed. Please try again.",
+      });
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // Close payment modal
+  const closePaymentModal = () => {
+    if (!paymentLoading) {
+      setShowPaymentModal(false);
+    }
+  };
+
   const resetForm = () => {
     setFormData(originalFormData);
     setUploadProgress({
@@ -416,95 +388,64 @@ function Settings() {
     setHasChanges(false);
   };
 
-
-  const [showPlanModal, setShowPlanModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-
-  const handlePlanSelect = (plan) => {
-    setSelectedPlan(plan);
-    setShowPlanModal(false);
-    setShowPaymentModal(true);
+  const validateForm = () => {
+    if (activeTab === "password") {
+      if (formData.newPassword.length < 8) {
+        setMessage({ type: "error", text: "Password must be 8+ characters" });
+        return false;
+      }
+      if (formData.newPassword !== formData.confirmPassword) {
+        setMessage({ type: "error", text: "Passwords don't match" });
+        return false;
+      }
+    }
+    // Add more validations...
+    return true;
   };
-
-  const PlanSelectionModal = ({ isOpen, plans, onSelect, onClose }) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-semibold mb-4">Choose a Plan</h2>
-
-            <div className="space-y-4">
-              {plans.map((plan) => (
-                  <div
-                      key={plan.id}
-                      className="border rounded-lg p-4 hover:border-[#0093d1] cursor-pointer"
-                      onClick={() => onSelect(plan)}
-                  >
-                    <h3 className="font-semibold">{plan.name}</h3>
-                    <p className="text-[#0093d1] font-bold">
-                      ₦{plan.price.toLocaleString()}
-                    </p>
-                  </div>
-              ))}
-            </div>
-
-            <button
-                onClick={onClose}
-                className="mt-6 w-full bg-gray-100 py-2 rounded-lg"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-    );
-  };
-
-
-  /* -------------------- EFFECTS -------------------- */
 
   useEffect(() => {
+    // Fetch provider profile from Redux
     dispatch(fetchProviderProfile());
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
-    if (!profile) return;
-
-    const populated = {
-      firstName: profile.first_name ?? "",
-      lastName: profile.last_name ?? "",
-      email: profile.email ?? "",
-      phone: profile.phone_number ?? "",
-      country: profile.country ?? "",
-      state: profile.state ?? "",
-      city: profile.city ?? "",
-      zipCode: profile.zip_code ?? "",
-      nationality: profile.nationality ?? "",
-      nationalId: profile.national_id ?? "",
-      language: profile.language ?? "",
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-      about: profile.about ?? "",
-      title: profile.title ?? "",
-      yearsOfExperience: profile.years_of_experience ?? "",
-      nativeLanguage: profile.native_language ?? "",
-      housekeeping: profile.housekeeping ?? "",
-      hourlyRate: profile.hourly_rate ?? "",
-      otherServices: profile.other_services ?? "",
-      otherLanguages: profile.other_languages ?? "",
-      autoSend: profile.auto_send ?? false,
-      uploadedPhoto: profile.profile_photo ?? null,
-      uploadedId: profile.government_id ?? null,
-    };
-
-    setFormData(populated);
-    setOriginalFormData(populated);
-    setHasChanges(false);
+    // Populate form with fetched profile data
+    if (profile) {
+      const populatedData = {
+        firstName: profile.first_name || "",
+        lastName: profile.last_name || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        country: profile.country || "",
+        state: profile.state || "",
+        city: profile.city || "",
+        zipCode: profile.zip_code || "",
+        nationality: profile.nationality || "",
+        nationalId: profile.national_id || "",
+        language: profile.language || "",
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+        about: profile.about || "",
+        title: profile.title || "",
+        yearsOfExperience: profile.years_of_experience || "",
+        nativeLanguage: profile.native_language || "",
+        housekeeping: profile.housekeeping || "",
+        hourlyRate: profile.hourly_rate || "",
+        otherServices: profile.other_services || "",
+        otherLanguages: profile.other_languages || "",
+        autoSend: profile.auto_send || false,
+        uploadedPhoto: profile.profile_photo || null,
+        uploadedId: profile.government_id || null,
+      };
+      setFormData(populatedData);
+      setOriginalFormData(populatedData);
+      setHasChanges(false);
+    }
   }, [profile]);
 
   useEffect(() => {
+    // Check if there's a tab specified in location state
     if (location?.state?.activeTab) {
       setActiveTab(location.state.activeTab);
     }
@@ -953,20 +894,6 @@ function Settings() {
                         className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                      Address
-                    </label>
-                    <textarea
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      placeholder="Enter your address"
-                      rows={3}
-                      className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm resize-none"
-                    />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -1485,26 +1412,13 @@ function Settings() {
           </div>
         </div>
       </div>
-
-      <button onClick={() => setShowPlanModal(true)}>Choose Plan</button>
-
-      {/* Plan selection modal */}
-      <PlanSelectionModal
-          isOpen={showPlanModal}
-          plans={plans}
-          onSelect={handlePlanSelect}
-          onClose={() => setShowPlanModal(false)}
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={closePaymentModal}
+        onPayment={handlePayment}
+        loading={paymentLoading}
       />
-
-      {/* Payment modal */}
-      {showPaymentModal && selectedPlan && (
-          <PaymentModal
-              isOpen={showPaymentModal}
-              onClose={() => setShowPaymentModal(false)}
-              plan={selectedPlan}  // ✅ Pass selected plan
-          />
-      )}
-
     </div>
   );
 }

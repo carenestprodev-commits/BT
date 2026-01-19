@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 // Helpers to map server responses into the UI-friendly shape expected by Requests.jsx
 const formatDateShort = (iso) => {
@@ -39,7 +40,7 @@ export const fetchSeekerActiveRequests = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/seeker/requests/active/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/seeker/requests/active/`, { headers })
       const text = await res.text()
       let parsed
       try { parsed = JSON.parse(text) } catch { parsed = text }
@@ -68,7 +69,7 @@ export const fetchSeekerClosedRequests = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/seeker/requests/closed/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/seeker/requests/closed/`, { headers })
       const text = await res.text()
       let parsed
       try { parsed = JSON.parse(text) } catch { parsed = text }
@@ -96,7 +97,7 @@ export const fetchSeekerPendingRequests = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/seeker/requests/pending/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/seeker/requests/pending/`, { headers })
       const text = await res.text()
       let parsed
       try { parsed = JSON.parse(text) } catch { parsed = text }
@@ -123,7 +124,7 @@ export const fetchSeekerRequestDetails = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/seeker/requests/closed/${encodeURIComponent(id)}/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/seeker/requests/closed/${encodeURIComponent(id)}/`, { headers })
       const text = await res.text()
       let parsed
       try { parsed = JSON.parse(text) } catch { parsed = text }
@@ -141,7 +142,7 @@ export const fetchPendingRequestById = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/seeker/requests/pending/${encodeURIComponent(id)}/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/seeker/requests/pending/${encodeURIComponent(id)}/`, { headers })
       const text = await res.text()
       let parsed
       try { parsed = JSON.parse(text) } catch { parsed = text }
@@ -159,7 +160,7 @@ export const deletePendingRequest = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/seeker/requests/pending/${encodeURIComponent(id)}/`, { method: 'DELETE', headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/seeker/requests/pending/${encodeURIComponent(id)}/`, { method: 'DELETE', headers })
       const text = await res.text()
       let parsed
       try { parsed = JSON.parse(text) } catch { parsed = text }
@@ -181,7 +182,7 @@ export const patchPendingRequest = createAsyncThunk(
         ...(access ? { 'Authorization': `Bearer ${access}` } : {})
       }
       const body = { summary, skills_and_expertise: skills }
-      const res = await fetch(`${BASE_URL}/api/seeker/requests/pending/${encodeURIComponent(id)}/`, { method: 'PATCH', headers, body: JSON.stringify(body) })
+      const res = await fetchWithAuth(`${BASE_URL}/api/seeker/requests/pending/${encodeURIComponent(id)}/`, { method: 'PATCH', headers, body: JSON.stringify(body) })
       const text = await res.text()
       let parsed
       try { parsed = JSON.parse(text) } catch { parsed = text }
@@ -202,7 +203,7 @@ export const submitReview = createAsyncThunk(
         'Content-Type': 'application/json',
         ...(access ? { 'Authorization': `Bearer ${access}` } : {})
       }
-      const res = await fetch(`${BASE_URL}/api/reviews/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/reviews/`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ booking_id, rating, comment })

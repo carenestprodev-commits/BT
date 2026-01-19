@@ -1,0 +1,30 @@
+const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+export async function fetchWithAuth(url, options = {}) {
+    const token = localStorage.getItem("access");
+
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            Authorization: token ? `Bearer ${token}` : "",
+        },
+    });
+
+    // 🚨 TOKEN EXPIRED OR INVALID
+    if (response.status === 401 && token) {
+        console.warn("Token expired. Logging out.");
+        logout();
+        throw new Error("Session expired");
+    }
+
+    return response;
+}
+
+function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    // hard redirect to clear state
+    window.location.href = "/";
+}

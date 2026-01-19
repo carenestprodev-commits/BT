@@ -1,11 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL, getAuthHeaders } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const fetchSupportTickets = createAsyncThunk(
   'adminSupport/fetchSupportTickets',
   async (_, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${BASE_URL}/api/admin/support-tickets/`, { headers: getAuthHeaders() })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/support-tickets/`, { headers: getAuthHeaders() })
       if (!res.ok) {
         const data = await res.json().catch(() => null)
         return rejectWithValue(data || 'Failed')
@@ -22,7 +23,7 @@ export const fetchSupportTicketById = createAsyncThunk(
   'adminSupport/fetchSupportTicketById',
   async (id, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${BASE_URL}/api/admin/support-tickets/${id}/`, { headers: getAuthHeaders() })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/support-tickets/${id}/`, { headers: getAuthHeaders() })
       if (!res.ok) {
         const data = await res.json().catch(() => null)
         return rejectWithValue(data || 'Failed')

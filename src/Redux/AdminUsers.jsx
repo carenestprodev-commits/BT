@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const fetchAdminStats = createAsyncThunk(
   'adminUsers/fetchAdminStats',
@@ -23,7 +24,7 @@ export const fetchAllUsers = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/users/all/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/all/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return Array.isArray(data) ? data : []
@@ -39,7 +40,7 @@ export const fetchUserById = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/users/${id}/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/${id}/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return data
@@ -55,7 +56,7 @@ export const deleteUser = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/users/${id}/`, { method: 'DELETE', headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/${id}/`, { method: 'DELETE', headers })
       if (res.status === 204 || res.ok) {
         return id
       }
@@ -73,7 +74,7 @@ export const suspendUser = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
-      const res = await fetch(`${BASE_URL}/api/admin/users/${id}/suspend/`, { method: 'POST', headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/${id}/suspend/`, { method: 'POST', headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       // return the id so reducers can update the store
@@ -90,7 +91,7 @@ export const activateUser = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
-      const res = await fetch(`${BASE_URL}/api/admin/users/${id}/activate/`, { method: 'POST', headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/${id}/activate/`, { method: 'POST', headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return { id, data }

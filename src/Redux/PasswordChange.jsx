@@ -1,12 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL, getAuthHeaders } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const changePassword = createAsyncThunk(
   'password/changePassword',
   async ({ password, confirm_password }, { rejectWithValue }) => {
     try {
       const headers = getAuthHeaders()
-      const res = await fetch(`${BASE_URL}/api/auth/profile/password_change/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/auth/profile/password_change/`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ password, confirm_password }),
