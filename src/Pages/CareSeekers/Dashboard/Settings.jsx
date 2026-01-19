@@ -44,6 +44,15 @@ function Settings() {
     uploadedId: 0,
   });
 
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  const handlePlanSelect = (plan) => {
+    setSelectedPlan(plan);
+    setShowPlanModal(false);
+    setShowPaymentModal(true);
+  };
+
   const [originalFormData, setOriginalFormData] = useState({
     firstName: "",
     lastName: "",
@@ -230,6 +239,23 @@ function Settings() {
         });
         return;
       }
+
+      try {
+        setLoading(true);
+
+        const res = await fetchWithAuth(API_URL + "/api/subscription/plans");
+        if (!res.ok) throw new Error("Failed to fetch plans");
+
+        const data = await res.json();
+        setPlans(data);
+        setShowPlanModal(true); // open plan modal
+      } catch (e) {
+        setMessage({ type: "error", text: e.message });
+      } finally {
+        setLoading(false);
+      }
+
+      return;
     }
 
     if (!validateForm()) return;
@@ -295,6 +321,46 @@ function Settings() {
     }
     return true;
   };
+
+  const PlanSelectionModal = ({ isOpen, plans, onSelect, onClose }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-semibold mb-4">Choose a Plan</h2>
+
+            <div className="space-y-4">
+              {plans.map((plan) => (
+                  <div
+                      key={plan.id}
+                      className="border rounded-lg p-4 hover:border-[#0093d1] cursor-pointer"
+                      onClick={() => onSelect(plan)}
+                  >
+                    <h3 className="font-semibold">{plan.name}</h3>
+                    <p className="text-[#0093d1] font-bold">
+                      ₦{plan.price.toLocaleString()}
+                    </p>
+                    <ul className="text-sm text-gray-600 mt-2 list-disc ml-4">
+                      {plan.features.map((f, i) => (
+                          <li key={i}>{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+              ))}
+            </div>
+
+            <button
+                onClick={onClose}
+                className="mt-6 w-full bg-gray-100 py-2 rounded-lg"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+    );
+  };
+
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">

@@ -13,9 +13,11 @@ export const initiateProviderSubscription = createAsyncThunk(
         amount
       );
 
-      if (!result.success) {
-        return rejectWithValue(result.error);
-      }
+      console.log(result);
+
+      // if (!result.success) {
+      //   return rejectWithValue(result.error);
+      // }
 
       return result;
     } catch (error) {

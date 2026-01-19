@@ -12,6 +12,7 @@ import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
 import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
+
 function Settings() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,6 +25,8 @@ function Settings() {
   } = useSelector(
     (s) => s.providerSettings || { profile: null, loading: false, error: null }
   );
+
+  const [plans, setPlans] = useState([]);
 
   const [activeTab, setActiveTab] = useState("personal");
 
@@ -62,9 +65,6 @@ function Settings() {
   const [hasChanges, setHasChanges] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
-
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentLoading, setPaymentLoading] = useState(false);
 
   const [showPassword, setShowPassword] = useState({
     current: false,
@@ -266,7 +266,23 @@ function Settings() {
         return;
       }
 
-      setShowPaymentModal(true); // modal opens
+      try {
+        setLoading(true);
+
+        const res = await fetchWithAuth(API_URL + "/api/payments/subscription-plans/");
+        if (!res.ok) throw new Error("Failed to fetch plans");
+
+        const data = await res.json();
+        console.log(data);
+        setPlans(data);
+        setShowPlanModal(true); // open plan modal
+      } catch (e) {
+        setMessage({ type: "error", text: e.message });
+      } finally {
+        setLoading(false);
+      }
+
+      // setShowPaymentModal(true); // modal opens
       return;
     }
 
@@ -399,6 +415,52 @@ function Settings() {
     });
     setHasChanges(false);
   };
+
+
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+
+  const handlePlanSelect = (plan) => {
+    setSelectedPlan(plan);
+    setShowPlanModal(false);
+    setShowPaymentModal(true);
+  };
+
+  const PlanSelectionModal = ({ isOpen, plans, onSelect, onClose }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-semibold mb-4">Choose a Plan</h2>
+
+            <div className="space-y-4">
+              {plans.map((plan) => (
+                  <div
+                      key={plan.id}
+                      className="border rounded-lg p-4 hover:border-[#0093d1] cursor-pointer"
+                      onClick={() => onSelect(plan)}
+                  >
+                    <h3 className="font-semibold">{plan.name}</h3>
+                    <p className="text-[#0093d1] font-bold">
+                      ₦{plan.price.toLocaleString()}
+                    </p>
+                  </div>
+              ))}
+            </div>
+
+            <button
+                onClick={onClose}
+                className="mt-6 w-full bg-gray-100 py-2 rounded-lg"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+    );
+  };
+
 
   /* -------------------- EFFECTS -------------------- */
 
@@ -1423,13 +1485,26 @@ function Settings() {
           </div>
         </div>
       </div>
-      {/* Payment Modal */}
-      <PaymentModal
-        isOpen={showPaymentModal}
-        onClose={closePaymentModal}
-        onPayment={handlePayment}
-        loading={paymentLoading}
+
+      <button onClick={() => setShowPlanModal(true)}>Choose Plan</button>
+
+      {/* Plan selection modal */}
+      <PlanSelectionModal
+          isOpen={showPlanModal}
+          plans={plans}
+          onSelect={handlePlanSelect}
+          onClose={() => setShowPlanModal(false)}
       />
+
+      {/* Payment modal */}
+      {showPaymentModal && selectedPlan && (
+          <PaymentModal
+              isOpen={showPaymentModal}
+              onClose={() => setShowPaymentModal(false)}
+              plan={selectedPlan}  // ✅ Pass selected plan
+          />
+      )}
+
     </div>
   );
 }

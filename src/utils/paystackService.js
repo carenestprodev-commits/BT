@@ -1,305 +1,188 @@
-/* eslint-disable no-unused-vars */
 /**
  * Paystack Payment Service
- * Handles all Paystack integration for both CareProviders and CareSeekers
+ * Handles provider subscriptions & seeker payments
  */
 
 import tokenService from "./tokenService";
-import {fetchWithAuth} from "../lib/fetchWithAuth.js";
+import { fetchWithAuth } from "../lib/fetchWithAuth";
 
 const BASE_URL = "https://backend.app.carenestpro.com";
 
+/* ----------------------------------------
+ * Internal helper: authenticated request
+ * --------------------------------------*/
+const authRequest = async (url, options = {}) => {
+  let accessToken =
+      localStorage.getItem("accessToken") || localStorage.getItem("access");
+
+  if (!accessToken) {
+    throw new Error("Authentication required. Please log in.");
+  }
+
+  let response = await fetchWithAuth(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      ...(options.headers || {}),
+    },
+  });
+
+  // Retry once on token expiration
+  if (response.status === 401) {
+    accessToken = await tokenService.refreshToken();
+    if (!accessToken) {
+      throw new Error("Session expired. Please log in again.");
+    }
+
+    response = await fetchWithAuth(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        ...(options.headers || {}),
+      },
+    });
+  }
+
+  return response;
+};
+
 export const paystackService = {
+  /* ======================================================
+   * PROVIDER SUBSCRIPTION PAYMENT
+   * ===================================================== */
+
   /**
-   * Initiate Provider Subscription Payment
-   * @param {string} planType - 'monthly', 'quarterly', etc. (or plan_id if you have it)
-   * @param {number} amount - Amount in kobo (Paystack uses kobo)
-   * @returns {Promise<Object>} - Payment authorization data
+   * Initiate provider subscription payment
+   * @param {number} planId - subscription_plan.id from backend
    */
-  initiateProviderSubscription: async (planType, amount) => {
-    try {
-      let accessToken =
-        localStorage.getItem("accessToken") || localStorage.getItem("access");
+  initiateProviderSubscription: async (planId) => {
+    if (!planId) {
+      throw new Error("Invalid subscription plan selected");
+    }
 
-      if (!accessToken) {
-        throw new Error("Authentication required. Please log in.");
-      }
-
-      // Prepare the payload based on what backend expects
-      const payload = {
-        plan_id: planType, // The ₦80,000 subscription plan ID
-        payment_gateway: "paystack",
-      };
-
-      console.log("Initiating payment with:", payload);
-
-      let response = await fetchWithAuth(
+    const response = await authRequest(
         `${BASE_URL}/api/payments/provider-plans/subscribe/`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            plan_id: planId, // ✅ THIS IS WHAT YOU PASS
+            payment_gateway: "paystack",
+          }),
         }
-      );
+    );
 
-      // If token expired, try to refresh and retry
-      if (response.status === 401) {
-        console.log("Token expired, attempting refresh...");
-        accessToken = await tokenService.refreshToken();
+    const text = await response.text();
 
-        if (!accessToken) {
-          throw new Error("Your session has expired. Please log in again.");
-        }
-
-        // Retry the request with new token
-        response = await fetchWithAuth(
-          `${BASE_URL}/api/payments/provider-plans/subscribe/`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify(payload),
-          }
-        );
-      }
-
-      // Get response text first to handle both JSON and non-JSON responses
-      const responseText = await response.text();
-      console.log("Raw response:", responseText);
-
-      if (!response.ok) {
-        let errorMessage = "Failed to initiate provider payment";
-        try {
-          const errorData = JSON.parse(responseText);
-
-          // Handle authentication errors
-          if (response.status === 401 || errorData.code === "token_not_valid") {
-            errorMessage = "Your session has expired. Please log in again.";
-            // Optionally redirect to login
-            // window.location.href = '/login';
-          } else {
-            errorMessage =
-              errorData.message ||
-              errorData.error ||
-              errorData.detail ||
-              errorMessage;
-
-            // Handle specific error types
-            if (errorData.plan_type) {
-              errorMessage = `Plan type error: ${errorData.plan_type}`;
-            }
-            if (errorData.amount) {
-              errorMessage = `Amount error: ${errorData.amount}`;
-            }
-          }
-        } catch (e) {
-          errorMessage = responseText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      // Parse successful response
-      let data;
+    if (!response.ok) {
+      let message = "Failed to initiate subscription payment";
       try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        throw new Error("Invalid response format from server");
+        const err = JSON.parse(text);
+        message = err.message || err.detail || message;
+      } catch {
+        message = text || message;
       }
+      throw new Error(message);
+    }
 
-      console.log("Payment initiated successfully:", data);
+    const data = JSON.parse(text);
 
-      // Handle different possible response formats
-      const authUrl =
-        data.checkout_url ||
+    const authorizationUrl =
         data.authorization_url ||
+        data.checkout_url ||
         data.payment_url ||
         data.url;
 
-      if (!authUrl) {
-        throw new Error("No payment URL received from server");
-      }
-
-      return {
-        success: true,
-        authorizationUrl: authUrl,
-        accessCode: data.access_code,
-        reference: data.reference,
-        ...data,
-      };
-    } catch (error) {
-      console.error("Provider payment initiation error:", error);
-      throw error; // Re-throw to be caught by Redux thunk
+    if (!authorizationUrl) {
+      throw new Error("Payment URL not returned from server");
     }
+
+    return {
+      authorizationUrl,
+      reference: data.reference,
+      accessCode: data.access_code,
+      raw: data,
+    };
   },
 
-  /**
-   * Initiate CareSeeker Booking Payment (Checkout)
-   * @param {number} bookingId - The booking ID
-   * @param {number} amount - Amount in kobo
-   * @param {Object} bookingDetails - Additional booking details
-   * @returns {Promise<Object>} - Payment authorization data
-   */
-  initiateSeekerCheckout: async (bookingId, amount, bookingDetails = {}) => {
-    try {
-      const accessToken =
-        localStorage.getItem("accessToken") || localStorage.getItem("access");
+  /* ======================================================
+   * CARE SEEKER CHECKOUT PAYMENT
+   * ===================================================== */
 
-      if (!accessToken) {
-        throw new Error("Authentication required");
-      }
-
-      const response = await fetchWithAuth(`${BASE_URL}/api/payments/checkout/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          booking_id: bookingId,
-          amount: amount,
-          payment_method: "paystack",
-          ...bookingDetails,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message || "Failed to initiate checkout payment"
-        );
-      }
-
-      const data = await response.json();
-      return {
-        success: true,
-        authorizationUrl: data.authorization_url || data.payment_url,
-        accessCode: data.access_code,
-        reference: data.reference,
-        ...data,
-      };
-    } catch (error) {
-      console.error("Seeker checkout payment error:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
+  initiateSeekerCheckout: async (bookingId, amount, meta = {}) => {
+    if (!bookingId || !amount) {
+      throw new Error("Invalid checkout details");
     }
-  },
 
-  /**
-   * Verify Payment Status
-   * @param {string} reference - Payment reference from Paystack
-   * @returns {Promise<Object>} - Payment verification data
-   */
-  verifyPayment: async (reference) => {
-    try {
-      const accessToken =
-        localStorage.getItem("accessToken") || localStorage.getItem("access");
-
-      if (!accessToken) {
-        throw new Error("Authentication required");
-      }
-
-      const response = await fetch(
-        `${BASE_URL}/api/payments/verify/?reference=${reference}`,
+    const response = await authRequest(
+        `${BASE_URL}/api/payments/checkout/`,
         {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+          method: "POST",
+          body: JSON.stringify({
+            booking_id: bookingId,
+            amount, // backend expects kobo
+            payment_method: "paystack",
+            ...meta,
+          }),
         }
-      );
+    );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Payment verification failed");
-      }
+    const data = await response.json();
 
-      const data = await response.json();
-      return {
-        success: true,
-        status: data.status,
-        ...data,
-      };
-    } catch (error) {
-      console.error("Payment verification error:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  },
-
-  /**
-   * Open Paystack payment modal/redirect
-   * @param {Object} options - Configuration options
-   */
-  openPaystackModal: (options) => {
-    if (!window.PaystackPop) {
-      console.error("Paystack script not loaded");
-      return;
+    if (!response.ok) {
+      throw new Error(data.message || "Checkout initiation failed");
     }
 
-    const handler = window.PaystackPop.setup({
-      key: options.publicKey,
-      email: options.email,
-      amount: options.amount, // in kobo
-      ref: options.reference,
-      onClose: () => {
-        if (options.onClose) options.onClose();
-      },
-      onSuccess: (response) => {
-        if (options.onSuccess) options.onSuccess(response);
-      },
-    });
-
-    handler.openIframe();
+    return {
+      authorizationUrl: data.authorization_url || data.payment_url,
+      reference: data.reference,
+      accessCode: data.access_code,
+      raw: data,
+    };
   },
 
-  /**
-   * Get Paystack public key from backend
-   * @returns {Promise<string>} - Paystack public key
-   */
+  /* ======================================================
+   * VERIFY PAYMENT
+   * ===================================================== */
+
+  verifyPayment: async (reference) => {
+    if (!reference) {
+      throw new Error("Payment reference is required");
+    }
+
+    const response = await authRequest(
+        `${BASE_URL}/api/payments/verify/?reference=${reference}`,
+        { method: "GET" }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Payment verification failed");
+    }
+
+    return data;
+  },
+
+  /* ======================================================
+   * PAYSTACK CONFIG
+   * ===================================================== */
+
   getPublicKey: async () => {
-    try {
-      const accessToken =
-        localStorage.getItem("accessToken") || localStorage.getItem("access");
+    const response = await fetch(`${BASE_URL}/api/payments/config/`);
+    if (!response.ok) return null;
 
-      const response = await fetch(`${BASE_URL}/api/payments/config/`, {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch Paystack config");
-      }
-
-      const data = await response.json();
-      return data.paystack_public_key || data.public_key;
-    } catch (error) {
-      console.error("Error fetching Paystack public key:", error);
-      return null;
-    }
+    const data = await response.json();
+    return data.paystack_public_key || data.public_key || null;
   },
 };
 
-/**
- * Helper function to convert Naira to Kobo
- * Paystack uses kobo as the smallest unit (1 Naira = 100 Kobo)
- */
-export const nairaToKobo = (amount) => {
-  return Math.round(amount * 100);
-};
+/* ======================================================
+ * HELPERS
+ * ===================================================== */
 
-/**
- * Helper function to convert Kobo to Naira
- */
-export const koboToNaira = (amount) => {
-  return amount / 100;
-};
+export const nairaToKobo = (amount) => Math.round(amount * 100);
+export const koboToNaira = (amount) => amount / 100;
 
 export default paystackService;

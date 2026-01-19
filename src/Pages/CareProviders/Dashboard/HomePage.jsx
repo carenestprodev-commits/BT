@@ -11,6 +11,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchJobsFeed } from "../../../Redux/JobsFeed";
 import avatar_user from "../../../../public/avatar_user.png";
 import {useAppNotifications} from "../../../hooks/useAppNotifications.js";
+import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export default function HomePage() {
       }
     })();
 
-  const [search, setSearch] = useState("");
+  const { search, setSearch } = useJobFeedSearch();
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [sortBy, setSortBy] = useState("Nearest");
@@ -74,9 +75,17 @@ export default function HomePage() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [sortDropdownOpen, filterDropdownOpen]);
 
+  // useEffect(() => {
+  //   dispatch(fetchJobsFeed());
+  // }, [dispatch]);
+
   useEffect(() => {
-    dispatch(fetchJobsFeed());
-  }, [dispatch]);
+    const timeout = setTimeout(() => {
+      dispatch(fetchJobsFeed({ search }));
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [search, dispatch]);
 
   let filteredJobs = Array.isArray(jobs)
     ? jobs.filter(
@@ -98,6 +107,8 @@ export default function HomePage() {
       (a, b) => new Date(b.created_at) - new Date(a.created_at)
     );
   }
+
+
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
