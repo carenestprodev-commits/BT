@@ -5,7 +5,7 @@
  */
 
 import tokenService from "./tokenService";
-import {fetchWithAuth} from "../lib/fetchWithAuth.js";
+import { fetchWithAuth } from "../lib/fetchWithAuth.js";
 
 const BASE_URL = "https://backend.app.carenestpro.com";
 
@@ -27,11 +27,7 @@ export const paystackService = {
 
       // Prepare the payload based on what backend expects
       const payload = {
-<<<<<<< HEAD
-        plan_id: 4, // The ₦80,000 subscription plan ID
-=======
         plan_id: planType, // The ₦80,000 subscription plan ID
->>>>>>> f3dcccad0e1e48281a9f924505047cb31076871a
         payment_gateway: "paystack",
       };
 
@@ -46,7 +42,7 @@ export const paystackService = {
             Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify(payload),
-        }
+        },
       );
 
       // If token expired, try to refresh and retry
@@ -68,7 +64,7 @@ export const paystackService = {
               Authorization: `Bearer ${accessToken}`,
             },
             body: JSON.stringify(payload),
-          }
+          },
         );
       }
 
@@ -157,24 +153,27 @@ export const paystackService = {
         throw new Error("Authentication required");
       }
 
-      const response = await fetchWithAuth(`${BASE_URL}/api/payments/checkout/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+      const response = await fetchWithAuth(
+        `${BASE_URL}/api/payments/checkout/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            booking_id: bookingId,
+            amount: amount,
+            payment_method: "paystack",
+            ...bookingDetails,
+          }),
         },
-        body: JSON.stringify({
-          booking_id: bookingId,
-          amount: amount,
-          payment_method: "paystack",
-          ...bookingDetails,
-        }),
-      });
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(
-          errorData.message || "Failed to initiate checkout payment"
+          errorData.message || "Failed to initiate checkout payment",
         );
       }
 
@@ -216,7 +215,7 @@ export const paystackService = {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
