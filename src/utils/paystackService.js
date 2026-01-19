@@ -6,7 +6,7 @@
 import tokenService from "./tokenService";
 import { fetchWithAuth } from "../lib/fetchWithAuth";
 
-const BASE_URL = "https://backend.app.carenestpro.com";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 /* ----------------------------------------
  * Internal helper: authenticated request

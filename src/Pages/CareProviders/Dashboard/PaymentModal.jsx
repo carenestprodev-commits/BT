@@ -59,7 +59,7 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
 
       console.log(result);
       // ✅ Redirect immediately
-      window.location.href = result.authorizationUrl;
+      // window.location.href = result.authorizationUrl;
 
       // No need to do anything else; useEffect handles redirect
     } catch (err) {
