@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL } from "./config";
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const fetchNotifications = createAsyncThunk(
   "adminMessage/fetchNotifications",
@@ -7,7 +8,7 @@ export const fetchNotifications = createAsyncThunk(
     try {
       const access = localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetch(`${BASE_URL}/api/admin/notifications/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/notifications/`, {
         headers,
       });
       const data = await res.json();
@@ -25,7 +26,7 @@ export const fetchNotificationById = createAsyncThunk(
     try {
       const access = localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetch(`${BASE_URL}/api/admin/notifications/${id}/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/notifications/${id}/`, {
         headers,
       });
       const data = await res.json();
@@ -43,7 +44,7 @@ export const resendNotification = createAsyncThunk(
     try {
       const access = localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${BASE_URL}/api/admin/notifications/${id}/resend/`,
         {
           method: "POST",
@@ -70,7 +71,7 @@ export const archiveNotification = createAsyncThunk(
     try {
       const access = localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetch(`${BASE_URL}/api/admin/notifications/${id}/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/notifications/${id}/`, {
         method: "DELETE",
         headers,
       });
@@ -102,7 +103,7 @@ export const createNotification = createAsyncThunk(
       const access = localStorage.getItem("access");
       const headers = { "Content-Type": "application/json" };
       if (access) headers["Authorization"] = `Bearer ${access}`;
-      const res = await fetch(`${BASE_URL}/api/admin/notifications/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/notifications/`, {
         method: "POST",
         headers,
         body: JSON.stringify({ title, body, audience }),

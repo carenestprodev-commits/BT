@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchJobsFeed } from "../../../Redux/JobsFeed";
 import avatar_user from "../../../../public/avatar_user.png";
+import { useAppNotifications } from "../../../hooks/useAppNotifications.js";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -43,6 +44,13 @@ export default function HomePage() {
   // Check if any filters are active
   const hasActiveFilters =
     search !== "" || sortBy !== "None" || filterBy !== "All";
+
+  const [notifications, setNotifications] = useState([]);
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  useAppNotifications((data) => {
+    setNotifications((prev) => [{ ...data, read: false }, ...prev]);
+  });
 
   const handleClearAll = () => {
     setSearch("");
@@ -109,9 +117,15 @@ export default function HomePage() {
                   Hello, {displayName}!
                 </h2>
               </div>
+              {/* 🔔 Notification Bell */}
               <button className="relative p-2 text-gray-600 hover:text-gray-800">
                 <HiOutlineBell className="text-2xl" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[8px] h-2 px-1 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
               </button>
             </div>
 

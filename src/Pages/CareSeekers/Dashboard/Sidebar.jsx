@@ -19,6 +19,7 @@ import { IoPeopleCircle } from "react-icons/io5";
 import Triangle from "../../../../public/triangle.svg";
 
 import Message from "../../../../public/receipt-text.svg";
+import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
 
 /* ---------------- NAV ITEMS ---------------- */
 
@@ -89,7 +90,7 @@ function Sidebar({ active = "Home", onNav }) {
           return;
         }
 
-        const response = await fetch("/api/profile/completion", {
+        const response = await fetchWithAuth("/api/profile/completion", {
           headers: {
             Authorization: `Bearer ${token}`, // adjust based on your auth setup
           },

@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const fetchSubscriptions = createAsyncThunk(
   'adminSubscription/fetchSubscriptions',
@@ -7,7 +8,7 @@ export const fetchSubscriptions = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/subscriptions/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/subscriptions/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return Array.isArray(data) ? data : (data.results || [])
@@ -23,7 +24,7 @@ export const fetchSubscriptionById = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/subscriptions/${id}/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/subscriptions/${id}/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return data

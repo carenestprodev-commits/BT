@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import PaymentModal from "./PaymentModal";
 import { fetchSeekerProfile } from "../../../Redux/CareSeekerAuth";
+import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -268,7 +269,7 @@ function Settings() {
     setMessage({ type: "", text: "" });
 
     try {
-      const response = await fetch("/api/user/settings", {
+      const response = await fetchWithAuth("/api/user/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

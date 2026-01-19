@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL } from "./config";
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const fetchVerifications = createAsyncThunk(
   "verification/fetchVerifications",
@@ -7,7 +8,7 @@ export const fetchVerifications = createAsyncThunk(
     try {
       const access = localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetch(`${BASE_URL}/api/admin/verifications/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/verifications/`, {
         headers,
       });
       const data = await res.json();
@@ -25,7 +26,7 @@ export const fetchVerificationById = createAsyncThunk(
     try {
       const access = localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetch(`${BASE_URL}/api/admin/verifications/${id}/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/verifications/${id}/`, {
         headers,
       });
       const data = await res.json();
@@ -48,7 +49,7 @@ export const postVerificationAction = createAsyncThunk(
         action,
         ...(feedback ? { feedback } : {}),
       });
-      const res = await fetch(`${BASE_URL}/api/admin/verifications/${id}/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/verifications/${id}/`, {
         method: "POST",
         headers,
         body,
@@ -91,7 +92,7 @@ export const uploadVerificationId = createAsyncThunk(
         form.append("government_id", file);
       }
 
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method,
         headers,
         body: form,

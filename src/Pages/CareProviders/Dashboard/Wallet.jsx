@@ -9,6 +9,7 @@ import {
   fetchWalletHistory,
 } from "../../../Redux/ProviderWallet";
 import { BASE_URL, getAuthHeaders } from "../../../Redux/config";
+import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
 
 // Modal Component for Date Filter
 function DateFilterModal({ isOpen, onClose, onApply }) {
@@ -353,7 +354,7 @@ function Wallet() {
                   const payment_method =
                     country === "nigeria" ? "paystack" : "stripe";
 
-                  const res = await fetch(
+                  const res = await fetchWithAuth(
                     `${BASE_URL}/api/payments/wallet/request-payout/`,
                     {
                       method: "POST",

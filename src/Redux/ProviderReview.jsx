@@ -1,12 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL, getAuthHeaders } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const postProviderReview = createAsyncThunk(
   'providerReview/post',
   async ({ booking_id, rating, comment }, { rejectWithValue }) => {
     try {
       const headers = getAuthHeaders()
-      const res = await fetch(`${BASE_URL}/api/reviews/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/reviews/`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ booking_id, rating, comment })
