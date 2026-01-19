@@ -1,36 +1,51 @@
 /* eslint-disable react/no-unescaped-entities */
+
 /* eslint-disable no-unused-vars */
+
 import React from "react";
+
 import { useNavigate } from "react-router-dom";
 
 import CareLogo from "../../../../public/CareLogo.png";
 
 import { PiSquaresFour } from "react-icons/pi";
+
 import { MdOutlineSettings } from "react-icons/md";
+
 import { FiLogOut } from "react-icons/fi";
+
 import { IoPeopleCircle } from "react-icons/io5";
 
 import Triangle from "../../../../public/triangle.svg";
+
 import Message from "../../../../public/receipt-text.svg";
 
 /* ---------------- NAV ITEMS ---------------- */
 
 const navItems = [
   { label: "Home", icon: <PiSquaresFour className="h-6 w-6" /> },
+
   {
     label: "Requests",
+
     icon: <img src={Triangle} alt="Requests" className="h-6 w-6" />,
   },
+
   {
     label: "Message",
+
     icon: <img src={Message} alt="Message" className="h-6 w-6" />,
   },
+
   {
     label: "Care Providers",
+
     icon: <IoPeopleCircle className="h-6 w-6" />,
   },
+
   {
     label: "Settings",
+
     icon: <MdOutlineSettings className="h-6 w-6" />,
   },
 ];
@@ -44,23 +59,33 @@ function Sidebar({ active = "Home", onNav }) {
     if (onNav) onNav(label);
 
     if (label === "Home") navigate("/careseekers/dashboard/home");
+
     if (label === "Requests") navigate("/careseekers/dashboard/requests");
+
     if (label === "Message") navigate("/careseekers/dashboard/message");
+
     if (label === "Care Providers")
       navigate("/careseekers/dashboard/careproviders");
+
     if (label === "Settings") navigate("/careseekers/dashboard/settings");
   };
 
+  const [showLogoutModal, setShowLogoutModal] = React.useState(false);
+
   const [profileCompletion, setProfileCompletion] = React.useState(null);
+
   const [showCompletion, setShowCompletion] = React.useState(true);
 
   React.useEffect(() => {
     // Fetch profile completion from backend
+
     const fetchProfileCompletion = async () => {
       try {
         const token = localStorage.getItem("token");
+
         if (!token) {
           console.warn("No authentication token found");
+
           return;
         }
 
@@ -75,14 +100,17 @@ function Sidebar({ active = "Home", onNav }) {
         }
 
         const contentType = response.headers.get("content-type");
+
         if (!contentType || !contentType.includes("application/json")) {
           throw new Error("Response is not valid JSON");
         }
 
         const data = await response.json();
+
         setProfileCompletion(data.percentage); // adjust based on your API response structure
       } catch (error) {
         console.error("Failed to fetch profile completion", error);
+
         // Silently fail - don't block UI
       }
     };
@@ -98,12 +126,95 @@ function Sidebar({ active = "Home", onNav }) {
     }
 
     navigate("/careseekers/login/", { replace: true });
+
     window.location.reload();
+  };
+
+  /* ---------------- LOGOUT MODAL ---------------- */
+
+  const LogoutModal = () => {
+    if (!showLogoutModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+          {/* Close button */}
+
+          <button
+            onClick={() => setShowLogoutModal(false)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          {/* Icon - Using FiLogOut */}
+
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="red"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Content */}
+
+          <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
+            Sign out
+          </h3>
+
+          <p className="text-gray-500 text-center mb-6">
+            Are you sure you want to Log out?
+          </p>
+
+          {/* Buttons */}
+
+          <div className="space-y-3">
+            <button
+              onClick={handleLogout}
+              className="w-full px-6 py-3 bg-red-500 text-white font-medium hover:bg-red-600 rounded-lg transition-colors"
+            >
+              Sign Out
+            </button>
+
+            <button
+              onClick={() => setShowLogoutModal(false)}
+              className="w-full px-6 py-3 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
     <>
       {/* ================= MOBILE BOTTOM NAV ================= */}
+
       {active !== "Message" && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 font-sfpro">
           <nav className="flex justify-around items-center py-2">
@@ -116,6 +227,7 @@ function Sidebar({ active = "Home", onNav }) {
                 }`}
               >
                 <span className="mb-1">{item.icon}</span>
+
                 <span>{item.label}</span>
               </button>
             ))}
@@ -124,14 +236,18 @@ function Sidebar({ active = "Home", onNav }) {
       )}
 
       {/* ================= DESKTOP SIDEBAR ================= */}
+
       <div className="hidden md:flex md:fixed md:top-0 md:left-0 md:h-screen md:w-64 md:flex-col md:bg-[#0e2f43] md:px-6 md:py-8 md:text-white md:font-sfpro z-40">
         {/* Logo */}
+
         <div className="flex items-center mb-12">
           <img src={CareLogo} alt="CareNestPro Logo" className="h-10 mr-3" />
+
           <span className="text-xl tracking-wide">CareNestPro</span>
         </div>
 
         {/* Navigation */}
+
         <nav className="flex flex-col gap-2 flex-1">
           {navItems.map((item) => (
             <button
@@ -142,12 +258,14 @@ function Sidebar({ active = "Home", onNav }) {
               }`}
             >
               <span className="text-xl">{item.icon}</span>
+
               {item.label}
             </button>
           ))}
         </nav>
 
         {/* Profile Completion Card */}
+
         {profileCompletion !== null &&
           profileCompletion < 100 &&
           showCompletion && (
@@ -171,6 +289,7 @@ function Sidebar({ active = "Home", onNav }) {
                       fill="none"
                       className="text-[#2d5f73]"
                     />
+
                     <circle
                       cx="32"
                       cy="32"
@@ -186,6 +305,7 @@ function Sidebar({ active = "Home", onNav }) {
                       strokeLinecap="round"
                     />
                   </svg>
+
                   <div className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm">
                     {profileCompletion}%
                   </div>
@@ -195,6 +315,7 @@ function Sidebar({ active = "Home", onNav }) {
               <h4 className="text-white font-semibold text-base mb-1">
                 Almost complete
               </h4>
+
               <p className="text-white/80 text-sm mb-3">
                 You're almost set. Complete your profile?
               </p>
@@ -210,16 +331,33 @@ function Sidebar({ active = "Home", onNav }) {
           )}
 
         {/* Logout (Bottom, like Figma) */}
+
         <div className="pt-6 mt-6 border-t border-white/20">
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-base font-medium text-[#4fd1c5] hover:bg-[#4a6576] transition"
           >
-            <FiLogOut className="h-5 w-5" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
             Sign Out
           </button>
         </div>
       </div>
+
+      {/* Logout Modal */}
+
+      <LogoutModal />
     </>
   );
 }

@@ -15,11 +15,11 @@ export default function HomePage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { jobs, loading, error } = useSelector(
-    (s) => s.jobsFeed || { jobs: [], loading: false, error: null }
+    (s) => s.jobsFeed || { jobs: [], loading: false, error: null },
   );
 
   const authUser = useSelector((s) =>
-    s.auth && s.auth.user ? s.auth.user : null
+    s.auth && s.auth.user ? s.auth.user : null,
   );
 
   const displayName =
@@ -36,13 +36,17 @@ export default function HomePage() {
   const [search, setSearch] = useState("");
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
-  const [sortBy, setSortBy] = useState("Nearest");
+  const [sortBy, setSortBy] = useState("None");
   const [filterBy, setFilterBy] = useState("All");
   const [verifiedFilter, setVerifiedFilter] = useState(false);
 
+  // Check if any filters are active
+  const hasActiveFilters =
+    search !== "" || sortBy !== "None" || filterBy !== "All";
+
   const handleClearAll = () => {
     setSearch("");
-    setSortBy("Nearest");
+    setSortBy("None");
     setFilterBy("All");
     setVerifiedFilter(false);
     setSortDropdownOpen(false);
@@ -71,7 +75,9 @@ export default function HomePage() {
     ? jobs.filter(
         (job) =>
           (job.title || "").toLowerCase().includes(search.toLowerCase()) ||
-          (job.summary_short || "").toLowerCase().includes(search.toLowerCase())
+          (job.summary_short || "")
+            .toLowerCase()
+            .includes(search.toLowerCase()),
       )
     : [];
 
@@ -80,16 +86,16 @@ export default function HomePage() {
     filteredJobs = filteredJobs.filter((job) => job.verified === true);
   } else if (filterBy === "Earliest") {
     filteredJobs = filteredJobs.sort(
-      (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      (a, b) => new Date(a.created_at) - new Date(b.created_at),
     );
   } else if (filterBy === "Oldest") {
     filteredJobs = filteredJobs.sort(
-      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      (a, b) => new Date(b.created_at) - new Date(a.created_at),
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sfpro">
+    <div className="flex min-h-screen bg-gray-50 pb-24 md:pb-0 font-sfpro">
       <Sidebar active="Home" />
       <div className="flex-1 font-sfpro md:ml-64">
         {/* Responsive Header Section */}
@@ -149,14 +155,16 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {/* Clear Button */}
-                <button
-                  className="px-4 py-2.5 text-white text-sm font-medium rounded-lg transition"
-                  style={{ backgroundColor: "#0E2F43" }}
-                  onClick={handleClearAll}
-                >
-                  Clear
-                </button>
+                {/* Clear Button - Only show when filters are active */}
+                {hasActiveFilters && (
+                  <button
+                    className="px-4 py-2.5 text-white text-sm font-medium rounded-lg transition hover:opacity-90"
+                    style={{ backgroundColor: "#0E2F43" }}
+                    onClick={handleClearAll}
+                  >
+                    Clear
+                  </button>
+                )}
 
                 {/* Desktop Sort Dropdown */}
                 <div className="relative">
@@ -185,20 +193,27 @@ export default function HomePage() {
                           >
                             {option}
                           </button>
-                        )
+                        ),
                       )}
                     </div>
                   )}
                 </div>
 
-                {/* Filter Icon with Dropdown */}
+                {/* Filter Icon with Dropdown - Updated styling */}
                 <div className="relative">
                   <button
-                    className="p-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-[#0D99C9]"
-                    style={{ backgroundColor: "#0E2F43" }}
+                    className={`p-2.5 border rounded-lg transition ${
+                      filterDropdownOpen
+                        ? "bg-[#0E2F43] border-[#0E2F43]"
+                        : "bg-white border-gray-300 hover:bg-gray-50"
+                    }`}
                     onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
                   >
-                    <MdFilterList className="text-xl text-white" />
+                    <MdFilterList
+                      className={`text-xl ${
+                        filterDropdownOpen ? "text-white" : "text-[#0E2F43]"
+                      }`}
+                    />
                   </button>
 
                   {filterDropdownOpen && (
@@ -220,7 +235,7 @@ export default function HomePage() {
                           >
                             {option}
                           </button>
-                        )
+                        ),
                       )}
                     </div>
                   )}
@@ -256,19 +271,27 @@ export default function HomePage() {
                             >
                               {option}
                             </button>
-                          )
+                          ),
                         )}
                       </div>
                     )}
                   </div>
 
-                  {/* Filter dropdown */}
+                  {/* Filter dropdown - Updated styling for mobile */}
                   <div className="relative">
                     <button
-                      className="p-2.5 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-50"
+                      className={`p-2.5 border rounded-xl transition ${
+                        filterDropdownOpen
+                          ? "bg-[#0E2F43] border-[#0E2F43]"
+                          : "bg-white border-gray-300 hover:bg-gray-50"
+                      }`}
                       onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
                     >
-                      <MdFilterList className="text-xl" />
+                      <MdFilterList
+                        className={`text-xl ${
+                          filterDropdownOpen ? "text-white" : "text-[#0E2F43]"
+                        }`}
+                      />
                     </button>
 
                     {filterDropdownOpen && (
@@ -290,7 +313,7 @@ export default function HomePage() {
                             >
                               {option}
                             </button>
-                          )
+                          ),
                         )}
                       </div>
                     )}
@@ -310,13 +333,15 @@ export default function HomePage() {
                   )}
                 </div>
 
-                {/* Mobile Clear Button */}
-                <button
-                  className="text-teal-600 text-sm font-medium hover:text-teal-700 px-3 py-2.5"
-                  onClick={handleClearAll}
-                >
-                  Clear
-                </button>
+                {/* Mobile Clear Button - Only show when filters are active */}
+                {hasActiveFilters && (
+                  <button
+                    className="text-teal-600 text-sm font-medium hover:text-teal-700 px-3 py-2.5"
+                    onClick={handleClearAll}
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
           </div>

@@ -46,13 +46,13 @@ function Home() {
   const requestsCount = new_care_provider_requests ?? 0;
   const totalSpent = total_amount_spent ?? 0.0;
   const activeRequests = useSelector(
-    (state) => state.seekerRequests?.active || []
+    (state) => state.seekerRequests?.active || [],
   );
   const firstActive =
     activeRequests && activeRequests.length > 0 ? activeRequests[0] : null;
 
   return (
-    <div className="flex min-h-screen font-sfpro">
+    <div className="flex min-h-screen font-sfpro pb-24 md:pb-0">
       <Sidebar active="Home" />
       <div
         className={`flex-1 bg-white px-6 py-5 font-sfpro md:ml-64 ${
@@ -191,9 +191,9 @@ function Home() {
             </p>
             <p className="text-base font-semibold text-gray-700">
               {firstActive
-                ? firstActive.date ??
+                ? (firstActive.date ??
                   (firstActive.day && firstActive.day.split(" ")[1]) ??
-                  ""
+                  "")
                 : "12"}
             </p>
           </div>
