@@ -475,7 +475,7 @@ function Settings() {
       firstName: profile.first_name ?? "",
       lastName: profile.last_name ?? "",
       email: profile.email ?? "",
-      phone: profile.phone ?? "",
+      phone: profile.phone_number ?? "",
       country: profile.country ?? "",
       state: profile.state ?? "",
       city: profile.city ?? "",
