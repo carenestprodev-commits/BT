@@ -1486,7 +1486,7 @@ function Settings() {
         </div>
       </div>
 
-      <button onClick={() => setShowPlanModal(true)}>Choose Plan</button>
+      {/*<button onClick={() => setShowPlanModal(true)}>Choose Plan</button>*/}
 
       {/* Plan selection modal */}
       <PlanSelectionModal
