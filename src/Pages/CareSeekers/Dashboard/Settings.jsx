@@ -1,11 +1,14 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import React, { useState } from "react";
+import React, {useEffect, useState} from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
+
+const API_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 function Settings() {
   const navigate = useNavigate();
@@ -295,6 +298,48 @@ function Settings() {
     }
     return true;
   };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetchWithAuth(API_URL + "/api/seeker/profile/personal-info/");
+
+        // console.log(res)
+
+        if (!res.ok) throw new Error("Failed to fetch profile");
+
+        const data = await res.json()?.user_data;
+
+        const hydratedData = {
+          firstName: data.first_name || "",
+          lastName: data.last_name || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          country: data.country || "",
+          state: data.state || "",
+          city: data.city || "",
+          address: data.address || "",
+          zipCode: data.zip_code || "",
+          nationality: data.nationality || "",
+          nationalId: data.national_id || "",
+          language: data.language || "",
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+          uploadedPhoto: data.profile_photo || null,
+          uploadedId: data.government_id || null,
+        };
+
+        setFormData(hydratedData);
+        setOriginalFormData(hydratedData);
+        setHasChanges(false);
+      } catch (err) {
+        console.log("Profile fetch failed", err);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
