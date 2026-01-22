@@ -302,19 +302,23 @@ function Settings() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetchWithAuth(API_URL + "/api/seeker/profile/personal-info/");
-
-        console.log(res)
+        const res = await fetchWithAuth(
+            API_URL + "/api/seeker/profile/personal-info/"
+        );
 
         if (!res.ok) throw new Error("Failed to fetch profile");
 
-        const data = await res.user_data.json();
+        // ✅ STEP 1: Parse JSON from response
+        const json = await res.json();
+
+        // ✅ STEP 2: Extract user_data
+        const data = json.user_data;
 
         const hydratedData = {
           firstName: data.first_name || "",
           lastName: data.last_name || "",
           email: data.email || "",
-          phone: data.phone || "",
+          phone: data.phone_number || "",
           country: data.country || "",
           state: data.state || "",
           city: data.city || "",
@@ -334,12 +338,13 @@ function Settings() {
         setOriginalFormData(hydratedData);
         setHasChanges(false);
       } catch (err) {
-        console.log("Profile fetch failed", err);
+        console.error("Profile fetch failed", err);
       }
     };
 
     fetchProfile();
   }, []);
+
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
