@@ -304,11 +304,11 @@ function Settings() {
       try {
         const res = await fetchWithAuth(API_URL + "/api/seeker/profile/personal-info/");
 
-        // console.log(res)
+        console.log(res)
 
         if (!res.ok) throw new Error("Failed to fetch profile");
 
-        const data = await res.json()?.user_data;
+        const data = await res.user_data.json();
 
         const hydratedData = {
           firstName: data.first_name || "",
