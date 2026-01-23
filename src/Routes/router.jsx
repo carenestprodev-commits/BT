@@ -14,7 +14,7 @@ import ViewDetails from "../Pages/CareSeekers/Dashboard/ViewDetails";
 import Requests from "../Pages/CareSeekers/Dashboard/Requests";
 import Message from "../Pages/CareSeekers/Dashboard/Message";
 import PaymentSuccessRedirect from "../Pages/PaymentSuccessRedirect";
-import Settings from "../Pages/CareSeekers/Dashboard/Settings";
+import Settings from "../Pages/CareSeekers/Dashboard/Settings.jsx";
 import VerifyIdentity from "../Pages/CareSeekers/Dashboard/VerifyIdentity";
 import PersonalInformation from "../Pages/CareSeekers/Dashboard/PersonalInformation";
 import Password from "../Pages/CareSeekers/Dashboard/Password";
