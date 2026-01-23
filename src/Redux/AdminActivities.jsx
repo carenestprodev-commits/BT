@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const fetchActivitiesStats = createAsyncThunk(
   'adminActivities/fetchActivitiesStats',
@@ -7,7 +8,7 @@ export const fetchActivitiesStats = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/activities/stats/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/activities/stats/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return data
@@ -23,7 +24,7 @@ export const fetchAllActivities = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/activities/all/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/activities/all/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return Array.isArray(data) ? data : []
@@ -39,7 +40,7 @@ export const fetchActivityById = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/activities/${id}/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/activities/${id}/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return data
@@ -55,7 +56,7 @@ export const deleteActivity = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/admin/activities/${id}/`, { method: 'DELETE', headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/activities/${id}/`, { method: 'DELETE', headers })
       if (res.status === 204 || res.ok) return id
       const data = await res.json()
       return rejectWithValue(data)

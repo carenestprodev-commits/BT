@@ -1,14 +1,11 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import PaymentModal from "./PaymentModal";
-import { fetchSeekerProfile } from "../../../Redux/CareSeekerAuth";
-
+import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 function Settings() {
@@ -21,7 +18,7 @@ function Settings() {
     loading: profileLoading,
     error: profileError,
   } = useSelector(
-    (s) => s.careSeekerAuth || { profile: null, loading: false, error: null }
+    (s) => s.careSeekerAuth || { profile: null, loading: false, error: null },
   );
 
   const [activeTab, setActiveTab] = useState("personal");
@@ -130,10 +127,67 @@ function Settings() {
     "application/pdf",
   ];
 
-  /* -------------------- FILE UPLOAD -------------------- */
+  const handleFileUploadOld = async (file, field) => {
+    if (!file) return;
 
-  // Upload file to backend with Bearer token
-  const uploadToCloudinary = (file, field) => {
+    if (file.size > MAX_FILE_SIZE) {
+      alert("File must be less than 15MB");
+      return;
+    }
+
+    const allowed =
+      field === "uploadedPhoto" ? ALLOWED_IMAGE_TYPES : ALLOWED_ID_TYPES;
+
+    if (!allowed.includes(file.type)) {
+      alert("Invalid file type");
+      return;
+    }
+
+    // Local preview (image & SVG)
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => {
+          const updated = {
+            ...prev,
+            [field]: reader.result,
+          };
+          // Check if form data differs from original
+          const isModified =
+            JSON.stringify(updated) !== JSON.stringify(originalFormData);
+          setHasChanges(isModified);
+          return updated;
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Upload to Cloudinary
+    try {
+      const url = await uploadToCloudinary(file, field);
+
+      // Replace preview with final CDN URL
+      setFormData((prev) => {
+        const updated = {
+          ...prev,
+          [field]: url,
+        };
+        // Check if form data differs from original
+        const isModified =
+          JSON.stringify(updated) !== JSON.stringify(originalFormData);
+        setHasChanges(isModified);
+        return updated;
+      });
+    } catch (err) {
+      alert("Upload failed");
+      setUploadProgress((prev) => ({
+        ...prev,
+        [field]: 0,
+      }));
+    }
+  };
+
+  const uploadToCloudinaryOld = (file, field) => {
     const data = new FormData();
     data.append("image", file); // <-- ensure backend expects this key
 
@@ -172,7 +226,6 @@ function Settings() {
     });
   };
 
-  // Handle file selection or drop
   const handleFileUpload = async (file, field) => {
     if (!file) return;
 
@@ -197,21 +250,65 @@ function Settings() {
       // Upload to backend
       const url = await uploadToCloudinary(file, field);
 
-      // Update formData and uploadedFiles
-      setFormData((prev) => ({ ...prev, [field]: url }));
+      // Update formData
       setUploadedFiles((prev) => {
         const updated = { ...prev, [field]: true };
+
+        // ✅ Auto-show payment modal if verify tab and both files are uploaded
+        // if (activeTab === "verify" && updated.uploadedPhoto && updated.uploadedId) {
+        //   setShowPaymentModal(true);
+        // }
+
         return updated;
       });
 
       alert(
-        `${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`
+        `${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`,
       );
     } catch (err) {
       console.error(err);
       alert("Upload failed. Please try again.");
       setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
     }
+  };
+
+  const uploadToCloudinary = (file, field) => {
+    const data = new FormData();
+    data.append("image", file); // <-- ensure backend expects this key
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress((prev) => ({ ...prev, [field]: percent }));
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            resolve(res.url || res.image_url || res.path); // adjust to backend response
+          } catch (err) {
+            reject("Invalid server response");
+          }
+        } else {
+          reject(`Upload failed with status ${xhr.status}`);
+        }
+      };
+
+      xhr.onerror = () => reject("Network error during upload");
+
+      xhr.open("PATCH", API_URL + "/api/auth/profile/upload_image/"); // backend endpoint
+
+      // Add Bearer token
+      const token = localStorage.getItem("access"); // or wherever JWT is stored
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+      xhr.send(data);
+    });
   };
 
   const handleDragOver = (e) => {
@@ -266,7 +363,7 @@ function Settings() {
     setMessage({ type: "", text: "" });
 
     try {
-      const response = await fetch("/api/user/settings", {
+      const response = await fetchWithAuth("/api/user/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -343,45 +440,65 @@ function Settings() {
     setHasChanges(false);
   };
 
-  /* -------------------- EFFECTS -------------------- */
+  const validateForm = () => {
+    if (activeTab === "password") {
+      if (formData.newPassword.length < 8) {
+        setMessage({ type: "error", text: "Password must be 8+ characters" });
+        return false;
+      }
+      if (formData.newPassword !== formData.confirmPassword) {
+        setMessage({ type: "error", text: "Passwords don't match" });
+        return false;
+      }
+    }
+    return true;
+  };
 
   useEffect(() => {
-    dispatch(fetchSeekerProfile());
-  }, []);
+    const fetchProfile = async () => {
+      try {
+        const res = await fetchWithAuth(
+          API_URL + "/api/seeker/profile/personal-info/",
+        );
 
-  useEffect(() => {
-    if (!profile) return;
+        if (!res.ok) throw new Error("Failed to fetch profile");
 
-    const populated = {
-      firstName: profile.first_name ?? "",
-      lastName: profile.last_name ?? "",
-      email: profile.email ?? "",
-      phone: profile.phone ?? "",
-      country: profile.country ?? "",
-      state: profile.state ?? "",
-      city: profile.city ?? "",
-      address: profile.address ?? "",
-      zipCode: profile.zip_code ?? "",
-      nationality: profile.nationality ?? "",
-      nationalId: profile.national_id ?? "",
-      language: profile.language ?? "",
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-      uploadedPhoto: profile.profile_photo ?? null,
-      uploadedId: profile.government_id ?? null,
+        // ✅ STEP 1: Parse JSON from response
+        const json = await res.json();
+
+        // ✅ STEP 2: Extract user_data
+        const data = json.user_data;
+
+        const hydratedData = {
+          firstName: data.first_name || "",
+          lastName: data.last_name || "",
+          email: data.email || "",
+          phone: data.phone_number || "",
+          country: data.country || "",
+          state: data.state || "",
+          city: data.city || "",
+          address: data.address || "",
+          zipCode: data.zip_code || "",
+          nationality: data.nationality || "",
+          nationalId: data.national_id || "",
+          language: data.language || "",
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+          uploadedPhoto: data.profile_photo || null,
+          uploadedId: data.government_id || null,
+        };
+
+        setFormData(hydratedData);
+        setOriginalFormData(hydratedData);
+        setHasChanges(false);
+      } catch (err) {
+        console.error("Profile fetch failed", err);
+      }
     };
 
-    setFormData(populated);
-    setOriginalFormData(populated);
-    setHasChanges(false);
-  }, [profile]);
-
-  useEffect(() => {
-    if (location?.state?.activeTab) {
-      setActiveTab(location.state.activeTab);
-    }
-  }, [location]);
+    fetchProfile();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">

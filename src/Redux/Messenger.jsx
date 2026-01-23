@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL, getAuthHeaders } from "./config";
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 // 1. Fetch conversations list
 export const fetchConversations = createAsyncThunk(
@@ -98,7 +99,7 @@ export const createConversation = createAsyncThunk(
   "messenger/createConversation",
   async (otherUserId, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${BASE_URL}/api/conversations/create/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/conversations/create/`, {
         method: "POST",
         headers: {
           ...getAuthHeaders(),

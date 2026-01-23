@@ -1,9 +1,10 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL, getAuthHeaders } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const fetchWalletDashboard = createAsyncThunk('providerWallet/fetchDashboard', async (_, { rejectWithValue }) => {
   try {
-    const res = await fetch(`${BASE_URL}/api/payments/wallet/provider-dashboard/`, { headers: getAuthHeaders() })
+    const res = await fetchWithAuth(`${BASE_URL}/api/payments/wallet/provider-dashboard/`, { headers: getAuthHeaders() })
     if (!res.ok) {
       const text = await res.text()
       return rejectWithValue(text)
@@ -17,7 +18,7 @@ export const fetchWalletDashboard = createAsyncThunk('providerWallet/fetchDashbo
 
 export const fetchWalletHistory = createAsyncThunk('providerWallet/fetchHistory', async (_, { rejectWithValue }) => {
   try {
-    const res = await fetch(`${BASE_URL}/api/payments/wallet/history/`, { headers: getAuthHeaders() })
+    const res = await fetchWithAuth(`${BASE_URL}/api/payments/wallet/history/`, { headers: getAuthHeaders() })
     if (!res.ok) {
       const text = await res.text()
       return rejectWithValue(text)

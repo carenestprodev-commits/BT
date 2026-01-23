@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const fetchProviderDetails = createAsyncThunk(
   'providersDetails/fetchProviderDetails',
@@ -7,7 +8,7 @@ export const fetchProviderDetails = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/providers_details/${encodeURIComponent(id)}/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/providers_details/${encodeURIComponent(id)}/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return data

@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 // Fetch seeker dashboard summary
 export const fetchSeekerDashboard = createAsyncThunk(
@@ -8,7 +9,7 @@ export const fetchSeekerDashboard = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/seeker/dashboard/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/seeker/dashboard/`, { headers })
       const text = await res.text()
       // try to parse json, otherwise return text
       let parsed

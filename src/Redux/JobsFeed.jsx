@@ -1,21 +1,49 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { BASE_URL } from './config'
+import {fetchWithAuth} from "../lib/fetchWithAuth.js";
+
+// export const fetchJobsFeed = createAsyncThunk(
+//   'jobsFeed/fetchJobsFeed',
+//   async (_, { rejectWithValue }) => {
+//     try {
+//       const access = localStorage.getItem('access')
+//       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
+//       const res = await fetchWithAuth(`${BASE_URL}/api/jobs/feed/`, { headers })
+//       const data = await res.json()
+//       console.log(data)
+//       if (!res.ok) return rejectWithValue(data)
+//       return Array.isArray(data.results) ? data.results : []
+//     } catch {
+//       return rejectWithValue({ error: 'Network error' })
+//     }
+//   }
+// )
 
 export const fetchJobsFeed = createAsyncThunk(
-  'jobsFeed/fetchJobsFeed',
-  async (_, { rejectWithValue }) => {
-    try {
-      const access = localStorage.getItem('access')
-      const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/jobs/feed/`, { headers })
-      const data = await res.json()
-      if (!res.ok) return rejectWithValue(data)
-      return Array.isArray(data) ? data : []
-    } catch {
-      return rejectWithValue({ error: 'Network error' })
+    "jobsFeed/fetchJobsFeed",
+    async ({ search = "" } = {}, { rejectWithValue }) => {
+      try {
+        const access = localStorage.getItem("access");
+        const headers = access ? { Authorization: `Bearer ${access}` } : {};
+
+        const query = new URLSearchParams();
+        if (search) query.append("search", search);
+
+        const url = `${BASE_URL}/api/jobs/feed/?${query.toString()}`;
+
+        const res = await fetchWithAuth(url, { headers });
+        const data = await res.json();
+
+        if (!res.ok) return rejectWithValue(data);
+
+        return Array.isArray(data.results) ? data.results : [];
+      } catch {
+        return rejectWithValue({ error: "Network error" });
+      }
     }
-  }
-)
+);
+
+
 
 export const fetchJobById = createAsyncThunk(
   'jobsFeed/fetchJobById',
@@ -23,7 +51,7 @@ export const fetchJobById = createAsyncThunk(
     try {
       const access = localStorage.getItem('access')
       const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/jobs/feed/${encodeURIComponent(id)}/`, { headers })
+      const res = await fetchWithAuth(`${BASE_URL}/api/jobs/feed/${encodeURIComponent(id)}/`, { headers })
       const data = await res.json()
       if (!res.ok) return rejectWithValue(data)
       return data
@@ -55,6 +83,8 @@ export const submitBooking = createAsyncThunk(
   }
 )
 
+
+
 const slice = createSlice({
   name: 'jobsFeed',
   initialState: { jobs: [], selectedJob: null, loading: false, error: null, bookingLoading: false, bookingError: null, bookingResponse: null },
@@ -75,6 +105,7 @@ const slice = createSlice({
       .addCase(submitBooking.rejected, (state, action) => { state.bookingLoading = false; state.bookingError = action.payload || action.error })
   }
 })
+
 
 export const { clearJobs, clearSelectedJob } = slice.actions
 export default slice.reducer
