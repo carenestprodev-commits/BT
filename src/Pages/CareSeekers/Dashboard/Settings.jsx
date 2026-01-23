@@ -109,7 +109,7 @@ function Settings() {
     "application/pdf",
   ];
 
-  const handleFileUpload = async (file, field) => {
+  const handleFileUploadOld = async (file, field) => {
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
@@ -169,7 +169,7 @@ function Settings() {
     }
   };
 
-  const uploadToCloudinary = (file, field) => {
+  const uploadToCloudinaryOld = (file, field) => {
     const data = new FormData();
     data.append("file", file);
     data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
@@ -202,6 +202,91 @@ function Settings() {
         "POST",
         `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
       );
+      xhr.send(data);
+    });
+  };
+
+  const handleFileUpload = async (file, field) => {
+    if (!file) return;
+
+    // Validate size (15MB max)
+    if (file.size > 15 * 1024 * 1024) {
+      alert("File must be less than 15MB");
+      return;
+    }
+
+    // Validate type
+    const allowed =
+        field === "uploadedPhoto"
+            ? ["image/jpeg", "image/png", "image/svg+xml"]
+            : ["image/jpeg", "image/png", "image/svg+xml", "application/pdf"];
+
+    if (!allowed.includes(file.type)) {
+      alert("Invalid file type");
+      return;
+    }
+
+    try {
+      // Upload to backend
+      const url = await uploadToCloudinary(file, field);
+
+      // Update formData
+      setUploadedFiles((prev) => {
+        const updated = { ...prev, [field]: true };
+
+        // ✅ Auto-show payment modal if verify tab and both files are uploaded
+        // if (activeTab === "verify" && updated.uploadedPhoto && updated.uploadedId) {
+        //   setShowPaymentModal(true);
+        // }
+
+        return updated;
+      });
+
+      alert(
+          `${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed. Please try again.");
+      setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
+    }
+  };
+
+  const uploadToCloudinary = (file, field) => {
+    const data = new FormData();
+    data.append("image", file); // <-- ensure backend expects this key
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress((prev) => ({ ...prev, [field]: percent }));
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            resolve(res.url || res.image_url || res.path); // adjust to backend response
+          } catch (err) {
+            reject("Invalid server response");
+          }
+        } else {
+          reject(`Upload failed with status ${xhr.status}`);
+        }
+      };
+
+      xhr.onerror = () => reject("Network error during upload");
+
+      xhr.open("PATCH", API_URL + "/api/auth/profile/upload_image/"); // backend endpoint
+
+      // Add Bearer token
+      const token = localStorage.getItem("access"); // or wherever JWT is stored
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
       xhr.send(data);
     });
   };
