@@ -1,36 +1,18 @@
-/* eslint-disable no-undef */
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-
-import { useState, useEffect } from "react";
+import React, {useEffect, useState} from "react";
 import Sidebar from "./Sidebar";
-import PaymentModal from "./PaymentModal";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 
 function Settings() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const dispatch = useDispatch();
-
-  const {
-    profile,
-    loading: profileLoading,
-    error: profileError,
-  } = useSelector(
-    (s) => s.providerSettings || { profile: null, loading: false, error: null }
-  );
-
-  const [plans, setPlans] = useState([]);
-
   const [activeTab, setActiveTab] = useState("personal");
-
-  const emptyForm = {
+  const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
@@ -46,25 +28,9 @@ function Settings() {
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
-    about: "",
-    title: "",
-    yearsOfExperience: "",
-    nativeLanguage: "",
-    housekeeping: "",
-    hourlyRate: "",
-    otherServices: "",
-    otherLanguages: "",
-    autoSend: false,
-    uploadedPhoto: null, // URL only
-    uploadedId: null, // URL only
-  };
-
-  const [formData, setFormData] = useState(emptyForm);
-  const [originalFormData, setOriginalFormData] = useState(emptyForm);
-
-  const [hasChanges, setHasChanges] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+    uploadedPhoto: null,
+    uploadedId: null,
+  });
 
   const [showPassword, setShowPassword] = useState({
     current: false,
@@ -72,64 +38,76 @@ function Settings() {
     confirm: false,
   });
 
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
   const [uploadProgress, setUploadProgress] = useState({
     uploadedPhoto: 0,
     uploadedId: 0,
   });
 
-  // const [preview, setPreview] = useState({
-  //   uploadedPhoto: null,
-  //   uploadedId: null,
-  // });
-
-  const [uploadedFiles, setUploadedFiles] = useState({
-    uploadedPhoto: false,
-    uploadedId: false,
+  const [originalFormData, setOriginalFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    country: "",
+    state: "",
+    city: "",
+    address: "",
+    zipCode: "",
+    nationality: "",
+    nationalId: "",
+    language: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    uploadedPhoto: null,
+    uploadedId: null,
   });
+
+  const [dragActive, setDragActive] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   const CLOUDINARY_CLOUD_NAME = "your_cloud_name";
   const CLOUDINARY_UPLOAD_PRESET = "carenest_unsigned";
 
-  const MAX_FILE_SIZE = 15 * 1024 * 1024;
+  const tabs = [
+    { id: "verify", label: "Verify Identity" },
+    { id: "personal", label: "Personal Information" },
+    { id: "password", label: "Password" },
+  ];
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const newFormData = {
+      ...formData,
+      [name]: type === "checkbox" ? checked : value,
+    };
+    setFormData(newFormData);
+
+    // Check if form data differs from original
+    const isModified =
+      JSON.stringify(newFormData) !== JSON.stringify(originalFormData);
+    setHasChanges(isModified);
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPassword((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
+
+  const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/svg+xml"];
+
   const ALLOWED_ID_TYPES = [
     "image/jpeg",
     "image/png",
     "image/svg+xml",
     "application/pdf",
   ];
-
-  const [dragActive, setDragActive] = useState(false);
-
-  /* -------------------- HELPERS -------------------- */
-
-  const detectChanges = (newData) =>
-    Object.keys(newData).some((key) => newData[key] !== originalFormData[key]);
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-
-    const updated = {
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    };
-
-    setFormData(updated);
-    setHasChanges(detectChanges(updated));
-  };
-
-  const togglePasswordVisibility = (field) => {
-    setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
-  };
-
-  const tabs = [
-    { id: "verify", label: "Verify Identity" },
-    { id: "personal", label: "Personal Information" },
-    { id: "password", label: "Password" },
-    { id: "other", label: "Other details" },
-  ];
-
-  /* -------------------- FILE UPLOAD -------------------- */
 
   const handleFileUploadOld = async (file, field) => {
     if (!file) return;
@@ -147,23 +125,47 @@ function Settings() {
       return;
     }
 
+    // Local preview (image & SVG)
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreview((prev) => ({ ...prev, [field]: reader.result }));
+        setFormData((prev) => {
+          const updated = {
+            ...prev,
+            [field]: reader.result,
+          };
+          // Check if form data differs from original
+          const isModified =
+            JSON.stringify(updated) !== JSON.stringify(originalFormData);
+          setHasChanges(isModified);
+          return updated;
+        });
       };
       reader.readAsDataURL(file);
     }
 
+    // Upload to Cloudinary
     try {
       const url = await uploadToCloudinary(file, field);
 
-      const updated = { ...formData, [field]: url };
-      setFormData(updated);
-      setHasChanges(detectChanges(updated));
-    } catch {
+      // Replace preview with final CDN URL
+      setFormData((prev) => {
+        const updated = {
+          ...prev,
+          [field]: url,
+        };
+        // Check if form data differs from original
+        const isModified =
+          JSON.stringify(updated) !== JSON.stringify(originalFormData);
+        setHasChanges(isModified);
+        return updated;
+      });
+    } catch (err) {
       alert("Upload failed");
-      setUploadProgress((p) => ({ ...p, [field]: 0 }));
+      setUploadProgress((prev) => ({
+        ...prev,
+        [field]: 0,
+      }));
     }
   };
 
@@ -177,20 +179,24 @@ function Settings() {
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
-          setUploadProgress((p) => ({
-            ...p,
-            [field]: Math.round((e.loaded / e.total) * 100),
+          const percent = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress((prev) => ({
+            ...prev,
+            [field]: percent,
           }));
         }
       };
 
       xhr.onload = () => {
         if (xhr.status === 200) {
-          resolve(JSON.parse(xhr.responseText).secure_url);
-        } else reject();
+          const res = JSON.parse(xhr.responseText);
+          resolve(res.secure_url);
+        } else {
+          reject("Cloudinary upload failed");
+        }
       };
 
-      xhr.onerror = reject;
+      xhr.onerror = () => reject("Upload error");
 
       xhr.open(
         "POST",
@@ -200,7 +206,52 @@ function Settings() {
     });
   };
 
-  // Upload file to backend with Bearer token
+  const handleFileUpload = async (file, field) => {
+    if (!file) return;
+
+    // Validate size (15MB max)
+    if (file.size > 15 * 1024 * 1024) {
+      alert("File must be less than 15MB");
+      return;
+    }
+
+    // Validate type
+    const allowed =
+        field === "uploadedPhoto"
+            ? ["image/jpeg", "image/png", "image/svg+xml"]
+            : ["image/jpeg", "image/png", "image/svg+xml", "application/pdf"];
+
+    if (!allowed.includes(file.type)) {
+      alert("Invalid file type");
+      return;
+    }
+
+    try {
+      // Upload to backend
+      const url = await uploadToCloudinary(file, field);
+
+      // Update formData
+      setUploadedFiles((prev) => {
+        const updated = { ...prev, [field]: true };
+
+        // ✅ Auto-show payment modal if verify tab and both files are uploaded
+        // if (activeTab === "verify" && updated.uploadedPhoto && updated.uploadedId) {
+        //   setShowPaymentModal(true);
+        // }
+
+        return updated;
+      });
+
+      alert(
+          `${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed. Please try again.");
+      setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
+    }
+  };
+
   const uploadToCloudinary = (file, field) => {
     const data = new FormData();
     data.append("image", file); // <-- ensure backend expects this key
@@ -240,157 +291,6 @@ function Settings() {
     });
   };
 
-  /* -------------------- SAVE -------------------- */
-
-  const validateForm = () => {
-    if (activeTab === "password") {
-      if (formData.newPassword.length < 8) {
-        setMessage({ type: "error", text: "Password must be 8+ characters" });
-        return false;
-      }
-      if (formData.newPassword !== formData.confirmPassword) {
-        setMessage({ type: "error", text: "Passwords don't match" });
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const saveSettings = async () => {
-    if (activeTab === "verify") {
-      if (!uploadedFiles.uploadedPhoto || !uploadedFiles.uploadedId) {
-        setMessage({
-          type: "error",
-          text: "Please upload both profile photo and government ID",
-        });
-        return;
-      }
-
-      try {
-        setLoading(true);
-
-        const res = await fetchWithAuth(API_URL + "/api/payments/subscription-plans/");
-        if (!res.ok) throw new Error("Failed to fetch plans");
-
-        const data = await res.json();
-        console.log(data);
-        setPlans(data);
-        setShowPlanModal(true); // open plan modal
-      } catch (e) {
-        setMessage({ type: "error", text: e.message });
-      } finally {
-        setLoading(false);
-      }
-
-      // setShowPaymentModal(true); // modal opens
-      return;
-    }
-
-    if (!validateForm()) return;
-
-    setLoading(true);
-    setMessage({ type: "", text: "" });
-
-    try {
-      const res = await fetchWithAuth("/api/user/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      console.log(res);
-
-      if (!res.ok) throw new Error("Save failed");
-
-      setOriginalFormData(formData);
-      setHasChanges(false);
-      setMessage({ type: "success", text: "Settings saved!" });
-    } catch (e) {
-      setMessage({ type: "error", text: e.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle file selection or drop
-  const handleFileUpload = async (file, field) => {
-    if (!file) return;
-
-    // Validate size (15MB max)
-    if (file.size > 15 * 1024 * 1024) {
-      alert("File must be less than 15MB");
-      return;
-    }
-
-    // Validate type
-    const allowed =
-      field === "uploadedPhoto"
-        ? ["image/jpeg", "image/png", "image/svg+xml"]
-        : ["image/jpeg", "image/png", "image/svg+xml", "application/pdf"];
-
-    if (!allowed.includes(file.type)) {
-      alert("Invalid file type");
-      return;
-    }
-
-    try {
-      // Upload to backend
-      const url = await uploadToCloudinary(file, field);
-
-      // Update formData
-      setUploadedFiles((prev) => {
-        const updated = { ...prev, [field]: true };
-
-        // ✅ Auto-show payment modal if verify tab and both files are uploaded
-        // if (activeTab === "verify" && updated.uploadedPhoto && updated.uploadedId) {
-        //   setShowPaymentModal(true);
-        // }
-
-        return updated;
-      });
-
-      alert(
-        `${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Upload failed. Please try again.");
-      setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
-    }
-  };
-
-  /* -------------------- PAYMENT -------------------- */
-
-  const handlePayment = async () => {
-    setPaymentLoading(true);
-    try {
-      await fetchWithAuth("/api/user/verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uploadedPhoto: formData.uploadedPhoto,
-          uploadedId: formData.uploadedId,
-        }),
-      });
-
-      setOriginalFormData(formData);
-      setHasChanges(false);
-      setShowPaymentModal(false);
-      setMessage({ type: "success", text: "Verification submitted!" });
-    } catch {
-      setMessage({ type: "error", text: "Payment failed" });
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
-  // Close payment modal
-  const closePaymentModal = () => {
-    if (!paymentLoading) {
-      setShowPaymentModal(false);
-    }
-  };
-
   const handleDragOver = (e) => {
     e.preventDefault();
     setDragActive(true);
@@ -407,6 +307,59 @@ function Settings() {
     handleFileUpload(file, field);
   };
 
+  const saveSettings = async () => {
+    // If on verify tab, validate files are uploaded
+    if (activeTab === "verify") {
+      if (!formData.uploadedPhoto || !formData.uploadedId) {
+        setMessage({
+          type: "error",
+          text: "Please upload both profile photo and government ID",
+        });
+        return;
+      }
+    }
+
+    if (!validateForm()) return;
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const response = await fetchWithAuth("/api/user/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save settings");
+      }
+
+      const data = await response.json();
+      setOriginalFormData(formData);
+      setHasChanges(false);
+
+      if (activeTab === "password") {
+        setFormData((prev) => ({
+          ...prev,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        }));
+      }
+
+      setMessage({ type: "success", text: "Settings saved successfully!" });
+      setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to save settings. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setFormData(originalFormData);
     setUploadProgress({
@@ -416,98 +369,67 @@ function Settings() {
     setHasChanges(false);
   };
 
-
-  const [showPlanModal, setShowPlanModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-
-  const handlePlanSelect = (plan) => {
-    setSelectedPlan(plan);
-    setShowPlanModal(false);
-    setShowPaymentModal(true);
+  const validateForm = () => {
+    if (activeTab === "password") {
+      if (formData.newPassword.length < 8) {
+        setMessage({ type: "error", text: "Password must be 8+ characters" });
+        return false;
+      }
+      if (formData.newPassword !== formData.confirmPassword) {
+        setMessage({ type: "error", text: "Passwords don't match" });
+        return false;
+      }
+    }
+    return true;
   };
 
-  const PlanSelectionModal = ({ isOpen, plans, onSelect, onClose }) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-semibold mb-4">Choose a Plan</h2>
-
-            <div className="space-y-4">
-              {plans.map((plan) => (
-                  <div
-                      key={plan.id}
-                      className="border rounded-lg p-4 hover:border-[#0093d1] cursor-pointer"
-                      onClick={() => onSelect(plan)}
-                  >
-                    <h3 className="font-semibold">{plan.name}</h3>
-                    <p className="text-[#0093d1] font-bold">
-                      ₦{plan.price.toLocaleString()}
-                    </p>
-                  </div>
-              ))}
-            </div>
-
-            <button
-                onClick={onClose}
-                className="mt-6 w-full bg-gray-100 py-2 rounded-lg"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-    );
-  };
-
-  /* -------------------- EFFECTS -------------------- */
-
   useEffect(() => {
-    dispatch(fetchProviderProfile());
-  }, []);
+    const fetchProfile = async () => {
+      try {
+        const res = await fetchWithAuth(
+            API_URL + "/api/seeker/profile/personal-info/"
+        );
 
-  useEffect(() => {
-    if (!profile) return;
+        if (!res.ok) throw new Error("Failed to fetch profile");
 
-    const populated = {
-      firstName: profile.first_name ?? "",
-      lastName: profile.last_name ?? "",
-      email: profile.email ?? "",
-      phone: profile.phone_number ?? "",
-      country: profile.country ?? "",
-      state: profile.state ?? "",
-      city: profile.city ?? "",
-      zipCode: profile.zip_code ?? "",
-      nationality: profile.nationality ?? "",
-      nationalId: profile.national_id ?? "",
-      language: profile.language ?? "",
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-      about: profile.about ?? "",
-      title: profile.title ?? "",
-      yearsOfExperience: profile.years_of_experience ?? "",
-      nativeLanguage: profile.native_language ?? "",
-      housekeeping: profile.housekeeping ?? "",
-      hourlyRate: profile.hourly_rate ?? "",
-      otherServices: profile.other_services ?? "",
-      otherLanguages: profile.other_languages ?? "",
-      autoSend: profile.auto_send ?? false,
-      uploadedPhoto: profile.profile_photo ?? null,
-      uploadedId: profile.government_id ?? null,
+        // ✅ STEP 1: Parse JSON from response
+        const json = await res.json();
+
+        // ✅ STEP 2: Extract user_data
+        const data = json.user_data;
+
+        const hydratedData = {
+          firstName: data.first_name || "",
+          lastName: data.last_name || "",
+          email: data.email || "",
+          phone: data.phone_number || "",
+          country: data.country || "",
+          state: data.state || "",
+          city: data.city || "",
+          address: data.address || "",
+          zipCode: data.zip_code || "",
+          nationality: data.nationality || "",
+          nationalId: data.national_id || "",
+          language: data.language || "",
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+          uploadedPhoto: data.profile_photo || null,
+          uploadedId: data.government_id || null,
+        };
+
+        setFormData(hydratedData);
+        setOriginalFormData(hydratedData);
+        setHasChanges(false);
+      } catch (err) {
+        console.error("Profile fetch failed", err);
+      }
     };
 
-    setFormData(populated);
-    setOriginalFormData(populated);
-    setHasChanges(false);
-  }, [profile]);
+    fetchProfile();
+  }, []);
 
-  useEffect(() => {
-    if (location?.state?.activeTab) {
-      setActiveTab(location.state.activeTab);
-    }
-  }, [location]);
+
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
@@ -799,7 +721,7 @@ function Settings() {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
+                {/* Action Buttons - Only show when changes are made */}
                 <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
                   <button
                     onClick={resetForm}
@@ -1280,7 +1202,7 @@ function Settings() {
                         console.warn("Failed to clear localStorage", e);
                       }
                       // Redirect to login and reload to ensure protected routes don't use stale state
-                      navigate("/careproviders/login/", { replace: true });
+                      navigate("/careseekers/login/", { replace: true });
                       // Force reload to reset any in-memory auth state
                       window.location.reload();
                     }}
@@ -1291,219 +1213,9 @@ function Settings() {
                 </div>
               </div>
             )}
-
-            {/* Other Details Tab */}
-            {activeTab === "other" && (
-              <div className="p-3 sm:p-6 md:p-8">
-                {message.text && (
-                  <div
-                    className={`mb-4 p-3 sm:p-4 rounded-lg text-sm sm:text-base ${
-                      message.type === "success"
-                        ? "bg-green-50 text-green-800 border border-green-200"
-                        : "bg-red-50 text-red-800 border border-red-200"
-                    }`}
-                  >
-                    {message.text}
-                  </div>
-                )}
-                <p className="text-xs sm:text-sm text-gray-500 mb-6">
-                  Update your details and preferences
-                </p>
-
-                <div className="space-y-4 sm:space-y-6">
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                      Tell us about yourself
-                    </label>
-                    <textarea
-                      name="about"
-                      value={formData.about}
-                      onChange={handleInputChange}
-                      rows={3}
-                      placeholder="Kindly highlight your skills and experience, the childcare services you offer and other relevant information."
-                      className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm resize-none"
-                    />
-                    <label className="flex items-start sm:items-center mt-3 text-xs sm:text-sm text-gray-600 gap-2">
-                      <input
-                        type="checkbox"
-                        name="autoSend"
-                        checked={formData.autoSend}
-                        onChange={handleInputChange}
-                        className="mt-1 sm:mt-0 rounded flex-shrink-0"
-                      />
-                      <span>
-                        I would like to automatically send the above application
-                        to potential careseekers
-                      </span>
-                    </label>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                      Title
-                    </label>
-                    <input
-                      type="text"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      placeholder="Give your application a title that sums you up as a child care provider"
-                      className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        Years of experience
-                      </label>
-                      <select
-                        name="yearsOfExperience"
-                        value={formData.yearsOfExperience}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
-                      >
-                        <option value="">Select experience</option>
-                        <option>0-1</option>
-                        <option>1-3</option>
-                        <option>3-5</option>
-                        <option>5+</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        Native language
-                      </label>
-                      <select
-                        name="nativeLanguage"
-                        value={formData.nativeLanguage}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
-                      >
-                        <option value="">Select language</option>
-                        <option>Yoruba</option>
-                        <option>English</option>
-                        <option>Afrikaans</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        Choose your house keeping preference
-                      </label>
-                      <select
-                        name="housekeeping"
-                        value={formData.housekeeping}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
-                      >
-                        <option value="">Select preference</option>
-                        <option>Interested in-live jobs</option>
-                        <option>Part-time only</option>
-                        <option>Full-time only</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        Other services you offer
-                      </label>
-                      <select
-                        name="otherServices"
-                        value={formData.otherServices}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
-                      >
-                        <option value="">Select services</option>
-                        <option>Tutoring</option>
-                        <option>Cooking</option>
-                        <option>Cleaning</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        Hourly rates
-                      </label>
-                      <select
-                        name="hourlyRate"
-                        value={formData.hourlyRate}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
-                      >
-                        <option value="">Select rate</option>
-                        <option>₦3,000 - ₦5,000</option>
-                        <option>₦5,000 - ₦7,000</option>
-                        <option>₦7,000+</option>
-                      </select>
-                      <p className="text-xs sm:text-sm text-green-600 mt-2">
-                        Average hourly rate is ₦5,500
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        Other languages
-                      </label>
-                      <select
-                        name="otherLanguages"
-                        value={formData.otherLanguages}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
-                      >
-                        <option value="">Select language</option>
-                        <option>None</option>
-                        <option>French</option>
-                        <option>Spanish</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {hasChanges && (
-                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 mt-6 sm:mt-8">
-                    <button
-                      onClick={resetForm}
-                      className="px-4 sm:px-6 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg text-sm sm:text-base"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={saveSettings}
-                      disabled={loading}
-                      className="px-4 sm:px-6 py-2 bg-blue-500 text-white font-medium hover:bg-blue-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                    >
-                      {loading ? "Saving..." : "Save changes"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>
-
-      {/*<button onClick={() => setShowPlanModal(true)}>Choose Plan</button>*/}
-
-      {/* Plan selection modal */}
-      <PlanSelectionModal
-          isOpen={showPlanModal}
-          plans={plans}
-          onSelect={handlePlanSelect}
-          onClose={() => setShowPlanModal(false)}
-      />
-
-      {/* Payment modal */}
-      {showPaymentModal && selectedPlan && (
-          <PaymentModal
-              isOpen={showPaymentModal}
-              onClose={() => setShowPaymentModal(false)}
-              plan={selectedPlan}  // ✅ Pass selected plan
-          />
-      )}
-
     </div>
   );
 }

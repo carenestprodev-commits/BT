@@ -4,9 +4,6 @@ import { IoMdClose } from "react-icons/io";
 import { FaLock } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { initiateProviderSubscription } from "../../../Redux/ProviderPayment";
-import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
-const API_URL = import.meta.env.VITE_API_BASE_URL;
-
 
 const PaymentModal = ({
                         isOpen,
@@ -19,10 +16,6 @@ const PaymentModal = ({
   const { initiating, authorizationUrl, error } = useSelector(
       (s) => s.providerPayment || {}
   );
-
-  console.log(authorizationUrl);
-  console.log(selectedPlan);
-  console.log(loading);
 
   // Redirect immediately if authorization URL is returned
   useEffect(() => {
@@ -59,13 +52,13 @@ const PaymentModal = ({
 
   if (!isOpen || !selectedPlan) return null;
 
-  const handlePaymentOld = async () => {
+  const handlePayment = async () => {
     try {
       setIsProcessing(true);
 
       // Dispatch the thunk with the correct planId
       const result = await dispatch(
-          initiateProviderSubscription({ planType: selectedPlan.id, amount: plan.price })
+          initiateProviderSubscription({ planId: selectedPlan.id })
       ).unwrap();
 
       // Redirect immediately
@@ -82,51 +75,6 @@ const PaymentModal = ({
       setIsProcessing(false);
     }
   };
-
-  const handlePayment = async () => {
-    if (!selectedPlan?.id) return alert("No plan selected");
-
-    try {
-      setIsProcessing(true);
-
-      const response = await fetchWithAuth(
-          API_URL  + `/api/payments/checkout/`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              // Include auth token if required:
-              // "Authorization": `Bearer ${userToken}`
-            },
-            body: JSON.stringify({
-              plan_id: selectedPlan.id,
-              payment_gateway: "paystack",
-            }),
-          }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(data.message || "Payment initiation failed");
-        setIsProcessing(false);
-        return;
-      }
-
-      // Redirect to Paystack checkout
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
-      } else {
-        alert("Payment initiation failed. No checkout URL returned");
-        setIsProcessing(false);
-      }
-    } catch (err) {
-      console.error("Payment error:", err);
-      alert(err?.message || "Payment initiation failed");
-      setIsProcessing(false);
-    }
-  };
-
 
   const amount = parseFloat(selectedPlan.price || 0);
   const displayAmount = amount.toLocaleString("en-NG", {
