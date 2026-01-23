@@ -1,200 +1,176 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { initiateSeekerCheckout } from "../../../Redux/SeekerPayment";
 import { nairaToKobo } from "../../../utils/paystackService";
+import { fetchWithAuth } from "../../../lib/fetchWithAuth";
+
+const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 function SubscriptionModal({ onClose, imageSrc }) {
   const dispatch = useDispatch();
-  const [selected, setSelected] = useState("quarterly");
-  const [isProcessing, setIsProcessing] = useState(false);
+
   const { initiating, authorizationUrl, error } = useSelector(
-    (s) => s.seekerPayment || {}
+      (s) => s.seekerPayment || {}
   );
 
-  const plans = [
-    {
-      id: "free",
-      title: "Free",
-      price: "₦00.00",
-      subtitle: "Limited",
-      badgeType: "muted",
-      amount: 0,
-    },
-    {
-      id: "quarterly",
-      title: "Quarterly",
-      price: "₦12,000",
-      subtitle: "(₦3,000/mo)",
-      badgeType: "primary",
-      badgeText: "32% off",
-      amount: 12000,
-    },
-    {
-      id: "monthly",
-      title: "Monthly",
-      price: "₦5,000",
-      subtitle: "",
-      badgeType: "muted",
-      badgeText: "10% off",
-      amount: 5000,
-    },
-  ];
+  const [plans, setPlans] = useState([]);
+  const [selectedPlanId, setSelectedPlanId] = useState(null);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [processing, setProcessing] = useState(false);
 
-  const imgSrc = imageSrc || "/subscription.svg";
-
-  // Redirect to Paystack when authorization URL is available
+  /* ---------------- Fetch subscription plans ---------------- */
   useEffect(() => {
-    if (authorizationUrl && !isProcessing) {
-      window.location.href = authorizationUrl;
-      setIsProcessing(false);
-    }
-  }, [authorizationUrl, isProcessing]);
+    const loadPlans = async () => {
+      try {
+        const res = await fetchWithAuth(
+            API_URL + "/api/payments/user-subscription-plans/"
+        );
 
-  const handleContinue = async () => {
-    // Free plan: just close
-    if (selected === "free") {
-      onClose && onClose();
-      return;
+        if (!res.ok) throw new Error("Failed to fetch plans");
+
+        const data = await res.json();
+
+        setPlans(data);
+
+        // Auto-select first plan
+        if (data.length > 0) {
+          setSelectedPlanId(data[0].id);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+
+    loadPlans();
+  }, []);
+
+  /* ---------------- Redirect to Paystack ---------------- */
+  useEffect(() => {
+    if (authorizationUrl) {
+      window.location.href = authorizationUrl;
     }
+  }, [authorizationUrl]);
+
+  /* ---------------- Continue button ---------------- */
+  const handleContinue = async () => {
+    const plan = plans.find((p) => p.id === selectedPlanId);
+    if (!plan) return;
 
     try {
-      setIsProcessing(true);
+      setProcessing(true);
 
-      // Get the selected plan
-      const selectedPlan = plans.find((p) => p.id === selected);
-      if (!selectedPlan) {
-        alert("Invalid plan selected");
-        setIsProcessing(false);
-        return;
-      }
-
-      // Convert amount to kobo for Paystack
-      const amountInKobo = nairaToKobo(selectedPlan.amount);
-
-      // Dispatch the checkout initiation
       const result = await dispatch(
-        initiateSeekerCheckout({
-          bookingId: 0, // For subscription, booking ID might be 0 or handled by backend
-          amount: amountInKobo,
-          bookingDetails: {
-            plan_type: selected,
-            plan_id: selected === "quarterly" ? 1 : 2,
-          },
-        })
-      );
+          initiateSeekerCheckout({
+            bookingId: 0,
+            amount: nairaToKobo(plan.price),
+            bookingDetails: {
+              plan_id: plan.id,
+              payment_gateway: "paystack",
+            },
+          })
+      ).unwrap();
 
-      if (!result.payload?.success && result.payload?.error) {
-        alert("Checkout initiation failed: " + result.payload.error);
-        setIsProcessing(false);
+      console.log(result);
+
+      if (result.checkout_url) {
+        window.location.href = result.checkout_url;
       }
-      // If successful, useEffect will handle the redirect
     } catch (err) {
-      console.error("Checkout error:", err);
-      alert("Checkout failed. Please try again.");
-      setIsProcessing(false);
+      console.error("Checkout failed", err);
+      setProcessing(false);
     }
   };
 
+  const imgSrc = imageSrc || "/subscription.svg";
+
+  /* ---------------- UI ---------------- */
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-[720px] max-w-full p-8 relative">
-        <button
-          aria-label="Close"
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl"
-          disabled={isProcessing || initiating}
-        >
-          ×
-        </button>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white w-[720px] max-w-full rounded-2xl p-8 relative shadow-2xl">
+          <button
+              onClick={onClose}
+              disabled={processing || initiating}
+              className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-gray-700"
+          >
+            ×
+          </button>
 
-        <div className="flex flex-col items-center text-center">
-          <div className="w-40 h-40 mb-6 flex items-center justify-center">
+          <div className="flex flex-col items-center text-center">
             <img
-              src={imgSrc}
-              alt="subscription"
-              className="w-full h-full object-contain"
+                src={imgSrc}
+                alt="Subscription"
+                className="w-40 h-40 object-contain mb-6"
             />
-          </div>
 
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-            Subscribe to have unlimited <br /> access to Care Provider
-          </h2>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+              Choose a subscription plan
+            </h2>
 
-          <div className="mt-6 w-full grid grid-cols-3 gap-4">
-            {plans.map((p) => {
-              const isSelected = selected === p.id;
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => !isProcessing && setSelected(p.id)}
-                  className={
-                    `cursor-pointer rounded-lg p-6 flex flex-col items-center justify-between border transition ` +
-                    (isSelected
-                      ? "bg-[#0aa0d6] text-white border-transparent shadow-lg"
-                      : "bg-white text-gray-800 border border-gray-100 hover:shadow")
-                  }
-                >
-                  <div className="text-sm font-medium mb-2">{p.title}</div>
-                  <div className="text-3xl font-bold mb-1">{p.price}</div>
-                  <div
-                    className={`text-sm ${
-                      isSelected ? "opacity-80" : "text-gray-500"
-                    }`}
-                  >
-                    {p.subtitle}
-                  </div>
+            {/* Plans */}
+            {loadingPlans ? (
+                <p className="text-gray-500">Loading plans...</p>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                  {plans.map((plan) => {
+                    const selected = selectedPlanId === plan.id;
 
-                  <div className="mt-4">
-                    <div
-                      className={
-                        `px-3 py-1 rounded-md text-sm font-medium inline-block ` +
-                        (p.badgeType === "primary"
-                          ? isSelected
-                            ? "bg-white text-[#0aa0d6]"
-                            : "bg-[#e6f7fb] text-[#0aa0d6]"
-                          : "bg-gray-100 text-gray-500")
-                      }
-                    >
-                      {p.badgeText || p.subtitle}
-                    </div>
-                  </div>
+                    return (
+                        <div
+                            key={plan.id}
+                            onClick={() => !processing && setSelectedPlanId(plan.id)}
+                            className={`cursor-pointer rounded-xl border p-6 transition ${
+                                selected
+                                    ? "bg-[#0aa0d6] text-white shadow-lg border-transparent"
+                                    : "bg-white text-gray-800 border-gray-200 hover:shadow"
+                            }`}
+                        >
+                          <h3 className="font-medium mb-2">{plan.name}</h3>
+
+                          <div className="text-3xl font-bold mb-1">
+                            ₦{plan.price.toLocaleString()}
+                          </div>
+
+                          <p
+                              className={`text-sm ${
+                                  selected ? "opacity-80" : "text-gray-500"
+                              }`}
+                          >
+                            {plan.interval}
+                          </p>
+                        </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+            )}
 
-          {/* Error Message */}
-          {error && (
-            <div className="mt-4 w-full bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          )}
+            {/* Error */}
+            {error && (
+                <div className="mt-4 w-full bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-600 text-sm">{error}</p>
+                </div>
+            )}
 
-          <div className="mt-6 w-full flex justify-center">
+            {/* CTA */}
             <button
-              onClick={handleContinue}
-              disabled={isProcessing || initiating}
-              className={`bg-[#0093d1] hover:bg-[#007bb0] text-white font-medium py-3 px-8 rounded-md transition ${
-                isProcessing || initiating
-                  ? "opacity-50 cursor-not-allowed"
-                  : ""
-              }`}
+                onClick={handleContinue}
+                disabled={processing || initiating || loadingPlans}
+                className={`mt-8 bg-[#0093d1] hover:bg-[#007bb0] text-white px-10 py-3 rounded-md font-medium transition ${
+                    processing || initiating
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                }`}
             >
-              {isProcessing || initiating ? "Processing..." : "Continue"}
+              {processing || initiating ? "Processing..." : "Continue"}
             </button>
-          </div>
 
-          {/* Payment Info */}
-          <div className="mt-6 text-xs text-gray-600 flex items-center justify-center gap-2">
-            <span>🔒</span>
-            <span>
-              Secure payment via{" "}
-              <span className="text-[#0093d1] font-semibold">Paystack</span>
-            </span>
+            <p className="mt-4 text-xs text-gray-500 flex items-center gap-2">
+              🔒 Secure payment via <span className="font-semibold">Paystack</span>
+            </p>
           </div>
         </div>
       </div>
-    </div>
   );
 }
 

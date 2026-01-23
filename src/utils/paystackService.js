@@ -110,8 +110,17 @@ export const paystackService = {
    * CARE SEEKER CHECKOUT PAYMENT
    * ===================================================== */
 
-  initiateSeekerCheckout: async (bookingId, amount, meta = {}) => {
-    if (!bookingId || !amount) {
+  initiateSeekerCheckout: async ({
+    bookingId,
+    amount,
+    bookingDetails = {},
+  }) => {
+
+    console.log("Initiate Seeker Checkout");
+    console.log(bookingId);
+    console.log(amount)
+    console.log(bookingDetails);
+    if (amount == null) {
       throw new Error("Invalid checkout details");
     }
 
@@ -120,10 +129,10 @@ export const paystackService = {
         {
           method: "POST",
           body: JSON.stringify({
-            booking_id: bookingId,
-            amount, // backend expects kobo
+            booking_id: bookingId, // can be 0 for subscription
+            amount,
             payment_method: "paystack",
-            ...meta,
+            ...bookingDetails,
           }),
         }
     );
@@ -135,12 +144,13 @@ export const paystackService = {
     }
 
     return {
-      authorizationUrl: data.authorization_url || data.payment_url,
+      authorizationUrl: data.authorization_url || data.checkout_url,
       reference: data.reference,
       accessCode: data.access_code,
       raw: data,
     };
   },
+
 
   /* ======================================================
    * VERIFY PAYMENT

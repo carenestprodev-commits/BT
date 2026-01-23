@@ -4,7 +4,7 @@ import paystackService from "../utils/paystackService.js";
 /**
  * Async thunk to initiate seeker checkout payment
  */
-export const initiateSeekerCheckout = createAsyncThunk(
+export const initiateSeekerCheckoutOld = createAsyncThunk(
   "seekerPayment/initiateCheckout",
   async ({ bookingId, amount, bookingDetails }, { rejectWithValue }) => {
     try {
@@ -24,6 +24,25 @@ export const initiateSeekerCheckout = createAsyncThunk(
     }
   }
 );
+
+
+export const initiateSeekerCheckout = createAsyncThunk(
+    "seekerPayment/initiateCheckout",
+    async ({ bookingId, amount, bookingDetails }, { rejectWithValue }) => {
+      try {
+        const result = await paystackService.initiateSeekerCheckout({
+          bookingId,
+          amount,
+          bookingDetails,
+        });
+
+        return result;
+      } catch (error) {
+        return rejectWithValue(error.message);
+      }
+    }
+);
+
 
 /**
  * Async thunk to verify seeker payment
