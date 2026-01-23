@@ -6,6 +6,8 @@ import Sidebar from "./Sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
+import {useDispatch, useSelector} from "react-redux";
+import PaymentModal from "./PaymentModal.jsx";
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 function Settings() {
@@ -440,19 +442,19 @@ function Settings() {
     setHasChanges(false);
   };
 
-  const validateForm = () => {
-    if (activeTab === "password") {
-      if (formData.newPassword.length < 8) {
-        setMessage({ type: "error", text: "Password must be 8+ characters" });
-        return false;
-      }
-      if (formData.newPassword !== formData.confirmPassword) {
-        setMessage({ type: "error", text: "Passwords don't match" });
-        return false;
-      }
-    }
-    return true;
-  };
+  // const validateForm = () => {
+  //   if (activeTab === "password") {
+  //     if (formData.newPassword.length < 8) {
+  //       setMessage({ type: "error", text: "Password must be 8+ characters" });
+  //       return false;
+  //     }
+  //     if (formData.newPassword !== formData.confirmPassword) {
+  //       setMessage({ type: "error", text: "Passwords don't match" });
+  //       return false;
+  //     }
+  //   }
+  //   return true;
+  // };
 
   useEffect(() => {
     const fetchProfile = async () => {
