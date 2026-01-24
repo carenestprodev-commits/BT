@@ -26,10 +26,10 @@ const navItems = [
     label: "Message",
     icon: <img src={Message} alt="Message" className="h-6 w-6" />,
   },
-  {
+  /*{
     label: "Care Providers",
     icon: <IoPeopleCircle className="h-6 w-6" />,
-  },
+  },*/
   {
     label: "Settings",
     icon: <MdOutlineSettings className="h-6 w-6" />,
@@ -47,8 +47,8 @@ function Sidebar({ active = "Home", onNav }) {
     if (label === "Home") navigate("/careseekers/dashboard/home");
     if (label === "Requests") navigate("/careseekers/dashboard/requests");
     if (label === "Message") navigate("/careseekers/dashboard/message");
-    if (label === "Care Providers")
-      navigate("/careseekers/dashboard/careproviders");
+    /*if (label === "Care Providers")
+      navigate("/careseekers/dashboard/careproviders");*/
     if (label === "Settings") navigate("/careseekers/dashboard/settings");
   };
 

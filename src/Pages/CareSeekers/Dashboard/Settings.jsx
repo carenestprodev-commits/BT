@@ -1,14 +1,17 @@
 /* eslint-disable react/no-unescaped-entities */
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import PaymentModal from "./PaymentModal";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
+import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
+import {
+  COUNTRY_OPTIONS,
+  STATE_OPTIONS,
+  LANGUAGE_OPTIONS,
+} from "../../../constants/formOptions"; // ADD THIS LINE
 const API_URL = import.meta.env.VITE_API_BASE_URL;
-
 
 function Settings() {
   const navigate = useNavigate();
@@ -216,7 +219,7 @@ function Settings() {
 
       xhr.open(
         "POST",
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`,
       );
       xhr.send(data);
     });
@@ -233,9 +236,9 @@ function Settings() {
 
     // Validate type
     const allowed =
-        field === "uploadedPhoto"
-            ? ["image/jpeg", "image/png", "image/svg+xml"]
-            : ["image/jpeg", "image/png", "image/svg+xml", "application/pdf"];
+      field === "uploadedPhoto"
+        ? ["image/jpeg", "image/png", "image/svg+xml"]
+        : ["image/jpeg", "image/png", "image/svg+xml", "application/pdf"];
 
     if (!allowed.includes(file.type)) {
       alert("Invalid file type");
@@ -259,7 +262,7 @@ function Settings() {
       });
 
       alert(
-          `${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`
+        `${field === "uploadedPhoto" ? "Photo" : "ID"} uploaded successfully`,
       );
     } catch (err) {
       console.error(err);
@@ -389,7 +392,9 @@ function Settings() {
       try {
         setLoading(true);
 
-        const res = await fetchWithAuth(API_URL + "/api/payments/user-subscription-plans/");
+        const res = await fetchWithAuth(
+          API_URL + "/api/payments/user-subscription-plans/",
+        );
         if (!res.ok) throw new Error("Failed to fetch plans");
 
         const data = await res.json();
@@ -461,7 +466,6 @@ function Settings() {
   const [plans, setPlans] = useState([]);
 
   const handlePlanSelect = (plan) => {
-
     console.log(plan);
     console.log(selectedPlan);
     setSelectedPlan(plan);
@@ -474,47 +478,43 @@ function Settings() {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-semibold mb-4">Choose a Plan</h2>
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl max-w-md w-full p-6">
+          <h2 className="text-xl font-semibold mb-4">Choose a Plan</h2>
 
-            <div className="space-y-4">
-              {plans.map((plan) => (
-                  <div
-                      key={plan.id}
-                      className="border rounded-lg p-4 hover:border-[#0093d1] cursor-pointer"
-                      onClick={() => onSelect(plan)}
-                  >
-                    <h3 className="font-semibold">{plan.name}</h3>
-                    <p className="text-[#0093d1] font-bold">
-                      ₦{plan.price.toLocaleString()}
-                    </p>
-                  </div>
-              ))}
-            </div>
-
-            <button
-                onClick={onClose}
-                className="mt-6 w-full bg-gray-100 py-2 rounded-lg"
-            >
-              Cancel
-            </button>
+          <div className="space-y-4">
+            {plans.map((plan) => (
+              <div
+                key={plan.id}
+                className="border rounded-lg p-4 hover:border-[#0093d1] cursor-pointer"
+                onClick={() => onSelect(plan)}
+              >
+                <h3 className="font-semibold">{plan.name}</h3>
+                <p className="text-[#0093d1] font-bold">
+                  ₦{plan.price.toLocaleString()}
+                </p>
+              </div>
+            ))}
           </div>
+
+          <button
+            onClick={onClose}
+            className="mt-6 w-full bg-gray-100 py-2 rounded-lg"
+          >
+            Cancel
+          </button>
         </div>
+      </div>
     );
   };
 
-
   useEffect(() => {
     const fetchProfile = async () => {
-
-      console.log('here');
+      console.log("here");
       try {
         const res = await fetchWithAuth(
-            API_URL + "/api/seeker/profile/personal-info/"
+          API_URL + "/api/seeker/profile/personal-info/",
         );
-
-
 
         if (!res.ok) throw new Error("Failed to fetch profile");
 
@@ -554,8 +554,6 @@ function Settings() {
 
     fetchProfile();
   }, []);
-
-
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
@@ -964,9 +962,11 @@ function Settings() {
                         className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
                       >
                         <option value="">Select country</option>
-                        <option>South Africa</option>
-                        <option>Nigeria</option>
-                        <option>Kenya</option>
+                        {COUNTRY_OPTIONS.map((country, idx) => (
+                          <option key={idx} value={country}>
+                            {country}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -983,9 +983,11 @@ function Settings() {
                         className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
                       >
                         <option value="">Select state</option>
-                        <option>Pretoria</option>
-                        <option>Cape Town</option>
-                        <option>Johannesburg</option>
+                        {STATE_OPTIONS.map((state, idx) => (
+                          <option key={idx} value={state}>
+                            {state}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -1040,9 +1042,11 @@ function Settings() {
                         className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
                       >
                         <option value="">Select nationality</option>
-                        <option>South Africa</option>
-                        <option>Nigeria</option>
-                        <option>Kenya</option>
+                        {COUNTRY_OPTIONS.map((country, idx) => (
+                          <option key={idx} value={country}>
+                            {country}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -1059,9 +1063,11 @@ function Settings() {
                         className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
                       >
                         <option value="">Select language</option>
-                        <option>English</option>
-                        <option>Yoruba</option>
-                        <option>Afrikaans</option>
+                        {LANGUAGE_OPTIONS.map((language, idx) => (
+                          <option key={idx} value={language}>
+                            {language}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -1345,18 +1351,18 @@ function Settings() {
 
       {/* Plan selection modal */}
       <PlanSelectionModal
-          isOpen={showPlanModal}
-          plans={plans}
-          onSelect={handlePlanSelect}
-          onClose={() => setShowPlanModal(false)}
+        isOpen={showPlanModal}
+        plans={plans}
+        onSelect={handlePlanSelect}
+        onClose={() => setShowPlanModal(false)}
       />
 
       {/* Payment modal */}
 
       <PaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          selectedPlan={selectedPlan}  // ✅ Pass selected plan
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        selectedPlan={selectedPlan} // ✅ Pass selected plan
       />
     </div>
   );
