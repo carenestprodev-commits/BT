@@ -16,9 +16,10 @@ import { IoMdClose } from "react-icons/io";
  * @param {object} user - User object containing name, email, avatar, etc.
  * @param {string} userType - 'provider' or 'seeker'
  * @param {string} actionType - 'apply', 'hire', 'message', or custom action type
- * @param {function} onProceed - Callback when user chooses to proceed to verification
+ * @param {function} onProceed - Callback when verified user proceeds with action (e.g., apply for job)
  * @param {function} onCancel - Callback when user chooses to cancel
  * @param {boolean} isLoading - Optional: loading state for proceed button
+ * @param {boolean} isVerified - Whether the user is already verified
  */
 export default function VerificationCheckModal({
   isOpen,
@@ -28,6 +29,7 @@ export default function VerificationCheckModal({
   onProceed,
   onCancel,
   isLoading = false,
+  isVerified = false, // NEW: Add this prop
 }) {
   const navigate = useNavigate();
 
@@ -100,15 +102,26 @@ export default function VerificationCheckModal({
       : "/careseekers/dashboard/setting";
 
   const handleProceedClick = () => {
-    // Call the onProceed callback first
-    if (onProceed) {
-      onProceed();
+    // ✅ FIXED: Check verification status first
+    if (isVerified) {
+      // User is verified → proceed with the action (e.g., apply for job)
+      if (onProceed) {
+        onProceed();
+      }
+      // Close modal after action
+      if (onCancel) {
+        onCancel();
+      }
+    } else {
+      // User is NOT verified → redirect to settings for verification
+      navigate(settingRoute, {
+        state: { activeTab: "verify" },
+      });
+      // Close modal after navigation
+      if (onCancel) {
+        onCancel();
+      }
     }
-
-    // Navigate to settings verification tab
-    navigate(settingRoute, {
-      state: { activeTab: "verify" },
-    });
   };
 
   return (
