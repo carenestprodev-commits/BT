@@ -149,27 +149,27 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
           mergedProfile.yearsOfExperience ||
             mergedProfile.years_of_experience ||
             mergedProfile.years ||
-            0
+            0,
         ) || 0,
       hourly_rate:
         parseFloat(
-          mergedProfile.hourlyRate || mergedProfile.hourly_rate || 0
+          mergedProfile.hourlyRate || mergedProfile.hourly_rate || 0,
         ) || 0,
       languages: ensureArray(
         mergedProfile.languages ||
           mergedProfile.nativeLanguage ||
-          mergedProfile.otherLanguage
+          mergedProfile.otherLanguage,
       ),
       additional_services: ensureArray(
         mergedProfile.additional_services ||
           mergedProfile.otherServices ||
-          mergedProfile.other_services
+          mergedProfile.other_services,
       ),
       skills: ensureArray(
         mergedProfile.skills ||
           mergedProfile.servicesProvided ||
           mergedProfile.careQualities ||
-          mergedProfile.subjects
+          mergedProfile.subjects,
       ),
       category_specific_details: {},
     };
@@ -193,7 +193,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
           mergedProfile.specialPreferences ||
             mergedProfile.special_preferences ||
             mergedProfile.servicesProvided ||
-            mergedProfile.careQualities
+            mergedProfile.careQualities,
         ),
         communication_language:
           mergedProfile.communicationLanguage ||
@@ -206,29 +206,29 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
         tutoring_services: ensureArray(
           mergedProfile.tutoringServices ||
             mergedProfile.tutoring_services ||
-            []
+            [],
         ),
         experience_level_taught: ensureArray(
           mergedProfile.tutoringExperienceLevel ||
             mergedProfile.tutoring_experience_level ||
-            mergedProfile.tutoringExperienceLevel
+            mergedProfile.tutoringExperienceLevel,
         ),
         subjects_experienced_in: ensureArray(
           mergedProfile.subjects ||
             mergedProfile.subjects_experienced_in ||
-            mergedProfile.subjects
+            mergedProfile.subjects,
         ),
       };
     } else if (cat === "elderlycare") {
       profileData.category_specific_details = {
         personality_and_interpersonal_skills: ensureArray(
           mergedProfile.careQualities ||
-            mergedProfile.personality_and_interpersonal_skills
+            mergedProfile.personality_and_interpersonal_skills,
         ),
         special_preferences: ensureArray(
           mergedProfile.specialPreferences ||
             mergedProfile.special_preferences ||
-            mergedProfile.careQualities
+            mergedProfile.careQualities,
         ),
         communication_language:
           mergedProfile.communicationLanguage ||
@@ -244,14 +244,14 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
     } else if (cat === "housekeeping") {
       profileData.category_specific_details = {
         housekeeping_preference: Array.isArray(
-          mergedProfile.housekeepingPreference
+          mergedProfile.housekeepingPreference,
         )
           ? mergedProfile.housekeepingPreference[0]
           : mergedProfile.housekeepingPreference ||
             mergedProfile.housekeeping_preference ||
             "",
         services_offered: ensureArray(
-          mergedProfile.servicesProvided || mergedProfile.skills || []
+          mergedProfile.servicesProvided || mergedProfile.skills || [],
         ),
       };
     }
@@ -288,7 +288,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
           "Registration failed: " +
             (resultAction.payload ||
               resultAction.error.message ||
-              JSON.stringify(resultAction.error))
+              JSON.stringify(resultAction.error)),
         );
       } else {
         const res = resultAction.payload;
@@ -520,6 +520,13 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
               className="text-[#0093d1] underline"
             >
               Agreement
+            </a>{" "}
+            ,{" "}
+            <a
+              href="https://carenestpro.com/child-sexual-abuse-and-exploitation-csae-policy/"
+              className="text-[#0093d1] underline"
+            >
+              Child Sexual Abuse and Exploitation (CSAE) Policy
             </a>{" "}
             and{" "}
             <a

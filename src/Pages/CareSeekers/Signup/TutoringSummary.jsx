@@ -84,6 +84,13 @@ function TutoringSummary({
           >
             Agreement
           </a>{" "}
+          ,{" "}
+          <a
+            href="https://carenestpro.com/child-sexual-abuse-and-exploitation-csae-policy/"
+            className="text-[#0093d1] underline"
+          >
+            Child Sexual Abuse and Exploitation (CSAE) Policy
+          </a>{" "}
           and{" "}
           <a
             href="https://carenestpro.com/privacy-policy/"
@@ -111,7 +118,7 @@ function TutoringSummary({
                 messageToProvider: formData.messageToProvider,
                 acceptedTerms: formData.acceptedTerms,
               },
-            })
+            }),
           );
           handleNext();
         }}
