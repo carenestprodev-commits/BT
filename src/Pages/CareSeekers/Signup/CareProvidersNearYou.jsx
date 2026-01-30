@@ -18,6 +18,7 @@ function CareProvidersNearYou() {
   const [signupForm, setSignupForm] = React.useState({
     firstName: "",
     lastName: "",
+    phone: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -51,10 +52,11 @@ function CareProvidersNearYou() {
       !signupForm.password ||
       signupForm.password !== signupForm.confirmPassword ||
       !signupForm.firstName ||
-      !signupForm.lastName
+      !signupForm.lastName ||
+      !signupForm.phone
     ) {
       alert(
-        "Please provide first name, last name, valid email and matching passwords"
+        "Please provide first name, last name, phone number, valid email and matching passwords",
       );
       return;
     }
@@ -64,13 +66,14 @@ function CareProvidersNearYou() {
     const userCredentials = {
       firstName: signupForm.firstName,
       lastName: signupForm.lastName,
+      phone: signupForm.phone,
       email: signupForm.email,
       password: signupForm.password,
     };
 
     const payload = buildRegisterAndPublishPayload(
       onboarding.steps,
-      userCredentials
+      userCredentials,
     );
 
     try {
@@ -78,7 +81,7 @@ function CareProvidersNearYou() {
       if (resAction.error) {
         alert(
           "Registration failed: " +
-            (resAction.payload || resAction.error.message)
+            (resAction.payload || resAction.error.message),
         );
       } else {
         // Save registration result and redirect to login
@@ -146,6 +149,15 @@ function CareProvidersNearYou() {
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
               />
             </div>
+            <input
+              type="tel"
+              placeholder="Phone Number"
+              value={signupForm.phone}
+              onChange={(e) =>
+                setSignupForm({ ...signupForm, phone: e.target.value })
+              }
+              className="w-full mb-3 p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
+            />
             <input
               type="email"
               placeholder="Email"

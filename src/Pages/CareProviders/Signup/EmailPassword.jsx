@@ -12,6 +12,7 @@ import { useAuth } from "../../../Context/AuthContext";
 function EmailPassword({ formData, updateFormData, handleBack }) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const dispatch = useDispatch();
@@ -31,6 +32,10 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
     /// validate again before submit
     if (!isValidEmail(email)) {
       alert("Please provide a valid email address");
+      return;
+    }
+    if (!phone) {
+      alert("Please provide a phone number");
       return;
     }
     if (!isStrongPassword(password)) {
@@ -271,6 +276,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
       user_data: {
         first_name: userFirst,
         last_name: userLast,
+        phone_number: phone,
         email,
         password,
         user_type: "provider",
@@ -361,6 +367,20 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
                 Please enter a valid email address
               </p>
             )}
+          </div>
+
+          {/* Phone Number */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone Number
+            </label>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              type="tel"
+              placeholder="Input phone number"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-white dark:text-gray-700"
+            />
           </div>
 
           {/* Password with Eye Icon */}

@@ -51,7 +51,7 @@ export const fetchSeekerProfile = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.message);
     }
-  }
+  },
 );
 
 // Async thunk to generate preview
@@ -65,7 +65,7 @@ export const generatePreview = createAsyncThunk(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        }
+        },
       );
       if (!res.ok) {
         const text = await res.text();
@@ -80,7 +80,7 @@ export const generatePreview = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.message);
     }
-  }
+  },
 );
 
 // Async thunk to register and publish
@@ -94,7 +94,7 @@ export const registerAndPublish = createAsyncThunk(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        }
+        },
       );
       if (!res.ok) {
         const text = await res.text();
@@ -117,7 +117,7 @@ export const registerAndPublish = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.message);
     }
-  }
+  },
 );
 
 const initialState = readLS();
@@ -253,6 +253,7 @@ export const buildRegisterAndPublishPayload = (steps, userCredentials = {}) => {
     user_data: {
       first_name: userCredentials.firstName || steps.signup?.firstName || "",
       last_name: userCredentials.lastName || steps.signup?.lastName || "",
+      phone_number: userCredentials.phone || steps.signup?.phone || "",
       email: userCredentials.email || steps.signup?.email || "",
       password: userCredentials.password || steps.signup?.password || "",
       user_type: "seeker",
