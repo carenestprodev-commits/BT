@@ -96,7 +96,7 @@ function ChildSummary({
           aria-required="true"
         />
         <label htmlFor="terms" className="text-sm text-gray-700">
-          By signing, I agree{" "}
+          I acknowledge that I have read and accepted{" "}
           <a
             href="https://carenestpro.com/terms-of-service/"
             className="text-[#0093d1] underline"
