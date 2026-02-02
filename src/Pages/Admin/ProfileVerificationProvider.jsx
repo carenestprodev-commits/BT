@@ -428,10 +428,23 @@ function ProfileVerificationProvider() {
 
             <div className="mt-6 flex justify-end gap-2">
               {actionError && (
-                <div className="text-red-600 mr-auto">{actionError}</div>
+                <div className="text-red-600 mr-auto">
+                  {typeof actionError === "string"
+                    ? actionError
+                    : actionError?.status ||
+                      actionError?.error ||
+                      actionError?.message ||
+                      "Action failed"}
+                </div>
               )}
               {actionSuccess && (
-                <div className="text-green-600 mr-auto">{actionSuccess}</div>
+                <div className="text-green-600 mr-auto">
+                  {typeof actionSuccess === "string"
+                    ? actionSuccess
+                    : actionSuccess?.status ||
+                      actionSuccess?.message ||
+                      "Success"}
+                </div>
               )}
               <button
                 className="btn btn-ghost"

@@ -12,7 +12,7 @@ import {
 function Support() {
   const dispatch = useDispatch();
   const { tickets, loading, error, current, currentLoading } = useSelector(
-    (s) => s.adminSupport || {}
+    (s) => s.adminSupport || {},
   );
 
   const [query, setQuery] = useState("");
@@ -24,7 +24,7 @@ function Support() {
   const [successMsg, setSuccessMsg] = useState("");
   const [composeMsg, setComposeMsg] = useState("");
   const { actionLoading, actionError, actionSuccess } = useSelector(
-    (s) => s.adminSupport || {}
+    (s) => s.adminSupport || {},
   );
 
   const pageSize = 8;
@@ -42,13 +42,13 @@ function Support() {
       list2 = list2.filter(
         (r) =>
           (r.dispute || "").toLowerCase().includes(q) ||
-          (r.name || "").toLowerCase().includes(q)
+          (r.name || "").toLowerCase().includes(q),
       );
     }
     if (status) list2 = list2.filter((r) => r.status === status);
     if (date)
       list2 = list2.filter(
-        (r) => dayjs(r.date || r.start_date).format("YYYY-MM-DD") === date
+        (r) => dayjs(r.date || r.start_date).format("YYYY-MM-DD") === date,
       );
     return list2;
   }, [tickets, query, status, date]);
@@ -66,8 +66,8 @@ function Support() {
           r.name || "",
           r.status || "",
           r.date || r.start_date || "",
-        ].join(",")
-      )
+        ].join(","),
+      ),
     );
     const blob = new Blob([csv.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -182,16 +182,16 @@ function Support() {
                   statusRaw === "open"
                     ? "Open"
                     : statusRaw === "in_review"
-                    ? "In Review"
-                    : statusRaw === "resolved"
-                    ? "Resolved"
-                    : statusRaw || "";
+                      ? "In Review"
+                      : statusRaw === "resolved"
+                        ? "Resolved"
+                        : statusRaw || "";
                 const statusClass =
                   statusRaw === "open"
                     ? "bg-red-50 text-red-600"
                     : statusRaw === "resolved"
-                    ? "bg-green-50 text-green-600"
-                    : "bg-blue-50 text-blue-600";
+                      ? "bg-green-50 text-green-600"
+                      : "bg-blue-50 text-blue-600";
                 const formattedDate =
                   r.date || r.start_date
                     ? dayjs(r.date || r.start_date).format("DD-MM-YYYY")
@@ -308,12 +308,21 @@ function Support() {
               {currentLoading && <div>Loading...</div>}
               {actionError && (
                 <div className="text-red-600 mb-3">
-                  {actionError?.status || actionError?.error || "Action failed"}
+                  {typeof actionError === "string"
+                    ? actionError
+                    : actionError?.status ||
+                      actionError?.error ||
+                      actionError?.message ||
+                      "Action failed"}
                 </div>
               )}
               {actionSuccess && (
                 <div className="text-green-700 mb-3">
-                  {actionSuccess?.status || "Success"}
+                  {typeof actionSuccess === "string"
+                    ? actionSuccess
+                    : actionSuccess?.status ||
+                      actionSuccess?.message ||
+                      "Success"}
                 </div>
               )}
               {current && (
@@ -360,7 +369,7 @@ function Support() {
                   e.stopPropagation();
                   if (!current) return;
                   await dispatch(
-                    postSupportAction({ id: current.id, action: "resolve" })
+                    postSupportAction({ id: current.id, action: "resolve" }),
                   );
                 }}
                 className="w-full bg-[#0ea5d7] hover:bg-[#0c94bf] text-white py-2 rounded disabled:opacity-50"
@@ -374,7 +383,7 @@ function Support() {
                   e.stopPropagation();
                   if (!current) return;
                   await dispatch(
-                    postSupportAction({ id: current.id, action: "in_review" })
+                    postSupportAction({ id: current.id, action: "in_review" }),
                   );
                 }}
                 className="w-full border border-[#0ea5d7] text-[#0ea5d7] py-2 rounded disabled:opacity-50"
@@ -401,7 +410,7 @@ function Support() {
                           id: current.id,
                           action: "message",
                           message: composeMsg.trim(),
-                        })
+                        }),
                       );
                       setComposeMsg("");
                     }}

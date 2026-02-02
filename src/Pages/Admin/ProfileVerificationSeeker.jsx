@@ -374,14 +374,21 @@ function ProfileVerificationSeeker() {
                 )}
                 {actionError && (
                   <div className="text-red-600">
-                    {actionError?.status ||
-                      actionError?.error ||
-                      "Action failed"}
+                    {typeof actionError === "string"
+                      ? actionError
+                      : actionError?.status ||
+                        actionError?.error ||
+                        actionError?.message ||
+                        "Action failed"}
                   </div>
                 )}
                 {actionSuccess && (
                   <div className="text-green-700">
-                    {actionSuccess?.status || "Success"}
+                    {typeof actionSuccess === "string"
+                      ? actionSuccess
+                      : actionSuccess?.status ||
+                        actionSuccess?.message ||
+                        "Success"}
                   </div>
                 )}
               </div>
