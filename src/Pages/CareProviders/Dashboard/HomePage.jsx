@@ -10,18 +10,18 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchJobsFeed } from "../../../Redux/JobsFeed";
 import avatar_user from "../../../../public/avatar_user.png";
-import {useAppNotifications} from "../../../hooks/useAppNotifications.js";
+import { useAppNotifications } from "../../../hooks/useAppNotifications.js";
 import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
 
 export default function HomePage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { jobs, loading, error } = useSelector(
-    (s) => s.jobsFeed || { jobs: [], loading: false, error: null }
+    (s) => s.jobsFeed || { jobs: [], loading: false, error: null },
   );
 
   const authUser = useSelector((s) =>
-    s.auth && s.auth.user ? s.auth.user : null
+    s.auth && s.auth.user ? s.auth.user : null,
   );
 
   const displayName =
@@ -43,13 +43,10 @@ export default function HomePage() {
   const [verifiedFilter, setVerifiedFilter] = useState(false);
 
   const [notifications, setNotifications] = useState([]);
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   useAppNotifications((data) => {
-    setNotifications((prev) => [
-      { ...data, read: false },
-      ...prev,
-    ]);
+    setNotifications((prev) => [{ ...data, read: false }, ...prev]);
   });
 
   const handleClearAll = () => {
@@ -91,7 +88,9 @@ export default function HomePage() {
     ? jobs.filter(
         (job) =>
           (job.title || "").toLowerCase().includes(search.toLowerCase()) ||
-          (job.summary_short || "").toLowerCase().includes(search.toLowerCase())
+          (job.summary_short || "")
+            .toLowerCase()
+            .includes(search.toLowerCase()),
       )
     : [];
 
@@ -100,15 +99,13 @@ export default function HomePage() {
     filteredJobs = filteredJobs.filter((job) => job.verified === true);
   } else if (filterBy === "Earliest") {
     filteredJobs = filteredJobs.sort(
-      (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      (a, b) => new Date(a.created_at) - new Date(b.created_at),
     );
   } else if (filterBy === "Oldest") {
     filteredJobs = filteredJobs.sort(
-      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      (a, b) => new Date(b.created_at) - new Date(a.created_at),
     );
   }
-
-
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
@@ -120,7 +117,9 @@ export default function HomePage() {
             {/* Top Row: Greeting & Notification */}
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <div className="flex items-center">
-                <RiVerifiedBadgeFill className="text-green-400 mr-2 text-2xl hidden md:block" />
+                {authUser?.is_verified && (
+                  <RiVerifiedBadgeFill className="text-green-400 mr-2 text-2xl hidden md:block" />
+                )}
                 <h2 className="text-2xl font-medium text-gray-800">
                   Hello, {displayName}!
                 </h2>
@@ -130,7 +129,7 @@ export default function HomePage() {
                 <HiOutlineBell className="text-2xl" />
 
                 {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 min-w-[8px] h-2 px-1 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
+                  <span className="absolute top-1 right-1 min-w-[8px] h-2 px-1 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
                     {unreadCount}
                   </span>
                 )}
@@ -213,7 +212,7 @@ export default function HomePage() {
                           >
                             {option}
                           </button>
-                        )
+                        ),
                       )}
                     </div>
                   )}
@@ -248,7 +247,7 @@ export default function HomePage() {
                           >
                             {option}
                           </button>
-                        )
+                        ),
                       )}
                     </div>
                   )}
@@ -284,7 +283,7 @@ export default function HomePage() {
                             >
                               {option}
                             </button>
-                          )
+                          ),
                         )}
                       </div>
                     )}
@@ -318,7 +317,7 @@ export default function HomePage() {
                             >
                               {option}
                             </button>
-                          )
+                          ),
                         )}
                       </div>
                     )}

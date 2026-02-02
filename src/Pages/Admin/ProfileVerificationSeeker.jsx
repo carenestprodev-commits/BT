@@ -149,7 +149,7 @@ function ProfileVerificationSeeker() {
                                   postVerificationAction({
                                     id: r.id,
                                     action: "approve",
-                                  })
+                                  }),
                                 );
                               }}
                               className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
@@ -163,7 +163,7 @@ function ProfileVerificationSeeker() {
                                     id: r.id,
                                     action: "reject",
                                     feedback: "Rejected by admin",
-                                  })
+                                  }),
                                 );
                               }}
                               className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
@@ -176,7 +176,7 @@ function ProfileVerificationSeeker() {
                                   postVerificationAction({
                                     id: r.id,
                                     action: "message",
-                                  })
+                                  }),
                                 );
                                 setOpenMenuId(null);
                               }}
@@ -190,7 +190,7 @@ function ProfileVerificationSeeker() {
                                   postVerificationAction({
                                     id: r.id,
                                     action: "re_upload",
-                                  })
+                                  }),
                                 );
                                 setOpenMenuId(null);
                               }}
@@ -204,7 +204,7 @@ function ProfileVerificationSeeker() {
                                   postVerificationAction({
                                     id: r.id,
                                     action: "send_prompt",
-                                  })
+                                  }),
                                 );
                                 setOpenMenuId(null);
                               }}
@@ -393,7 +393,7 @@ function ProfileVerificationSeeker() {
                       postVerificationAction({
                         id: showDetailId,
                         action: "approve",
-                      })
+                      }),
                     )
                   }
                   className="w-full bg-green-600 text-white py-2 rounded"
@@ -415,7 +415,7 @@ function ProfileVerificationSeeker() {
                         id: showDetailId,
                         action: "reject",
                         feedback: "Image too blurry",
-                      })
+                      }),
                     )
                   }
                   className="w-full border border-red-600 text-red-600 py-2 rounded"
@@ -534,12 +534,15 @@ function ProfileVerificationSeeker() {
                         action: "approve",
                         manualPayment: {
                           payment_verified_manually: true,
-                          manual_payment_method: manualPaymentData.payment_method,
-                          manual_payment_date: manualPaymentData.payment_received_date,
-                          manual_payment_reference: manualPaymentData.payment_reference,
+                          manual_payment_method:
+                            manualPaymentData.payment_method,
+                          manual_payment_date:
+                            manualPaymentData.payment_received_date,
+                          manual_payment_reference:
+                            manualPaymentData.payment_reference,
                           manual_payment_notes: manualPaymentData.notes,
                         },
-                      })
+                      }),
                     );
                     setShowManualPaymentModal(false);
                     setManualPaymentData({
@@ -549,7 +552,9 @@ function ProfileVerificationSeeker() {
                       notes: "",
                     });
                   }}
-                  disabled={actionLoading || !manualPaymentData.payment_received_date}
+                  disabled={
+                    actionLoading || !manualPaymentData.payment_received_date
+                  }
                 >
                   {actionLoading ? "Approving..." : "Approve & Mark Paid"}
                 </button>
@@ -557,7 +562,6 @@ function ProfileVerificationSeeker() {
             </div>
           </div>
         )}
-}
       </div>
     </div>
   );

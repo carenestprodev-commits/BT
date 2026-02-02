@@ -34,7 +34,7 @@ function JobDetails() {
         error: null,
         bookingLoading: false,
         bookingError: null,
-      }
+      },
   );
 
   // Get current user info from Redux store
@@ -124,7 +124,7 @@ function JobDetails() {
         const payload = resAction.payload || resAction.error;
         alert(
           (payload && (payload.error || payload.message)) ||
-            "Failed to submit application"
+            "Failed to submit application",
         );
       }
     } catch {
@@ -183,7 +183,9 @@ function JobDetails() {
                     <span className="font-semibold text-gray-800 text-base sm:text-lg">
                       {job.poster_name || "Aleem Sarah"}
                     </span>
-                    <RiVerifiedBadgeFill className="text-blue-500 text-sm sm:text-base" />
+                    {job.is_verified && (
+                      <RiVerifiedBadgeFill className="text-blue-500 text-sm sm:text-base" />
+                    )}
                   </div>
                 </div>
               </div>
