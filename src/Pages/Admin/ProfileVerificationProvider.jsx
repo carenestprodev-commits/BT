@@ -21,6 +21,13 @@ function ProfileVerificationProvider() {
   const [page, setPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [showDetailId, setShowDetailId] = useState(null);
+  const [showManualPaymentModal, setShowManualPaymentModal] = useState(false);
+  const [manualPaymentData, setManualPaymentData] = useState({
+    payment_method: "bank_transfer",
+    payment_received_date: "",
+    payment_reference: "",
+    notes: "",
+  });
   const { current, currentLoading, actionLoading, actionError, actionSuccess } =
     useSelector((s) => s.verification || {});
 
@@ -148,7 +155,7 @@ function ProfileVerificationProvider() {
                                       postVerificationAction({
                                         id: r.id,
                                         action: "approve",
-                                      })
+                                      }),
                                     );
                                   }}
                                   className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
@@ -162,7 +169,7 @@ function ProfileVerificationProvider() {
                                         id: r.id,
                                         action: "reject",
                                         feedback: "Rejected by admin",
-                                      })
+                                      }),
                                     );
                                   }}
                                   className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
@@ -175,7 +182,7 @@ function ProfileVerificationProvider() {
                                       postVerificationAction({
                                         id: r.id,
                                         action: "message",
-                                      })
+                                      }),
                                     );
                                     setOpenMenuId(null);
                                   }}
@@ -189,7 +196,7 @@ function ProfileVerificationProvider() {
                                       postVerificationAction({
                                         id: r.id,
                                         action: "re_upload",
-                                      })
+                                      }),
                                     );
                                     setOpenMenuId(null);
                                   }}
@@ -203,7 +210,7 @@ function ProfileVerificationProvider() {
                                       postVerificationAction({
                                         id: r.id,
                                         action: "send_prompt",
-                                      })
+                                      }),
                                     );
                                     setOpenMenuId(null);
                                   }}
@@ -230,7 +237,7 @@ function ProfileVerificationProvider() {
                       <td className="p-3 align-top h-12">&nbsp;</td>
                       <td className="p-3 align-top h-12">&nbsp;</td>
                     </tr>
-                  )
+                  ),
                 )}
               </tbody>
             </table>
@@ -389,7 +396,7 @@ function ProfileVerificationProvider() {
                           const file = inp.files[0];
                           try {
                             const res = await dispatch(
-                              uploadVerificationId(file)
+                              uploadVerificationId(file),
                             );
                             // thunk returns fulfilled action or rejected action object
                             if (res && res.payload && res.payload.message) {
@@ -443,12 +450,19 @@ function ProfileVerificationProvider() {
                       id: showDetailId,
                       action: "reject",
                       feedback: "Rejected by admin",
-                    })
+                    }),
                   )
                 }
                 disabled={actionLoading}
               >
                 {actionLoading ? "Rejecting..." : "Reject"}
+              </button>
+              <button
+                className="btn btn-warning"
+                onClick={() => setShowManualPaymentModal(true)}
+                disabled={actionLoading}
+              >
+                Mark Manual Payment
               </button>
               <button
                 className="btn btn-primary"
@@ -457,12 +471,147 @@ function ProfileVerificationProvider() {
                     postVerificationAction({
                       id: showDetailId,
                       action: "approve",
-                    })
+                    }),
                   )
                 }
                 disabled={actionLoading}
               >
                 {actionLoading ? "Approving..." : "Approve"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Payment Modal */}
+      {showManualPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Mark Manual Payment</h3>
+              <button
+                className="text-gray-500"
+                onClick={() => setShowManualPaymentModal(false)}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Method
+                </label>
+                <select
+                  value={manualPaymentData.payment_method}
+                  onChange={(e) =>
+                    setManualPaymentData({
+                      ...manualPaymentData,
+                      payment_method: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                >
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="cash">Cash</option>
+                  <option value="cheque">Cheque</option>
+                  <option value="mobile_money">Mobile Money</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Date
+                </label>
+                <input
+                  type="date"
+                  value={manualPaymentData.payment_received_date}
+                  onChange={(e) =>
+                    setManualPaymentData({
+                      ...manualPaymentData,
+                      payment_received_date: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Reference / Receipt Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., TXN123456 or Receipt #789"
+                  value={manualPaymentData.payment_reference}
+                  onChange={(e) =>
+                    setManualPaymentData({
+                      ...manualPaymentData,
+                      payment_reference: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  placeholder="Add any notes about this manual payment verification..."
+                  value={manualPaymentData.notes}
+                  onChange={(e) =>
+                    setManualPaymentData({
+                      ...manualPaymentData,
+                      notes: e.target.value,
+                    })
+                  }
+                  rows="4"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowManualPaymentModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  dispatch(
+                    postVerificationAction({
+                      id: showDetailId,
+                      action: "approve",
+                      manualPayment: {
+                        payment_verified_manually: true,
+                        manual_payment_method: manualPaymentData.payment_method,
+                        manual_payment_date:
+                          manualPaymentData.payment_received_date,
+                        manual_payment_reference:
+                          manualPaymentData.payment_reference,
+                        manual_payment_notes: manualPaymentData.notes,
+                      },
+                    }),
+                  );
+                  setShowManualPaymentModal(false);
+                  setManualPaymentData({
+                    payment_method: "bank_transfer",
+                    payment_received_date: "",
+                    payment_reference: "",
+                    notes: "",
+                  });
+                }}
+                disabled={
+                  actionLoading || !manualPaymentData.payment_received_date
+                }
+              >
+                {actionLoading ? "Approving..." : "Approve & Mark Paid"}
               </button>
             </div>
           </div>

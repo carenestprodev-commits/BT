@@ -27,6 +27,13 @@ function ProfileVerificationSeeker() {
   const [page, setPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [showDetailId, setShowDetailId] = useState(null);
+  const [showManualPaymentModal, setShowManualPaymentModal] = useState(false);
+  const [manualPaymentData, setManualPaymentData] = useState({
+    payment_method: "bank_transfer",
+    payment_received_date: "",
+    payment_reference: "",
+    notes: "",
+  });
 
   const pageSize = 8;
   const seekerRows = (items || []).filter((x) => x.user_type === "seeker");
@@ -395,6 +402,13 @@ function ProfileVerificationSeeker() {
                 </button>
                 <button
                   disabled={actionLoading}
+                  onClick={() => setShowManualPaymentModal(true)}
+                  className="w-full bg-yellow-600 text-white py-2 rounded"
+                >
+                  Mark Manual Payment
+                </button>
+                <button
+                  disabled={actionLoading}
                   onClick={() =>
                     dispatch(
                       postVerificationAction({
@@ -412,6 +426,138 @@ function ProfileVerificationSeeker() {
             </div>
           </div>
         )}
+
+        {/* Manual Payment Modal */}
+        {showManualPaymentModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Mark Manual Payment</h3>
+                <button
+                  className="text-gray-500"
+                  onClick={() => setShowManualPaymentModal(false)}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={manualPaymentData.payment_method}
+                    onChange={(e) =>
+                      setManualPaymentData({
+                        ...manualPaymentData,
+                        payment_method: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                  >
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cash">Cash</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="mobile_money">Mobile Money</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Date
+                  </label>
+                  <input
+                    type="date"
+                    value={manualPaymentData.payment_received_date}
+                    onChange={(e) =>
+                      setManualPaymentData({
+                        ...manualPaymentData,
+                        payment_received_date: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Reference / Receipt Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., TXN123456 or Receipt #789"
+                    value={manualPaymentData.payment_reference}
+                    onChange={(e) =>
+                      setManualPaymentData({
+                        ...manualPaymentData,
+                        payment_reference: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    placeholder="Add any notes about this manual payment verification..."
+                    value={manualPaymentData.notes}
+                    onChange={(e) =>
+                      setManualPaymentData({
+                        ...manualPaymentData,
+                        notes: e.target.value,
+                      })
+                    }
+                    rows="4"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => setShowManualPaymentModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    dispatch(
+                      postVerificationAction({
+                        id: showDetailId,
+                        action: "approve",
+                        manualPayment: {
+                          payment_verified_manually: true,
+                          manual_payment_method: manualPaymentData.payment_method,
+                          manual_payment_date: manualPaymentData.payment_received_date,
+                          manual_payment_reference: manualPaymentData.payment_reference,
+                          manual_payment_notes: manualPaymentData.notes,
+                        },
+                      })
+                    );
+                    setShowManualPaymentModal(false);
+                    setManualPaymentData({
+                      payment_method: "bank_transfer",
+                      payment_received_date: "",
+                      payment_reference: "",
+                      notes: "",
+                    });
+                  }}
+                  disabled={actionLoading || !manualPaymentData.payment_received_date}
+                >
+                  {actionLoading ? "Approving..." : "Approve & Mark Paid"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+}
       </div>
     </div>
   );

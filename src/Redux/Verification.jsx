@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL } from "./config";
-import {fetchWithAuth} from "../lib/fetchWithAuth.js";
+import { fetchWithAuth } from "../lib/fetchWithAuth.js";
 
 export const fetchVerifications = createAsyncThunk(
   "verification/fetchVerifications",
@@ -17,7 +17,7 @@ export const fetchVerifications = createAsyncThunk(
     } catch {
       return rejectWithValue({ error: "Network error" });
     }
-  }
+  },
 );
 
 export const fetchVerificationById = createAsyncThunk(
@@ -26,21 +26,27 @@ export const fetchVerificationById = createAsyncThunk(
     try {
       const access = localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetchWithAuth(`${BASE_URL}/api/admin/verifications/${id}/`, {
-        headers,
-      });
+      const res = await fetchWithAuth(
+        `${BASE_URL}/api/admin/verifications/${id}/`,
+        {
+          headers,
+        },
+      );
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
       return data;
     } catch {
       return rejectWithValue({ error: "Network error" });
     }
-  }
+  },
 );
 
 export const postVerificationAction = createAsyncThunk(
   "verification/postVerificationAction",
-  async ({ id, action, feedback }, { rejectWithValue, dispatch }) => {
+  async (
+    { id, action, feedback, manualPayment },
+    { rejectWithValue, dispatch },
+  ) => {
     try {
       const access = localStorage.getItem("access");
       const headers = { "Content-Type": "application/json" };
@@ -48,12 +54,16 @@ export const postVerificationAction = createAsyncThunk(
       const body = JSON.stringify({
         action,
         ...(feedback ? { feedback } : {}),
+        ...(manualPayment ? manualPayment : {}),
       });
-      const res = await fetchWithAuth(`${BASE_URL}/api/admin/verifications/${id}/`, {
-        method: "POST",
-        headers,
-        body,
-      });
+      const res = await fetchWithAuth(
+        `${BASE_URL}/api/admin/verifications/${id}/`,
+        {
+          method: "POST",
+          headers,
+          body,
+        },
+      );
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
       try {
@@ -65,7 +75,7 @@ export const postVerificationAction = createAsyncThunk(
     } catch {
       return rejectWithValue({ error: "Network error" });
     }
-  }
+  },
 );
 
 export const uploadVerificationId = createAsyncThunk(
@@ -110,7 +120,7 @@ export const uploadVerificationId = createAsyncThunk(
       console.error("uploadVerificationId error", err);
       return rejectWithValue({ error: "Network error" });
     }
-  }
+  },
 );
 
 const slice = createSlice({
