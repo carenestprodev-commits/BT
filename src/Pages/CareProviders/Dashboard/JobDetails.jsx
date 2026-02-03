@@ -1,17 +1,16 @@
-/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
 import { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
-import { IoMdClose } from "react-icons/io";
-import { AiOutlineCheckCircle } from "react-icons/ai";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import {
   fetchJobById,
   clearSelectedJob,
   submitBooking,
 } from "../../../Redux/JobsFeed";
+import { fetchUserProfile } from "../../../Redux/Auth"; // ✅ Import this
 import avatar_user from "../../../../public/avatar_user.png";
 
 function JobDetails() {
@@ -37,26 +36,44 @@ function JobDetails() {
       },
   );
 
-  // Get current user info from Redux store
-  // Adjust the selector based on your actual Redux state structure
-  const currentUser = useSelector((s) => s.auth?.user || s.user?.profile || {});
+  // ✅ Get user from auth state
+  const currentUser = useSelector((s) => s.auth?.user || {});
 
   console.log("JobDetails - currentUser:", currentUser);
   console.log(
     "JobDetails - currentUser.is_verified:",
     currentUser?.is_verified,
   );
-  console.log("JobDetails - selectedJob from Redux:", job);
+
+  // ✅ NEW: Fetch fresh user profile on mount
+  useEffect(() => {
+    dispatch(fetchUserProfile());
+  }, [dispatch]);
+
+  // ✅ NEW: Poll for verification status updates (optional but recommended)
+  useEffect(() => {
+    const checkVerificationStatus = () => {
+      const approval = localStorage.getItem("verification_approval");
+      if (approval) {
+        const approvalData = JSON.parse(approval);
+        // If approval happened in last 5 minutes, refresh profile
+        if (Date.now() - approvalData.timestamp < 5 * 60 * 1000) {
+          dispatch(fetchUserProfile());
+          localStorage.removeItem("verification_approval");
+        }
+      }
+    };
+
+    // Check immediately and then every 10 seconds
+    checkVerificationStatus();
+    const interval = setInterval(checkVerificationStatus, 10000);
+
+    return () => clearInterval(interval);
+  }, [dispatch]);
 
   useEffect(() => {
     const jobFromState = location?.state?.job;
     const jobId = location?.state?.jobId || jobFromState?.id;
-    console.log(
-      "JobDetails useEffect - jobId:",
-      jobId,
-      "jobFromState:",
-      jobFromState,
-    );
     if (jobFromState) {
       dispatch(clearSelectedJob());
       dispatch(fetchJobById(jobFromState.id));
@@ -69,20 +86,16 @@ function JobDetails() {
     };
   }, [dispatch, location]);
 
-  // Extract skills and expertise from job details or API response
   const getSkillsAndExpertise = () => {
-    // If API provides skills_and_expertise array, use it directly
     if (job?.skills_and_expertise && Array.isArray(job.skills_and_expertise)) {
       return job.skills_and_expertise;
     }
 
-    // Otherwise, parse from details object (fallback for other API responses)
     const skills = [];
     const details = job?.details;
 
     if (!details) return skills;
 
-    // Provider experience skills
     const providerExp = details.provider_experience;
     if (providerExp) {
       if (providerExp.sleep_in) skills.push("sleep-in");
@@ -101,7 +114,6 @@ function JobDetails() {
       if (providerExp.experience_with_autism)
         skills.push("Experience with autism");
 
-      // Languages
       if (Array.isArray(providerExp.languages)) {
         providerExp.languages.forEach((lang) => {
           skills.push(`Speaks ${lang} Fluently`);
@@ -109,7 +121,6 @@ function JobDetails() {
       }
     }
 
-    // Additional skills from other fields
     if (details.additional_skills && Array.isArray(details.additional_skills)) {
       skills.push(...details.additional_skills);
     }
@@ -118,13 +129,12 @@ function JobDetails() {
   };
 
   const handleApplyClick = () => {
-    // Check if user is verified
+    // ✅ Re-check verification status with fresh data
     if (!currentUser?.is_verified) {
       setShowVerificationModal(true);
       return;
     }
 
-    // If verified, proceed directly to submit application
     handleSubmitApplication();
   };
 
@@ -151,9 +161,19 @@ function JobDetails() {
     }
   };
 
-  const handleVerificationProceed = () => {
-    // After user completes verification and returns, submit the application
-    handleSubmitApplication();
+  const handleVerificationProceed = async () => {
+    // ✅ Refresh user profile before proceeding
+    await dispatch(fetchUserProfile());
+
+    // Check again if user is now verified
+    const freshUser = store.getState().auth.user;
+    if (freshUser?.is_verified) {
+      handleSubmitApplication();
+    } else {
+      // Still not verified, navigate to verification page
+      navigate("/careproviders/dashboard/verification");
+    }
+    setShowVerificationModal(false);
   };
 
   const handleVerificationCancel = () => {

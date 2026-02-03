@@ -66,11 +66,32 @@ export const postVerificationAction = createAsyncThunk(
       );
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
+
+      // ✅ Refresh verifications list
       try {
         dispatch(fetchVerifications());
       } catch {
         /* ignore refresh error */
       }
+
+      // ✅ NEW: Broadcast approval event so user's session can update
+      if (action === "approve" && res.ok) {
+        // Store approval event in localStorage so the user's browser can detect it
+        try {
+          const approvalEvent = {
+            userId: id,
+            timestamp: Date.now(),
+            action: "approved",
+          };
+          localStorage.setItem(
+            "verification_approval",
+            JSON.stringify(approvalEvent),
+          );
+        } catch {
+          /* ignore */
+        }
+      }
+
       return data;
     } catch {
       return rejectWithValue({ error: "Network error" });
