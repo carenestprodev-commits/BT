@@ -42,7 +42,7 @@ export const loginUser = createAsyncThunk(
     } catch {
       return rejectWithValue({ error: "Network error" });
     }
-  }
+  },
 );
 
 const initialState = {
@@ -87,6 +87,16 @@ const authSlice = createSlice({
         // ignore
       }
     },
+    updateUserVerification(state, action) {
+      if (state.user) {
+        state.user = { ...state.user, is_verified: action.payload };
+        try {
+          localStorage.setItem(LS_USER, JSON.stringify(state.user));
+        } catch {
+          // ignore
+        }
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -113,6 +123,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, updateUserVerification } = authSlice.actions;
 
 export default authSlice.reducer;

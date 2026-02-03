@@ -20,6 +20,8 @@ export default function HomePage() {
     (s) => s.jobsFeed || { jobs: [], loading: false, error: null },
   );
 
+  console.log("HomePage - Redux jobs state:", { jobs, loading, error });
+
   const authUser = useSelector((s) =>
     s.auth && s.auth.user ? s.auth.user : null,
   );
@@ -383,12 +385,12 @@ export default function HomePage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="font-medium text-gray-800 text-sm">
-                          {job.poster_name || "Aleem Sarah"}
+                          {job.seeker_name || job.poster_name || "User"}
                         </span>
                         <RiVerifiedBadgeFill className="text-blue-500 text-xs flex-shrink-0" />
                       </div>
                       <span className="text-gray-400 text-xs">
-                        Posted {job.posted_ago || "5 minutes ago"}
+                        Posted {job.posted_ago || "Just now"}
                       </span>
                     </div>
                   </div>
@@ -406,7 +408,10 @@ export default function HomePage() {
                   {/* Budget - Bottom with border (Mobile) */}
                   <div className="pt-3 border-t border-gray-100">
                     <span className="text-teal-700 text-sm font-semibold">
-                      Budget - {job.budget_display || "#23,000/day"}
+                      Budget -{" "}
+                      {job.budget_display ||
+                        job.budget ||
+                        "Contact for details"}
                     </span>
                   </div>
                 </div>
@@ -424,12 +429,12 @@ export default function HomePage() {
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
                           <span className="font-medium text-gray-900 text-base">
-                            {job.poster_name || "Aleem Sarah"}
+                            {job.seeker_name || job.poster_name || "User"}
                           </span>
                           <RiVerifiedBadgeFill className="text-blue-500 text-sm flex-shrink-0" />
                         </div>
                         <span className="text-gray-400 text-xs mt-0.5">
-                          Posted {job.posted_ago || "5 minutes ago"}
+                          Posted {job.posted_ago || "Just now"}
                         </span>
                       </div>
                     </div>
@@ -437,7 +442,10 @@ export default function HomePage() {
                     {/* Budget - Top Right (Desktop Only) */}
                     <div className="text-right flex-shrink-0 ml-4">
                       <span className="text-gray-900 text-base font-medium">
-                        Budget - {job.budget_display || "₦23,000/day"}
+                        Budget -{" "}
+                        {job.budget_display ||
+                          job.budget ||
+                          "Contact for details"}
                       </span>
                     </div>
                   </div>

@@ -184,7 +184,8 @@ export const approveUser = createAsyncThunk(
       } catch {
         /* ignore refresh error */
       }
-      return { id, data };
+
+      return { id, data, verified: true };
     } catch {
       return rejectWithValue({ error: "Network error" });
     }

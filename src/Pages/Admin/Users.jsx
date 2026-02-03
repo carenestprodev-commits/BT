@@ -22,12 +22,14 @@ import {
   activateUser,
   approveUser,
 } from "../../Redux/AdminUsers";
+import { updateUserVerification } from "../../Redux/Login";
 
 function Users() {
   const dispatch = useDispatch();
   const { stats, users } = useSelector(
     (s) => s.adminUsers || { stats: {}, users: [] },
   );
+  const currentUserId = useSelector((s) => s.auth?.user?.id);
   const [rows, setRows] = useState([]);
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("All");
@@ -621,6 +623,11 @@ function Users() {
                         },
                       }),
                     ).unwrap();
+
+                    // Update the currently logged-in user's verification status if they are being verified
+                    if (currentUserId === selectedUserForPayment.id) {
+                      dispatch(updateUserVerification(true));
+                    }
 
                     setShowManualPaymentModal(false);
                     setSelectedUserForPayment(null);
