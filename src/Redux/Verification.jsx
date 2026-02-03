@@ -59,7 +59,7 @@ export const postVerificationAction = createAsyncThunk(
       const res = await fetchWithAuth(
         `${BASE_URL}/api/admin/verifications/${id}/`,
         {
-          method: "POST",
+          method: "PATCH",
           headers,
           body,
         },

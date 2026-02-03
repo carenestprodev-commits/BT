@@ -5,7 +5,7 @@ import { useDispatch } from "react-redux";
 import { loginUser } from "../../Redux/Login";
 import formatAuthError from "../../utils/formatAuthError";
 
-function LoginPage(handleBack) {
+function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +26,7 @@ function LoginPage(handleBack) {
       console.log("Access in localStorage after delay:", access);
       console.log(
         "User in localStorage after delay:",
-        localStorage.getItem("user")
+        localStorage.getItem("user"),
       );
 
       if (access) {
@@ -73,10 +73,7 @@ function LoginPage(handleBack) {
       <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-md">
         <div className="flex justify-end mb-6">
           <Link to="/">
-            <button
-              onClick={handleBack}
-              className="border border-gray-300 rounded-md py-2 px-4 text-gray-500 hover:text-gray-700 hover:border-gray-400 transition"
-            >
+            <button className="border border-gray-300 rounded-md py-2 px-4 text-gray-500 hover:text-gray-700 hover:border-gray-400 transition">
               ←
             </button>
           </Link>
