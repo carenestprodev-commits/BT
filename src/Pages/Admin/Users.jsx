@@ -624,9 +624,21 @@ function Users() {
                       }),
                     ).unwrap();
 
+                    console.log("Approval result:", result);
+
                     // Update the currently logged-in user's verification status if they are being verified
                     if (currentUserId === selectedUserForPayment.id) {
-                      dispatch(updateUserVerification(true));
+                      if (result.updatedUser) {
+                        // Use the updated user data from the API
+                        dispatch(
+                          updateUserVerification(
+                            result.updatedUser.is_verified || true,
+                          ),
+                        );
+                      } else {
+                        // Fallback to just setting is_verified to true
+                        dispatch(updateUserVerification(true));
+                      }
                     }
 
                     setShowManualPaymentModal(false);
@@ -644,7 +656,7 @@ function Users() {
                     }
                     setAlert({
                       type: "success",
-                      text: `✅ User verified successfully! They can now apply for jobs. They may need to log out and log back in to see the verification badge.`,
+                      text: `✅ User verified successfully! Their verification badge should appear immediately.`,
                     });
                     alertTimerRef.current = setTimeout(
                       () => setAlert(null),

@@ -89,7 +89,13 @@ const authSlice = createSlice({
     },
     updateUserVerification(state, action) {
       if (state.user) {
-        state.user = { ...state.user, is_verified: action.payload };
+        // Handle both boolean (is_verified flag) and full user object
+        if (typeof action.payload === "boolean") {
+          state.user = { ...state.user, is_verified: action.payload };
+        } else if (typeof action.payload === "object") {
+          // If it's a full user object, merge it
+          state.user = { ...state.user, ...action.payload };
+        }
         try {
           localStorage.setItem(LS_USER, JSON.stringify(state.user));
         } catch {

@@ -179,14 +179,28 @@ export const approveUser = createAsyncThunk(
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
 
+      // Refresh the admin's user list
       try {
         dispatch(fetchAllUsers());
       } catch {
         /* ignore refresh error */
       }
 
-      return { id, data, verified: true };
-    } catch {
+      // Fetch the updated user profile to get the latest is_verified status
+      let updatedUser = null;
+      try {
+        const userRes = await fetchWithAuth(`${BASE_URL}/api/auth/user/`, {
+          headers: { Authorization: `Bearer ${access}` },
+        });
+        updatedUser = await userRes.json();
+        console.log("Updated user after verification:", updatedUser);
+      } catch (err) {
+        console.error("Error fetching updated user:", err);
+      }
+
+      return { id, data, verified: true, updatedUser };
+    } catch (error) {
+      console.error("approveUser error:", error);
       return rejectWithValue({ error: "Network error" });
     }
   },

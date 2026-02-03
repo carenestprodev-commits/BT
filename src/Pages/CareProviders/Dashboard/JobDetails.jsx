@@ -41,6 +41,11 @@ function JobDetails() {
   // Adjust the selector based on your actual Redux state structure
   const currentUser = useSelector((s) => s.auth?.user || s.user?.profile || {});
 
+  console.log("JobDetails - currentUser:", currentUser);
+  console.log(
+    "JobDetails - currentUser.is_verified:",
+    currentUser?.is_verified,
+  );
   console.log("JobDetails - selectedJob from Redux:", job);
 
   useEffect(() => {
