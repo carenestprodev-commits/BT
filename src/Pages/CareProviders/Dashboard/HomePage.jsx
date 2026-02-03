@@ -72,9 +72,9 @@ export default function HomePage() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [sortDropdownOpen, filterDropdownOpen]);
 
-  // useEffect(() => {
-  //   dispatch(fetchJobsFeed());
-  // }, [dispatch]);
+  useEffect(() => {
+    dispatch(fetchJobsFeed());
+  }, [dispatch]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
