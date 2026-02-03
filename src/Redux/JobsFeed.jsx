@@ -52,14 +52,15 @@ export const fetchJobById = createAsyncThunk(
     try {
       const access = localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetchWithAuth(
-        `${BASE_URL}/api/jobs/feed/${encodeURIComponent(id)}/`,
-        { headers },
-      );
+      const url = `${BASE_URL}/api/jobs/feed/${encodeURIComponent(id)}/`;
+      console.log("Fetching job from:", url);
+      const res = await fetchWithAuth(url, { headers });
       const data = await res.json();
+      console.log("Job details API response:", data);
       if (!res.ok) return rejectWithValue(data);
       return data;
-    } catch {
+    } catch (error) {
+      console.error("Job fetch error:", error);
       return rejectWithValue({ error: "Network error" });
     }
   },

@@ -41,9 +41,17 @@ function JobDetails() {
   // Adjust the selector based on your actual Redux state structure
   const currentUser = useSelector((s) => s.auth?.user || s.user?.profile || {});
 
+  console.log("JobDetails - selectedJob from Redux:", job);
+
   useEffect(() => {
     const jobFromState = location?.state?.job;
     const jobId = location?.state?.jobId || jobFromState?.id;
+    console.log(
+      "JobDetails useEffect - jobId:",
+      jobId,
+      "jobFromState:",
+      jobFromState,
+    );
     if (jobFromState) {
       dispatch(clearSelectedJob());
       dispatch(fetchJobById(jobFromState.id));
@@ -56,8 +64,14 @@ function JobDetails() {
     };
   }, [dispatch, location]);
 
-  // Extract skills and expertise from job details
+  // Extract skills and expertise from job details or API response
   const getSkillsAndExpertise = () => {
+    // If API provides skills_and_expertise array, use it directly
+    if (job?.skills_and_expertise && Array.isArray(job.skills_and_expertise)) {
+      return job.skills_and_expertise;
+    }
+
+    // Otherwise, parse from details object (fallback for other API responses)
     const skills = [];
     const details = job?.details;
 
@@ -181,7 +195,7 @@ function JobDetails() {
                 <div className="flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-gray-800 text-base sm:text-lg">
-                      {job.poster_name || "Aleem Sarah"}
+                      {job.seeker_name || job.poster_name || "User"}
                     </span>
                     {job.is_verified && (
                       <RiVerifiedBadgeFill className="text-blue-500 text-sm sm:text-base" />
@@ -197,22 +211,26 @@ function JobDetails() {
 
               {/* Posted Time */}
               <div className="text-gray-400 text-xs sm:text-sm mb-6">
-                Posted {job.posted_ago || "5 minutes ago"}
+                {job.posted_ago || "Just now"}
               </div>
 
               {/* Job Description */}
               <div className="text-gray-600 text-sm sm:text-base leading-relaxed mb-8 whitespace-pre-line">
-                {job.summary || job.description}
+                {job.summary || job.description || "No description provided"}
               </div>
 
               {/* Skills and Expertise Section */}
-              {getSkillsAndExpertise().length > 0 && (
+              {(job.skills_and_expertise?.length > 0 ||
+                getSkillsAndExpertise().length > 0) && (
                 <div className="mb-8">
                   <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-4">
                     Skills and expertise
                   </h2>
                   <div className="flex flex-wrap gap-2">
-                    {getSkillsAndExpertise().map((skill, index) => (
+                    {(job.skills_and_expertise?.length > 0
+                      ? job.skills_and_expertise
+                      : getSkillsAndExpertise()
+                    ).map((skill, index) => (
                       <span
                         key={index}
                         className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs sm:text-sm rounded-full border border-gray-200"
