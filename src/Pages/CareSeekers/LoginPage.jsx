@@ -3,6 +3,7 @@ import CareLogo from "../../../public/CareLogo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { loginUser, logout } from "../../Redux/Login";
+import { fetchUserProfile } from "../../Redux/Auth"; // ✅ Import profile fetch
 import formatAuthError from "../../utils/formatAuthError";
 import { useAuth } from "../../Context/AuthContext";
 
@@ -11,51 +12,93 @@ function LoginPage({ handleBack }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false); // ✅ Loading state
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { setUser } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await dispatch(loginUser({ email, password }));
-    if (result && result.payload && result.payload.access) {
-      // success - ensure user has the correct role
-      const userData = result.payload.user;
-      const userType = userData?.user_type || "seeker";
+    setIsLoggingIn(true); // ✅ Start loading
+    setError(null); // Clear previous errors
 
-      if (userType === "seeker") {
-        // Set user in AuthContext for cross-tab sync and role checking
-        setUser({
-          ...userData,
-          user_type: "seeker",
-          email: userData?.email || email,
-        });
-        navigate("/careseekers/dashboard/home");
-      } else {
-        try {
-          dispatch(logout());
-        } catch {
-          localStorage.removeItem("access");
-          localStorage.removeItem("refresh");
-          localStorage.removeItem("user");
+    try {
+      const result = await dispatch(loginUser({ email, password }));
+
+      if (result && result.payload && result.payload.access) {
+        // success - ensure user has the correct role
+        const userData = result.payload.user;
+        const userType = userData?.user_type || "seeker";
+
+        if (userType === "seeker") {
+          console.log("✅ Login successful, fetching fresh profile...");
+
+          // ✅ CRITICAL FIX: Fetch fresh profile BEFORE navigation
+          // This ensures the verification badge shows immediately
+          try {
+            const profileResult = await dispatch(fetchUserProfile());
+
+            if (profileResult.payload) {
+              console.log(
+                "✅ Profile fetched successfully, is_verified:",
+                profileResult.payload.is_verified,
+              );
+
+              // Set user in AuthContext with fresh data
+              setUser({
+                ...profileResult.payload,
+                user_type: "seeker",
+                email: profileResult.payload?.email || email,
+              });
+            } else {
+              console.warn("⚠️ Profile fetch failed, using login data");
+              // Fallback to login data if profile fetch fails
+              setUser({
+                ...userData,
+                user_type: "seeker",
+                email: userData?.email || email,
+              });
+            }
+          } catch (profileError) {
+            console.error("❌ Profile fetch error:", profileError);
+            // Still proceed with login data
+            setUser({
+              ...userData,
+              user_type: "seeker",
+              email: userData?.email || email,
+            });
+          }
+
+          // Navigate after profile is fetched
+          navigate("/careseekers/dashboard/home");
+        } else {
+          try {
+            dispatch(logout());
+          } catch {
+            localStorage.removeItem("access");
+            localStorage.removeItem("refresh");
+            localStorage.removeItem("user");
+          }
+          setError(
+            "You are not a care seeker — please login through the Care Provider portal",
+          );
         }
-        setError(
-          "You are not a care seeker — please login through the Care Provider portal"
-        );
-      }
-    } else {
-      const raw = formatAuthError(result);
-      if (/user type|wrong user|incorrect user|not authorized/i.test(raw)) {
-        setError("Wrong user type — please login through the correct portal");
-      } else if (/network error/i.test(raw)) {
-        setError("Network error — please check your connection");
-      } else if (
-        /401|invalid credentials|credentials|unauthorized/i.test(raw)
-      ) {
-        setError("Wrong credentials — please check your email and password");
       } else {
-        setError(raw);
+        const raw = formatAuthError(result);
+        if (/user type|wrong user|incorrect user|not authorized/i.test(raw)) {
+          setError("Wrong user type — please login through the correct portal");
+        } else if (/network error/i.test(raw)) {
+          setError("Network error — please check your connection");
+        } else if (
+          /401|invalid credentials|credentials|unauthorized/i.test(raw)
+        ) {
+          setError("Wrong credentials — please check your email and password");
+        } else {
+          setError(raw);
+        }
       }
+    } finally {
+      setIsLoggingIn(false); // ✅ Stop loading
     }
   };
 
@@ -118,6 +161,7 @@ function LoginPage({ handleBack }) {
               type="email"
               placeholder="Input email address"
               className="font-sfpro w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-white dark:text-gray-700"
+              disabled={isLoggingIn}
             />
             {!isValidEmail(email) && email && (
               <p className="text-red-500 text-sm mt-1">
@@ -138,12 +182,14 @@ function LoginPage({ handleBack }) {
                 type={showPassword ? "text" : "password"}
                 placeholder="Input password"
                 className="dark:bg-white dark:text-gray-700 w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                disabled={isLoggingIn}
               />
               {/* Eye Icon */}
               <button
                 type="button"
                 className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoggingIn}
               >
                 {showPassword ? (
                   // Eye-off icon
@@ -197,10 +243,36 @@ function LoginPage({ handleBack }) {
           {/* Login Button */}
           <button
             type="submit"
-            className="font-sfpro w-full bg-[#0093d1] text-white font-medium py-2 rounded-md hover:bg-[#007bb0] transition disabled:opacity-60"
-            disabled={!isValidEmail(email) || !password}
+            className="font-sfpro w-full bg-[#0093d1] text-white font-medium py-2 rounded-md hover:bg-[#007bb0] transition disabled:opacity-60 flex items-center justify-center"
+            disabled={!isValidEmail(email) || !password || isLoggingIn}
           >
-            Log In
+            {isLoggingIn ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Logging in...
+              </>
+            ) : (
+              "Log In"
+            )}
           </button>
         </form>
 

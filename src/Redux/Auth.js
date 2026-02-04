@@ -9,16 +9,7 @@ export const fetchUserProfile = createAsyncThunk(
       const access =
         localStorage.getItem("accessToken") || localStorage.getItem("access");
       if (!access) {
-        console.warn("⚠️ No access token found, using cached user data");
-        // Try to use cached data
-        try {
-          const cachedUser = localStorage.getItem("user");
-          if (cachedUser) {
-            return JSON.parse(cachedUser);
-          }
-        } catch {
-          /* ignore */
-        }
+        console.warn("⚠️ No access token found");
         return rejectWithValue("No access token");
       }
 
@@ -34,95 +25,85 @@ export const fetchUserProfile = createAsyncThunk(
         userType = "provider";
       }
 
-      // Build the appropriate endpoint based on user type
-      let endpoint = `${BASE_URL}/api/provider/profile/personal-info/`;
-      if (userType === "seeker") {
-        endpoint = `${BASE_URL}/api/seeker/profile/personal-info/`;
-      }
+      // ✅ FIX: Ensure trailing slash is consistent with backend
+      // Try both with and without trailing slash if first attempt fails
+      const endpoints = [
+        `${BASE_URL}/api/${userType}/profile/personal-info/`,
+        `${BASE_URL}/api/${userType}/profile/personal-info`,
+      ];
 
       let res;
-      try {
-        res = await fetch(endpoint, {
-          headers: {
-            Authorization: `Bearer ${access}`,
-            "Content-Type": "application/json",
-          },
-          signal: AbortSignal.timeout(10000), // 10 second timeout
-        });
-      } catch (fetchError) {
-        console.error("❌ Network error fetching profile:", fetchError.message);
-        // Return cached data if network fails
+      let lastError;
+
+      // Try both endpoint variations
+      for (const endpoint of endpoints) {
         try {
-          const cachedUser = localStorage.getItem("user");
-          if (cachedUser) {
-            console.log("📦 Using cached user data due to network error");
-            return JSON.parse(cachedUser);
-          }
-        } catch {
-          /* ignore */
-        }
-        return rejectWithValue(`Network error: ${fetchError.message}`);
-      }
+          console.log(`🔍 Attempting to fetch profile from: ${endpoint}`);
 
-      // Handle HTTP errors
-      if (!res.ok) {
-        console.error("❌ Profile fetch HTTP error:", {
-          status: res.status,
-          statusText: res.statusText,
-          endpoint,
-        });
-
-        // If 401 or 403, token might be invalid
-        if (res.status === 401 || res.status === 403) {
-          console.warn(
-            "⚠️ Authentication error (401/403), clearing invalid token",
-          );
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("access");
-          // Try to use cached data
-          try {
-            const cachedUser = localStorage.getItem("user");
-            if (cachedUser) {
-              console.log("📦 Using cached user data due to auth error");
-              return JSON.parse(cachedUser);
-            }
-          } catch {
-            /* ignore */
-          }
-        }
-
-        try {
-          const errorData = await res.json();
-          return rejectWithValue(errorData);
-        } catch {
-          return rejectWithValue({
-            error: `HTTP ${res.status}: ${res.statusText}`,
+          res = await fetch(endpoint, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${access}`,
+              "Content-Type": "application/json",
+            },
+            signal: AbortSignal.timeout(10000), // 10 second timeout
           });
+
+          // Check if we got HTML instead of JSON (404 error page)
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("text/html")) {
+            console.warn(`⚠️ Endpoint ${endpoint} returned HTML (likely 404)`);
+            lastError = new Error("Endpoint returned HTML");
+            continue; // Try next endpoint
+          }
+
+          // If we got a successful response, break out of loop
+          if (res.ok) {
+            console.log(`✅ Successfully connected to: ${endpoint}`);
+            break;
+          }
+
+          // If we got 401/403, don't try other endpoints
+          if (res.status === 401 || res.status === 403) {
+            console.error("❌ Authentication error:", res.status);
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("access");
+            return rejectWithValue("Authentication failed");
+          }
+
+          lastError = new Error(`HTTP ${res.status}`);
+        } catch (fetchError) {
+          console.warn(
+            `⚠️ Failed to fetch from ${endpoint}:`,
+            fetchError.message,
+          );
+          lastError = fetchError;
+          continue; // Try next endpoint
         }
       }
 
+      // If all endpoints failed
+      if (!res || !res.ok) {
+        console.error("❌ All profile endpoints failed:", lastError);
+        return rejectWithValue({
+          error: `Failed to fetch profile: ${lastError?.message || "Unknown error"}`,
+        });
+      }
+
+      // Parse the response
       let responseData;
       try {
         const responseText = await res.text();
 
-        // Check if response is HTML (error page) instead of JSON
+        // Double-check for HTML response
         if (
           responseText.trim().startsWith("<") ||
           responseText.includes("<!DOCTYPE")
         ) {
           console.error("❌ Server returned HTML instead of JSON");
-          // Try to use cached data
-          try {
-            const cachedUser = localStorage.getItem("user");
-            if (cachedUser) {
-              console.log("📦 Using cached user data due to HTML response");
-              return JSON.parse(cachedUser);
-            }
-          } catch {
-            /* ignore */
-          }
           return rejectWithValue({
-            error: "Server error: received HTML instead of JSON",
+            error:
+              "Server error: received HTML instead of JSON. Check endpoint URL.",
           });
         }
 
@@ -132,24 +113,12 @@ export const fetchUserProfile = createAsyncThunk(
         }
 
         responseData = JSON.parse(responseText);
-        console.log("✅ Profile fetch successful, response length:", {
-          length: responseText.length,
-          hasUserData: !!responseData.user_data,
-        });
+        console.log("✅ Profile data parsed successfully");
       } catch (parseError) {
-        console.error("❌ Failed to parse profile response:", {
-          error: parseError.message,
-        });
-        // Try to use cached data
-        try {
-          const cachedUser = localStorage.getItem("user");
-          if (cachedUser) {
-            console.log("📦 Using cached user data due to parse error");
-            return JSON.parse(cachedUser);
-          }
-        } catch {
-          /* ignore */
-        }
+        console.error(
+          "❌ Failed to parse profile response:",
+          parseError.message,
+        );
         return rejectWithValue({
           error: `Invalid JSON response: ${parseError.message}`,
         });
@@ -188,17 +157,7 @@ export const fetchUserProfile = createAsyncThunk(
 
       return mappedData;
     } catch (err) {
-      console.error("❌ Unexpected error in fetchUserProfile:", err.message);
-      // Final fallback: return cached user data
-      try {
-        const cachedUser = localStorage.getItem("user");
-        if (cachedUser) {
-          console.log("📦 Using cached user data as final fallback");
-          return JSON.parse(cachedUser);
-        }
-      } catch {
-        /* ignore */
-      }
+      console.error("❌ Unexpected error in fetchUserProfile:", err);
       return rejectWithValue(err.message);
     }
   },
@@ -214,6 +173,7 @@ const authSlice = createSlice({
   reducers: {
     setUser(state, action) {
       state.user = action.payload;
+      console.log("✅ Redux user state updated:", action.payload?.is_verified);
     },
     clearUser(state) {
       state.user = null;
@@ -228,10 +188,13 @@ const authSlice = createSlice({
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
+        state.error = null;
+        console.log("✅ Profile fetch fulfilled, user:", action.payload);
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+        console.error("❌ Profile fetch rejected:", action.payload);
       });
   },
 });
