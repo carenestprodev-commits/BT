@@ -39,11 +39,47 @@ export const fetchUserProfile = createAsyncThunk(
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        return rejectWithValue(errorData);
+        console.error("❌ Profile fetch failed:", {
+          status: res.status,
+          statusText: res.statusText,
+          endpoint,
+        });
+        try {
+          const errorData = await res.json();
+          return rejectWithValue(errorData);
+        } catch {
+          return rejectWithValue({
+            error: `HTTP ${res.status}: ${res.statusText}`,
+          });
+        }
       }
 
-      const data = await res.json();
+      let data;
+      try {
+        const responseText = await res.text();
+        console.log("✅ Profile fetch response:", {
+          status: res.status,
+          endpoint,
+          responseLength: responseText.length,
+          response: responseText.substring(0, 200),
+        });
+
+        // Try to parse as JSON
+        if (responseText.trim()) {
+          data = JSON.parse(responseText);
+        } else {
+          console.error("❌ Empty response from server");
+          return rejectWithValue({ error: "Empty response from server" });
+        }
+      } catch (parseError) {
+        console.error("❌ Failed to parse profile response:", {
+          error: parseError.message,
+          endpoint,
+        });
+        return rejectWithValue({
+          error: `Invalid JSON response: ${parseError.message}`,
+        });
+      }
 
       // Update localStorage with fresh user data
       try {
