@@ -9,7 +9,9 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchJobsFeed } from "../../../Redux/JobsFeed";
+import { fetchUserProfile } from "../../../Redux/Auth";
 import { useUserProfileRefreshOnFocus } from "../../../hooks/useUserProfileRefresh";
+import { useEnsureProfileLoaded } from "../../../hooks/useEnsureProfileLoaded";
 import avatar_user from "../../../../public/avatar_user.png";
 import { useAppNotifications } from "../../../hooks/useAppNotifications.js";
 import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
@@ -17,7 +19,7 @@ import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
 export default function HomePage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [profileInitialized, setProfileInitialized] = useState(false);
+  const { isLoading: profileLoading } = useEnsureProfileLoaded();
   const { jobs, loading, error } = useSelector(
     (s) => s.jobsFeed || { jobs: [], loading: false, error: null },
   );
@@ -81,8 +83,11 @@ export default function HomePage() {
 
   useEffect(() => {
     dispatch(fetchJobsFeed());
-    // Don't fetch profile here - use VerificationStatusListener instead
-    // which is more reliable and doesn't cause race conditions
+    // ✅ CRITICAL FIX: Fetch fresh user profile on mount to get latest is_verified status
+    // This ensures badge shows immediately on login without needing a refresh
+    dispatch(fetchUserProfile()).catch((err) => {
+      console.error("Profile fetch error:", err);
+    });
   }, [dispatch]);
 
   useEffect(() => {
@@ -126,9 +131,11 @@ export default function HomePage() {
             {/* Top Row: Greeting & Notification */}
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <div className="flex items-center gap-2">
-                {authUser?.is_verified && (
+                {profileLoading ? (
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-200 rounded-full animate-pulse flex-shrink-0" />
+                ) : authUser?.is_verified ? (
                   <RiVerifiedBadgeFill className="text-green-400 text-xl sm:text-2xl flex-shrink-0" />
-                )}
+                ) : null}
                 <h2 className="text-2xl font-medium text-gray-800">
                   Hello, {displayName}!
                 </h2>
