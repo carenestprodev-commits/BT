@@ -9,9 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchJobsFeed } from "../../../Redux/JobsFeed";
-import { fetchUserProfile } from "../../../Redux/Auth";
 import { useUserProfileRefreshOnFocus } from "../../../hooks/useUserProfileRefresh";
-import { useEnsureProfileLoaded } from "../../../hooks/useEnsureProfileLoaded";
 import avatar_user from "../../../../public/avatar_user.png";
 import { useAppNotifications } from "../../../hooks/useAppNotifications.js";
 import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
@@ -19,7 +17,7 @@ import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
 export default function HomePage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { isLoading: profileLoading } = useEnsureProfileLoaded();
+  const [profileInitialized, setProfileInitialized] = useState(false);
   const { jobs, loading, error } = useSelector(
     (s) => s.jobsFeed || { jobs: [], loading: false, error: null },
   );
@@ -83,11 +81,8 @@ export default function HomePage() {
 
   useEffect(() => {
     dispatch(fetchJobsFeed());
-    // ✅ CRITICAL FIX: Fetch fresh user profile on mount to get latest is_verified status
-    // This ensures badge shows immediately on login without needing a refresh
-    dispatch(fetchUserProfile()).catch((err) => {
-      console.error("Profile fetch error:", err);
-    });
+    // Don't fetch profile here - use VerificationStatusListener instead
+    // which is more reliable and doesn't cause race conditions
   }, [dispatch]);
 
   useEffect(() => {

@@ -27,16 +27,6 @@ export function useEnsureProfileLoaded() {
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Check if we have a user in localStorage from before
-  const hasStoredUser = () => {
-    try {
-      const user = localStorage.getItem("user");
-      return !!user;
-    } catch {
-      return false;
-    }
-  };
-
   const auth = useSelector((s) => s.auth || {});
   const reduxUser = auth.user;
 
@@ -47,24 +37,66 @@ export function useEnsureProfileLoaded() {
 
     const initializeProfile = async () => {
       try {
-        // If we have a Redux user and it has is_verified, we're ready
+        // Check if we have a valid token
+        const token =
+          localStorage.getItem("accessToken") || localStorage.getItem("access");
+        if (!token) {
+          console.warn(
+            "⚠️ No token found yet, waiting for login to complete...",
+          );
+          // Token not ready yet, wait a bit longer for login to complete
+          await new Promise((resolve) => setTimeout(resolve, 800));
+
+          // Check again after waiting
+          const tokenAfterWait =
+            localStorage.getItem("accessToken") ||
+            localStorage.getItem("access");
+          if (!tokenAfterWait) {
+            console.warn(
+              "⚠️ Still no token after waiting, allowing render with cache",
+            );
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // If we have a Redux user with is_verified, we're ready
         if (reduxUser && typeof reduxUser.is_verified === "boolean") {
+          console.log("✅ Profile already loaded in Redux");
           setIsLoading(false);
           return;
         }
 
         // Otherwise, fetch fresh profile
+        console.log("📡 Fetching fresh user profile from API...");
         const result = await dispatch(fetchUserProfile());
 
-        // Add a small delay to ensure Redux state updates
-        // This is a workaround for React's batched state updates
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
-        setIsLoading(false);
+        // Check if fetch was successful
+        if (
+          result.payload &&
+          typeof result.payload === "object" &&
+          !result.payload.error
+        ) {
+          console.log(
+            "✅ Profile fetched successfully, is_verified:",
+            result.payload.is_verified,
+          );
+          // Add a delay to ensure Redux state updates completely
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          setIsLoading(false);
+        } else {
+          // Fetch failed, but don't block render - show cached data
+          console.warn(
+            "⚠️ Profile fetch failed, using cached data:",
+            result.payload,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          setIsLoading(false);
+        }
       } catch (error) {
-        console.warn("Profile load error (non-critical):", error);
+        console.error("❌ Profile load error:", error.message);
         // Even if fetch fails, we have cached data, so we can proceed
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         setIsLoading(false);
       }
     };
