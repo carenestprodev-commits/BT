@@ -10,6 +10,8 @@ import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchSeekerDashboard } from "../../../Redux/SeekerDashboardHome";
 import { fetchSeekerActiveRequests } from "../../../Redux/SeekerRequest";
+import { fetchUserProfile } from "../../../Redux/Auth";
+import { useUserProfileRefreshOnFocus } from "../../../hooks/useUserProfileRefresh";
 import SubscriptionModal from "./SubscriptionModal";
 
 function Home() {
@@ -27,6 +29,8 @@ function Home() {
   useEffect(() => {
     dispatch(fetchSeekerDashboard());
     dispatch(fetchSeekerActiveRequests());
+    // ✅ CRITICAL FIX: Fetch fresh user profile on mount to get latest is_verified status
+    dispatch(fetchUserProfile());
 
     // Show subscription modal if user is not subscribed
     try {
@@ -42,11 +46,14 @@ function Home() {
     }
   }, [dispatch]);
 
+  // ✅ AUTO-REFRESH: Refresh profile when tab regains focus
+  useUserProfileRefreshOnFocus();
+
   const greetingName = greeting_name || "";
   const requestsCount = new_care_provider_requests ?? 0;
   const totalSpent = total_amount_spent ?? 0.0;
   const activeRequests = useSelector(
-    (state) => state.seekerRequests?.active || []
+    (state) => state.seekerRequests?.active || [],
   );
   const firstActive =
     activeRequests && activeRequests.length > 0 ? activeRequests[0] : null;
@@ -191,9 +198,9 @@ function Home() {
             </p>
             <p className="text-base font-semibold text-gray-700">
               {firstActive
-                ? firstActive.date ??
+                ? (firstActive.date ??
                   (firstActive.day && firstActive.day.split(" ")[1]) ??
-                  ""
+                  "")
                 : "12"}
             </p>
           </div>

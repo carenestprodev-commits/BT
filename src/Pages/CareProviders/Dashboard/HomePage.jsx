@@ -9,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchJobsFeed } from "../../../Redux/JobsFeed";
+import { fetchUserProfile } from "../../../Redux/Auth";
+import { useUserProfileRefreshOnFocus } from "../../../hooks/useUserProfileRefresh";
 import avatar_user from "../../../../public/avatar_user.png";
 import { useAppNotifications } from "../../../hooks/useAppNotifications.js";
 import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
@@ -60,6 +62,9 @@ export default function HomePage() {
     setFilterDropdownOpen(false);
   };
 
+  // ✅ AUTO-REFRESH: Refresh profile when tab regains focus
+  useUserProfileRefreshOnFocus();
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (sortDropdownOpen && !event.target.closest(".relative")) {
@@ -76,6 +81,8 @@ export default function HomePage() {
 
   useEffect(() => {
     dispatch(fetchJobsFeed());
+    // ✅ CRITICAL FIX: Fetch fresh user profile on mount to get latest is_verified status
+    dispatch(fetchUserProfile());
   }, [dispatch]);
 
   useEffect(() => {

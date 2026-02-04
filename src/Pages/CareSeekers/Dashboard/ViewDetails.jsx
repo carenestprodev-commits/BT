@@ -23,14 +23,14 @@ function ViewDetails() {
       : null;
   const dispatch = useDispatch();
   const { details, loading, error } = useSelector(
-    (s) => s.providersDetails || { details: null, loading: false, error: null }
+    (s) => s.providersDetails || { details: null, loading: false, error: null },
   );
 
   // Get current user from Auth context or Redux
   const currentUser = useSelector((s) =>
     s.auth?.user || s.user?.profile || localStorage.getItem("user")
       ? JSON.parse(localStorage.getItem("user"))
-      : {}
+      : {},
   );
 
   const resolveImage = (url) => {
@@ -253,6 +253,7 @@ function ViewDetails() {
               actionType="message"
               onProceed={proceedToMessage}
               onCancel={handleVerificationCancel}
+              isVerified={currentUser?.is_verified || false}
             />
           </>
         )}

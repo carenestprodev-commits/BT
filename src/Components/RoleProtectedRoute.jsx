@@ -2,6 +2,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../Context/AuthContext";
+import VerificationStatusListener from "./VerificationStatusListener";
 
 export default function RoleProtectedRoute({ allowedRole, children }) {
   const { user } = useAuth();
@@ -16,5 +17,11 @@ export default function RoleProtectedRoute({ allowedRole, children }) {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  return children;
+  return (
+    <>
+      {/* Global verification status listener for all protected routes */}
+      <VerificationStatusListener />
+      {children}
+    </>
+  );
 }
