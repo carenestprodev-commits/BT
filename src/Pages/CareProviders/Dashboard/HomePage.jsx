@@ -9,9 +9,6 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchJobsFeed } from "../../../Redux/JobsFeed";
-import { fetchUserProfile } from "../../../Redux/Auth";
-import { useUserProfileRefreshOnFocus } from "../../../hooks/useUserProfileRefresh";
-import { useEnsureProfileLoaded } from "../../../hooks/useEnsureProfileLoaded";
 import avatar_user from "../../../../public/avatar_user.png";
 import { useAppNotifications } from "../../../hooks/useAppNotifications.js";
 import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
@@ -19,52 +16,26 @@ import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
 export default function HomePage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { isLoading: profileLoading } = useEnsureProfileLoaded();
+
   const { jobs, loading, error } = useSelector(
     (s) => s.jobsFeed || { jobs: [], loading: false, error: null },
   );
 
   console.log("HomePage - Redux jobs state:", { jobs, loading, error });
 
-  // ✅ IMPROVED: Add this at the top of your HomePage component
+  // ✅ SIMPLIFIED: Direct Redux subscription with proper re-render on verification changes
+  const authUser = useSelector((state) => state.auth?.user);
 
-  const authUser = useSelector(
-    (state) => state.auth?.user,
-    (prev, next) => {
-      // Custom equality check to force re-render when is_verified changes
-      if (prev?.is_verified !== next?.is_verified) {
-        console.log("🔄 Verification status changed:", next?.is_verified);
-        return false; // Force re-render
-      }
-      return prev === next;
-    },
-  );
+  // ✅ Debug: Log whenever authUser changes
+  useEffect(() => {
+    console.log("🔍 HomePage authUser updated:", {
+      has_user: !!authUser,
+      is_verified: authUser?.is_verified,
+      full_name: authUser?.full_name,
+    });
+  }, [authUser]);
 
-  // Also ensure Redux state is being used, not just localStorage fallback
   const displayName = authUser?.full_name || "User";
-
-  // ✅ The verification badge rendering (around line 129-134) should be:
-  {
-    profileLoading ? (
-      <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-200 rounded-full animate-pulse flex-shrink-0" />
-    ) : authUser?.is_verified ? (
-      <RiVerifiedBadgeFill className="text-green-400 text-xl sm:text-2xl flex-shrink-0" />
-    ) : null;
-  }
-
-  // ⚠️ IMPORTANT: Remove or simplify the displayName fallback that reads from localStorage
-  // The old code was:
-  // const displayName = authUser?.full_name || (() => {
-  //   try {
-  //     const u = localStorage.getItem("user");
-  //     return u ? JSON.parse(u).full_name : "Mark";
-  //   } catch {
-  //     return "Mark";
-  //   }
-  // })();
-  //
-  // This fallback to localStorage can cause stale data issues.
-  // Just use: const displayName = authUser?.full_name || "User";
 
   const { search, setSearch } = useJobFeedSearch();
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
@@ -89,9 +60,6 @@ export default function HomePage() {
     setFilterDropdownOpen(false);
   };
 
-  // ✅ AUTO-REFRESH: Refresh profile when tab regains focus
-  useUserProfileRefreshOnFocus();
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (sortDropdownOpen && !event.target.closest(".relative")) {
@@ -106,13 +74,9 @@ export default function HomePage() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [sortDropdownOpen, filterDropdownOpen]);
 
+  // ✅ SIMPLIFIED: Only fetch jobs on mount (profile already fetched in login)
   useEffect(() => {
     dispatch(fetchJobsFeed());
-    // ✅ CRITICAL FIX: Fetch fresh user profile on mount to get latest is_verified status
-    // This ensures badge shows immediately on login without needing a refresh
-    dispatch(fetchUserProfile()).catch((err) => {
-      console.error("Profile fetch error:", err);
-    });
   }, [dispatch]);
 
   useEffect(() => {
@@ -156,11 +120,10 @@ export default function HomePage() {
             {/* Top Row: Greeting & Notification */}
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <div className="flex items-center gap-2">
-                {profileLoading ? (
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-200 rounded-full animate-pulse flex-shrink-0" />
-                ) : authUser?.is_verified ? (
+                {/* ✅ SIMPLIFIED: Show badge if verified, no loading state needed */}
+                {authUser?.is_verified && (
                   <RiVerifiedBadgeFill className="text-green-400 text-xl sm:text-2xl flex-shrink-0" />
-                ) : null}
+                )}
                 <h2 className="text-2xl font-medium text-gray-800">
                   Hello, {displayName}!
                 </h2>
