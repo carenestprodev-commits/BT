@@ -6,7 +6,8 @@ export const fetchVerifications = createAsyncThunk(
   "verification/fetchVerifications",
   async (_, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
       const res = await fetchWithAuth(`${BASE_URL}/api/admin/verifications/`, {
         headers,
@@ -24,7 +25,8 @@ export const fetchVerificationById = createAsyncThunk(
   "verification/fetchVerificationById",
   async (id, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
       const res = await fetchWithAuth(
         `${BASE_URL}/api/admin/verifications/${id}/`,
@@ -48,7 +50,8 @@ export const postVerificationAction = createAsyncThunk(
     { rejectWithValue, dispatch },
   ) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = { "Content-Type": "application/json" };
       if (access) headers["Authorization"] = `Bearer ${access}`;
       const body = JSON.stringify({
@@ -105,7 +108,8 @@ export const uploadVerificationId = createAsyncThunk(
     // type: 'id' -> government id upload (existing behavior)
     // type: 'image' -> profile image upload (PATCH to upload_image endpoint)
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = {};
       if (access) headers["Authorization"] = `Bearer ${access}`;
 

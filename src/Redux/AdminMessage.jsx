@@ -1,12 +1,13 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL } from "./config";
-import {fetchWithAuth} from "../lib/fetchWithAuth.js";
+import { fetchWithAuth } from "../lib/fetchWithAuth.js";
 
 export const fetchNotifications = createAsyncThunk(
   "adminMessage/fetchNotifications",
   async (_, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
       const res = await fetchWithAuth(`${BASE_URL}/api/admin/notifications/`, {
         headers,
@@ -17,39 +18,44 @@ export const fetchNotifications = createAsyncThunk(
     } catch {
       return rejectWithValue({ error: "Network error" });
     }
-  }
+  },
 );
 
 export const fetchNotificationById = createAsyncThunk(
   "adminMessage/fetchNotificationById",
   async (id, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetchWithAuth(`${BASE_URL}/api/admin/notifications/${id}/`, {
-        headers,
-      });
+      const res = await fetchWithAuth(
+        `${BASE_URL}/api/admin/notifications/${id}/`,
+        {
+          headers,
+        },
+      );
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
       return data;
     } catch {
       return rejectWithValue({ error: "Network error" });
     }
-  }
+  },
 );
 
 export const resendNotification = createAsyncThunk(
   "adminMessage/resendNotification",
   async (id, { rejectWithValue, dispatch }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
       const res = await fetchWithAuth(
         `${BASE_URL}/api/admin/notifications/${id}/resend/`,
         {
           method: "POST",
           headers,
-        }
+        },
       );
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
@@ -62,19 +68,23 @@ export const resendNotification = createAsyncThunk(
     } catch {
       return rejectWithValue({ error: "Network error" });
     }
-  }
+  },
 );
 
 export const archiveNotification = createAsyncThunk(
   "adminMessage/archiveNotification",
   async (id, { rejectWithValue, dispatch }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetchWithAuth(`${BASE_URL}/api/admin/notifications/${id}/`, {
-        method: "DELETE",
-        headers,
-      });
+      const res = await fetchWithAuth(
+        `${BASE_URL}/api/admin/notifications/${id}/`,
+        {
+          method: "DELETE",
+          headers,
+        },
+      );
       if (!res.ok) {
         let data;
         try {
@@ -93,14 +103,15 @@ export const archiveNotification = createAsyncThunk(
     } catch {
       return rejectWithValue({ error: "Network error" });
     }
-  }
+  },
 );
 
 export const createNotification = createAsyncThunk(
   "adminMessage/createNotification",
   async ({ title, body, audience }, { rejectWithValue, dispatch }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = { "Content-Type": "application/json" };
       if (access) headers["Authorization"] = `Bearer ${access}`;
       const res = await fetchWithAuth(`${BASE_URL}/api/admin/notifications/`, {
@@ -119,7 +130,7 @@ export const createNotification = createAsyncThunk(
     } catch {
       return rejectWithValue({ error: "Network error" });
     }
-  }
+  },
 );
 
 const slice = createSlice({

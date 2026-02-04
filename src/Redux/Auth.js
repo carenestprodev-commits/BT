@@ -6,12 +6,32 @@ export const fetchUserProfile = createAsyncThunk(
   "auth/fetchUserProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       if (!access) {
         return rejectWithValue("No access token");
       }
 
-      const res = await fetch(`${BASE_URL}/api/auth/profile/info/`, {
+      // Get user type from localStorage to determine which endpoint to call
+      let userType = "provider";
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          userType = user.user_type || "provider";
+        }
+      } catch {
+        // Fallback to provider if parsing fails
+        userType = "provider";
+      }
+
+      // Build the appropriate endpoint based on user type
+      let endpoint = `${BASE_URL}/api/provider/profile/personal-info/`;
+      if (userType === "seeker") {
+        endpoint = `${BASE_URL}/api/seeker/profile/personal-info/`;
+      }
+
+      const res = await fetch(endpoint, {
         headers: {
           Authorization: `Bearer ${access}`,
           "Content-Type": "application/json",
@@ -27,8 +47,10 @@ export const fetchUserProfile = createAsyncThunk(
 
       // Update localStorage with fresh user data
       try {
-        const userType = data.user_type || "provider";
-        localStorage.setItem(`${userType}_user`, JSON.stringify(data));
+        const dataUserType = data.user_type || userType;
+        localStorage.setItem(`${dataUserType}_user`, JSON.stringify(data));
+        // Also update the main user object to keep it in sync
+        localStorage.setItem("user", JSON.stringify(data));
       } catch {
         /* ignore */
       }

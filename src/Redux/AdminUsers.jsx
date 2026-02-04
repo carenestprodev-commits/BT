@@ -6,7 +6,8 @@ export const fetchAdminStats = createAsyncThunk(
   "adminUsers/fetchAdminStats",
   async (_, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
       const res = await fetch(`${BASE_URL}/api/admin/stats`, { headers });
       const data = await res.json();
@@ -22,7 +23,8 @@ export const fetchAllUsers = createAsyncThunk(
   "adminUsers/fetchAllUsers",
   async (_, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
       const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/all/`, {
         headers,
@@ -40,7 +42,8 @@ export const fetchUserById = createAsyncThunk(
   "adminUsers/fetchUserById",
   async (id, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
       const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/${id}/`, {
         headers,
@@ -58,7 +61,8 @@ export const deleteUser = createAsyncThunk(
   "adminUsers/deleteUser",
   async (id, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
       const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/${id}/`, {
         method: "DELETE",
@@ -79,7 +83,8 @@ export const suspendUser = createAsyncThunk(
   "adminUsers/suspendUser",
   async (id, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access
         ? {
             Authorization: `Bearer ${access}`,
@@ -104,7 +109,8 @@ export const activateUser = createAsyncThunk(
   "adminUsers/activateUser",
   async (id, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access
         ? {
             Authorization: `Bearer ${access}`,
@@ -128,7 +134,8 @@ export const approveUser = createAsyncThunk(
   "adminUsers/approveUser",
   async ({ id, manualPayment }, { rejectWithValue, dispatch }) => {
     try {
-      const access = localStorage.getItem("access");
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = { "Content-Type": "application/json" };
       if (access) headers["Authorization"] = `Bearer ${access}`;
 
