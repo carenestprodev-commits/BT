@@ -54,19 +54,19 @@ export const fetchUserProfile = createAsyncThunk(
         }
       }
 
-      let data;
+      let responseData;
       try {
         const responseText = await res.text();
         console.log("✅ Profile fetch response:", {
           status: res.status,
           endpoint,
           responseLength: responseText.length,
-          response: responseText.substring(0, 200),
+          response: responseText.substring(0, 300),
         });
 
         // Try to parse as JSON
         if (responseText.trim()) {
-          data = JSON.parse(responseText);
+          responseData = JSON.parse(responseText);
         } else {
           console.error("❌ Empty response from server");
           return rejectWithValue({ error: "Empty response from server" });
@@ -81,17 +81,36 @@ export const fetchUserProfile = createAsyncThunk(
         });
       }
 
+      // Extract the actual user data (API returns nested in user_data)
+      let data = responseData.user_data || responseData;
+
+      // Map API field names to expected field names
+      const mappedData = {
+        id: data.id,
+        full_name:
+          data.full_name ||
+          `${data.first_name || ""} ${data.last_name || ""}`.trim(),
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        phone_number: data.phone_number,
+        user_type: userType,
+        is_verified: data.is_verified || false, // Default to false if not provided
+        ...data, // Include all other fields
+      };
+
+      console.log("✅ Mapped user data:", mappedData);
+
       // Update localStorage with fresh user data
       try {
-        const dataUserType = data.user_type || userType;
-        localStorage.setItem(`${dataUserType}_user`, JSON.stringify(data));
+        localStorage.setItem(`${userType}_user`, JSON.stringify(mappedData));
         // Also update the main user object to keep it in sync
-        localStorage.setItem("user", JSON.stringify(data));
+        localStorage.setItem("user", JSON.stringify(mappedData));
       } catch {
         /* ignore */
       }
 
-      return data;
+      return mappedData;
     } catch (err) {
       return rejectWithValue(err.message);
     }
