@@ -41,33 +41,13 @@ export function useEnsureProfileLoaded() {
         const token =
           localStorage.getItem("accessToken") || localStorage.getItem("access");
         if (!token) {
-          console.warn(
-            "⚠️ No token found yet, waiting for login to complete...",
-          );
-          // Token not ready yet, wait a bit longer for login to complete
-          await new Promise((resolve) => setTimeout(resolve, 800));
-
-          // Check again after waiting
-          const tokenAfterWait =
-            localStorage.getItem("accessToken") ||
-            localStorage.getItem("access");
-          if (!tokenAfterWait) {
-            console.warn(
-              "⚠️ Still no token after waiting, allowing render with cache",
-            );
-            setIsLoading(false);
-            return;
-          }
-        }
-
-        // If we have a Redux user with is_verified, we're ready
-        if (reduxUser && typeof reduxUser.is_verified === "boolean") {
-          console.log("✅ Profile already loaded in Redux");
+          console.warn("⚠️ No token found, user not logged in");
           setIsLoading(false);
           return;
         }
 
-        // Otherwise, fetch fresh profile
+        // ✅ CRITICAL FIX: Always fetch fresh profile on mount, even if Redux has data
+        // This ensures we get the latest is_verified status from the backend
         console.log("📡 Fetching fresh user profile from API...");
         const result = await dispatch(fetchUserProfile());
 
@@ -81,28 +61,24 @@ export function useEnsureProfileLoaded() {
             "✅ Profile fetched successfully, is_verified:",
             result.payload.is_verified,
           );
-          // Add a delay to ensure Redux state updates completely
-          await new Promise((resolve) => setTimeout(resolve, 200));
           setIsLoading(false);
         } else {
-          // Fetch failed, but don't block render - show cached data
+          // Fetch failed, but don't block render - show cached data if available
           console.warn(
             "⚠️ Profile fetch failed, using cached data:",
             result.payload,
           );
-          await new Promise((resolve) => setTimeout(resolve, 200));
           setIsLoading(false);
         }
       } catch (error) {
         console.error("❌ Profile load error:", error.message);
         // Even if fetch fails, we have cached data, so we can proceed
-        await new Promise((resolve) => setTimeout(resolve, 200));
         setIsLoading(false);
       }
     };
 
     initializeProfile();
-  }, [dispatch, isInitialized, reduxUser]);
+  }, [dispatch, isInitialized]);
 
   return {
     isLoading,

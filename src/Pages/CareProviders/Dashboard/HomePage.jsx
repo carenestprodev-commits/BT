@@ -26,20 +26,45 @@ export default function HomePage() {
 
   console.log("HomePage - Redux jobs state:", { jobs, loading, error });
 
-  const authUser = useSelector((s) =>
-    s.auth && s.auth.user ? s.auth.user : null,
+  // ✅ IMPROVED: Add this at the top of your HomePage component
+
+  const authUser = useSelector(
+    (state) => state.auth?.user,
+    (prev, next) => {
+      // Custom equality check to force re-render when is_verified changes
+      if (prev?.is_verified !== next?.is_verified) {
+        console.log("🔄 Verification status changed:", next?.is_verified);
+        return false; // Force re-render
+      }
+      return prev === next;
+    },
   );
 
-  const displayName =
-    authUser?.full_name ||
-    (() => {
-      try {
-        const u = localStorage.getItem("user");
-        return u ? JSON.parse(u).full_name : "Mark";
-      } catch {
-        return "Mark";
-      }
-    })();
+  // Also ensure Redux state is being used, not just localStorage fallback
+  const displayName = authUser?.full_name || "User";
+
+  // ✅ The verification badge rendering (around line 129-134) should be:
+  {
+    profileLoading ? (
+      <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-200 rounded-full animate-pulse flex-shrink-0" />
+    ) : authUser?.is_verified ? (
+      <RiVerifiedBadgeFill className="text-green-400 text-xl sm:text-2xl flex-shrink-0" />
+    ) : null;
+  }
+
+  // ⚠️ IMPORTANT: Remove or simplify the displayName fallback that reads from localStorage
+  // The old code was:
+  // const displayName = authUser?.full_name || (() => {
+  //   try {
+  //     const u = localStorage.getItem("user");
+  //     return u ? JSON.parse(u).full_name : "Mark";
+  //   } catch {
+  //     return "Mark";
+  //   }
+  // })();
+  //
+  // This fallback to localStorage can cause stale data issues.
+  // Just use: const displayName = authUser?.full_name || "User";
 
   const { search, setSearch } = useJobFeedSearch();
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
