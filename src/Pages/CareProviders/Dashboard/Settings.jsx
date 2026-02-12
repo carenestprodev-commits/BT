@@ -435,6 +435,17 @@ function Settings() {
   const PlanSelectionModal = ({ isOpen, plans, onSelect, onClose }) => {
     if (!isOpen) return null;
 
+    const handleLogout = () => {
+      try {
+        localStorage.clear();
+      } catch (e) {
+        console.warn("Failed to clear localStorage", e);
+      }
+
+      navigate("/careproviders/login/", { replace: true });
+      window.location.reload();
+    };
+
     return (
       <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div className="bg-white rounded-xl max-w-md w-full p-6">
@@ -515,7 +526,7 @@ function Settings() {
   }, [location]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sfpro">
+    <div className="flex min-h-screen bg-gray-50 font-sfpro pb-24 md:pb-0">
       <Sidebar active="Setting" />
 
       <div className="flex-1 px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 md:ml-64 w-full overflow-x-hidden">
@@ -1285,21 +1296,23 @@ function Settings() {
                     Log out of your account
                   </p>
                   <button
-                    onClick={() => {
-                      // Clear local storage to remove tokens and onboarding state
-                      try {
-                        localStorage.clear();
-                      } catch (e) {
-                        console.warn("Failed to clear localStorage", e);
-                      }
-                      // Redirect to login and reload to ensure protected routes don't use stale state
-                      navigate("/careproviders/login/", { replace: true });
-                      // Force reload to reset any in-memory auth state
-                      window.location.reload();
-                    }}
-                    className="px-4 sm:px-6 py-2 bg-red-500 text-white font-medium hover:bg-red-600 rounded-lg transition-colors text-sm sm:text-base"
+                    onClick={() => setShowLogoutModal(true)}
+                    className="px-4 sm:px-6 py-2 bg-red-500 text-white font-medium hover:bg-red-600 rounded-lg transition-colors text-sm sm:text-base flex items-center gap-2"
                   >
-                    Log out
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    Sign out
                   </button>
                 </div>
               </div>

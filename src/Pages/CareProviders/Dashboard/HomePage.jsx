@@ -111,7 +111,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sfpro">
+    <div className="flex min-h-screen bg-gray-50 font-sfpro pb-24 md:pb-0">
       <Sidebar active="Home" />
       <div className="flex-1 font-sfpro md:ml-64">
         {/* Responsive Header Section */}

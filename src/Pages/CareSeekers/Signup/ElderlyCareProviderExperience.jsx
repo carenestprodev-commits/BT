@@ -69,15 +69,15 @@ function ElderlyCareProviderExperience({
                           updateFormData(
                             "careProviderQualities",
                             formData.careProviderQualities.filter(
-                              (q) => q !== quality
-                            )
+                              (q) => q !== quality,
+                            ),
                           );
                         }
                       }}
                     />
                     <span className="text-sm text-gray-700">{quality}</span>
                   </label>
-                )
+                ),
               )}
             </div>
           </div>
@@ -93,20 +93,10 @@ function ElderlyCareProviderExperience({
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                "Hypertension",
-                "Diabetes",
-                "clean-up help",
-                "healthy diet",
                 "CPR trained",
                 "Non-smoker",
                 "Medication reminder",
                 "can drive",
-                "Palliative care",
-                "Willing to live-in",
-                "Background checked",
-                "Speaks Yoruba",
-                "Speaks Igbo",
-                "Speaks Hausa",
                 "Special Needs experience",
               ].map((exp) => (
                 <label key={exp} className="flex items-center">
@@ -128,8 +118,8 @@ function ElderlyCareProviderExperience({
                         updateFormData(
                           "careProviderExperience",
                           formData.careProviderExperience.filter(
-                            (q) => q !== exp
-                          )
+                            (q) => q !== exp,
+                          ),
                         );
                       }
                     }}
