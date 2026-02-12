@@ -2,7 +2,6 @@
 /* eslint-disable no-unused-vars */
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
 import CareLogo from "../../../../public/CareLogo.png";
 
 import { PiSquaresFour } from "react-icons/pi";
@@ -53,7 +52,7 @@ function Sidebar({ active = "Home", onNav }) {
 
   const [profileCompletion, setProfileCompletion] = React.useState(null);
   const [showCompletion, setShowCompletion] = React.useState(true);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
   React.useEffect(() => {
     const fetchProfileCompletion = async () => {
@@ -271,17 +270,28 @@ function Sidebar({ active = "Home", onNav }) {
         {/* Logout (Bottom, like Figma) */}
         <div className="pt-6 mt-6 border-t border-white/20">
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-base font-medium text-[#4fd1c5] hover:bg-[#4a6576] transition"
           >
-            <FiLogOut className="h-5 w-5" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
             Sign Out
           </button>
         </div>
-
-        {/* Logout Modal */}
-        <LogoutModal />
       </div>
+      {/* Logout Modal */}
+      <LogoutModal />
     </>
   );
 }
