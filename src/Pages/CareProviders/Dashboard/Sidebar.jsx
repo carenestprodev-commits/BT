@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 import React from "react";
 import { useNavigate } from "react-router-dom";
-
+import { useState, useEffect } from "react";
 import CareLogo from "../../../../public/CareLogo.png";
 
 import { PiSquaresFour } from "react-icons/pi";
@@ -12,7 +12,7 @@ import { FiLogOut } from "react-icons/fi";
 import Triangle from "../../../../public/triangle.svg";
 import Message from "../../../../public/receipt-text.svg";
 import WalletIcon from "../../../../public/wallet.svg";
-import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
+import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
 
 /* ---------------- NAV ITEMS ---------------- */
 
@@ -53,6 +53,7 @@ function Sidebar({ active = "Home", onNav }) {
 
   const [profileCompletion, setProfileCompletion] = React.useState(null);
   const [showCompletion, setShowCompletion] = React.useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   React.useEffect(() => {
     const fetchProfileCompletion = async () => {
@@ -74,7 +75,6 @@ function Sidebar({ active = "Home", onNav }) {
     fetchProfileCompletion();
   }, []);
 
-
   const handleLogout = () => {
     try {
       localStorage.clear();
@@ -84,6 +84,80 @@ function Sidebar({ active = "Home", onNav }) {
 
     navigate("/careproviders/login/", { replace: true });
     window.location.reload();
+  };
+
+  /* ---------------- LOGOUT MODAL ---------------- */
+  const LogoutModal = () => {
+    if (!showLogoutModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+          {/* Close button */}
+          <button
+            onClick={() => setShowLogoutModal(false)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          {/* Icon - Using FiLogOut */}
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="red"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Content */}
+          <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
+            Sign out
+          </h3>
+          <p className="text-gray-500 text-center mb-6">
+            Are you sure you want to Log out?
+          </p>
+
+          {/* Buttons */}
+          <div className="space-y-3">
+            <button
+              onClick={handleLogout}
+              className="w-full px-6 py-3 bg-red-500 text-white font-medium hover:bg-red-600 rounded-lg transition-colors"
+            >
+              Sign Out
+            </button>
+            <button
+              onClick={() => setShowLogoutModal(false)}
+              className="w-full px-6 py-3 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -204,6 +278,9 @@ function Sidebar({ active = "Home", onNav }) {
             Sign Out
           </button>
         </div>
+
+        {/* Logout Modal */}
+        <LogoutModal />
       </div>
     </>
   );
