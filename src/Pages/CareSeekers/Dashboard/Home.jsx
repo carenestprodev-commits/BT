@@ -59,7 +59,7 @@ function Home() {
     activeRequests && activeRequests.length > 0 ? activeRequests[0] : null;
 
   return (
-    <div className="flex min-h-screen font-sfpro">
+    <div className="flex min-h-screen font-sfpro pb-24 md:pb-0">
       <Sidebar active="Home" />
       <div
         className={`flex-1 bg-white px-6 py-5 font-sfpro md:ml-64 ${
