@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 import { FaCheckCircle } from "react-icons/fa";
 import Sidebar from "./Sidebar";
@@ -13,6 +14,7 @@ import { fetchSeekerActiveRequests } from "../../../Redux/SeekerRequest";
 import { fetchUserProfile } from "../../../Redux/Auth";
 import { useUserProfileRefreshOnFocus } from "../../../hooks/useUserProfileRefresh";
 import SubscriptionModal from "./SubscriptionModal";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 
 function Home() {
   const dispatch = useDispatch();
@@ -25,6 +27,27 @@ function Home() {
 
   // Check subscription status and show modal if not subscribed
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
+  const [activeTab, setActiveTab] = useState("verify"); // default to verify tab
+  const [searchParams] = useSearchParams();
+  // ... rest of your useState declarations
+
+  /* -------------------- EFFECTS -------------------- */
+
+  // ✅ Set active tab from URL query parameter
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "verify") {
+      setActiveTab("verify");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      // ... existing code
+    };
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
     dispatch(fetchSeekerDashboard());
@@ -124,7 +147,7 @@ function Home() {
               </p>
             </div>
           </div>
-          <Link to="/careseekers/dashboard/verify-identity">
+          <Link to="/careseekers/dashboard/settings?tab=verify">
             <button className="bg-[#0093d1] text-white text-[14px] font-medium px-6 py-2 rounded-md">
               Verify ID
             </button>
