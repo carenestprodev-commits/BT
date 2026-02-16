@@ -449,7 +449,7 @@ function ChildCareDetails({
 
         try {
           const response = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`,
           );
 
           const data = await response.json();
@@ -463,7 +463,7 @@ function ChildCareDetails({
             data.results.find(
               (r) =>
                 r.types.includes("street_address") ||
-                r.types.includes("premise")
+                r.types.includes("premise"),
             ) || data.results[0];
 
           const components = result.address_components;
@@ -501,7 +501,7 @@ function ChildCareDetails({
         alert("Please enable location services in your browser settings.");
         setShowLocationPopup(false);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 } // Production settings for better accuracy
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }, // Production settings for better accuracy
     );
   };
 
@@ -680,7 +680,7 @@ function ChildCareDetails({
             options={[]}
           /> */}
           <CheckboxGroup
-            label="Other Services you can Offer"
+            label="Other Services you can Offer (Optional)"
             options={["Elderly Care", "Tutoring", "Housekeeping"]}
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
@@ -851,8 +851,8 @@ function ChildCareDetails({
                   formData.communicationLanguages.length > 0
                     ? formData.communicationLanguages
                     : formData.language
-                    ? [formData.language]
-                    : [],
+                      ? [formData.language]
+                      : [],
                 additional_services: formData.otherServices || [],
                 skills: [
                   ...(formData.servicesProvided || []),
@@ -884,12 +884,12 @@ function ChildCareDetails({
                   last_name: trimmedLast,
                   full_name: (trimmedFirst + " " + trimmedLast).trim(),
                 },
-              })
+              }),
             );
             // Save flattened profile fields under 'child_profile' so EmailPassword merges them into profile_data correctly
             const flatProfile = { ...childPayload.profile_data };
             dispatch(
-              saveStep({ stepName: "child_profile", data: flatProfile })
+              saveStep({ stepName: "child_profile", data: flatProfile }),
             );
             handleNext();
           }}

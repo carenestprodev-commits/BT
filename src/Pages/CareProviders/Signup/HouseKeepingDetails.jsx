@@ -449,7 +449,7 @@ function HouseKeepingDetails({
 
         try {
           const response = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`,
           );
 
           const data = await response.json();
@@ -463,7 +463,7 @@ function HouseKeepingDetails({
             data.results.find(
               (r) =>
                 r.types.includes("street_address") ||
-                r.types.includes("premise")
+                r.types.includes("premise"),
             ) || data.results[0];
 
           const components = result.address_components;
@@ -501,7 +501,7 @@ function HouseKeepingDetails({
         alert("Please enable location services in your browser settings.");
         setShowLocationPopup(false);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 } // Production settings for better accuracy
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }, // Production settings for better accuracy
     );
   };
 
@@ -692,7 +692,7 @@ function HouseKeepingDetails({
           /> */}
           <CheckboxGroup
             name="otherServices"
-            label="Other Services you can Offer"
+            label="Other Services you can Offer (Optional)"
             options={["Child Care", "Elderly Care", "Tutoring"]}
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
@@ -861,13 +861,13 @@ function HouseKeepingDetails({
                   formData.communicationLanguages.length > 0
                     ? formData.communicationLanguages
                     : formData.language
-                    ? [formData.language]
-                    : [],
+                      ? [formData.language]
+                      : [],
                 additional_services: formData.otherServices || [],
                 skills: formData.otherServices || [],
                 category_specific_details: {
                   housekeeping_preference: Array.isArray(
-                    formData.housekeepingPreference
+                    formData.housekeepingPreference,
                   )
                     ? formData.housekeepingPreference[0]
                     : formData.housekeepingPreference || null,
@@ -886,11 +886,11 @@ function HouseKeepingDetails({
                   last_name: trimmedLast,
                   full_name: (trimmedFirst + " " + trimmedLast).trim(),
                 },
-              })
+              }),
             );
             const flatProfile = { ...hkPayload.profile_data };
             dispatch(
-              saveStep({ stepName: "housekeeping_profile", data: flatProfile })
+              saveStep({ stepName: "housekeeping_profile", data: flatProfile }),
             );
             handleNext();
           }}

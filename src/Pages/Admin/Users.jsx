@@ -6,6 +6,8 @@ import {
   FaTrashAlt,
   FaEdit,
   FaChevronDown,
+  FaFileAlt,
+  FaCheck,
 } from "react-icons/fa";
 import CubeIcon from "../../../public/3dcube.svg?react";
 import CubeIconGreen from "../../../public/3dcubeGreen.svg?react";
@@ -21,6 +23,7 @@ import {
   suspendUser,
   activateUser,
   approveUser,
+  markDocumentsReceived,
 } from "../../Redux/AdminUsers";
 import { updateUserVerification } from "../../Redux/Login";
 
@@ -39,6 +42,15 @@ function Users() {
   const [editRow, setEditRow] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  // New states for physical documents workflow
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+  const [selectedUserForDocs, setSelectedUserForDocs] = useState(null);
+  const [documentsData, setDocumentsData] = useState({
+    received_date: new Date().toISOString().split("T")[0],
+    notes: "",
+  });
+
   const [showManualPaymentModal, setShowManualPaymentModal] = useState(false);
   const [selectedUserForPayment, setSelectedUserForPayment] = useState(null);
   const [manualPaymentData, setManualPaymentData] = useState({
@@ -47,24 +59,21 @@ function Users() {
     payment_reference: "",
     notes: "",
   });
-  const [alert, setAlert] = useState(null); // { type: 'success'|'error', text }
+  const [alert, setAlert] = useState(null);
   const alertTimerRef = useRef(null);
-  const { suspendLoading, suspendError } = useSelector(
-    (s) => s.adminUsers || {},
-  );
+  const { suspendLoading, suspendError, documentsLoading, documentsError } =
+    useSelector((s) => s.adminUsers || {});
 
   useEffect(() => {
     dispatch(fetchAdminStats());
     dispatch(fetchAllUsers());
   }, [dispatch]);
 
-  // populate editRow when currentUser is fetched
   const { currentUser } = useSelector(
     (s) => s.adminUsers || { currentUser: null },
   );
 
   useEffect(() => {
-    // when currentUser is loaded populate editRow
     if (currentUser) {
       const u = currentUser;
       setEditRow({
@@ -85,12 +94,14 @@ function Users() {
           u.subscription_status || (u.is_active ? "Active" : "Inactive"),
         is_suspend: u.is_suspend ?? false,
         earnings: u.earnings || "-",
+        is_verified: u.is_verified ?? false,
+        verification_status: u.verification_status || "pending",
+        documents_received: u.documents_received ?? false,
       });
     }
   }, [currentUser]);
 
   useEffect(() => {
-    // Map backend users into the shape expected by the table
     if (Array.isArray(users)) {
       const mapped = users.map((u) => ({
         id: u.id,
@@ -111,6 +122,9 @@ function Users() {
         nationality: "",
         subscriptionStatus: u.is_active ? "Active" : "Inactive",
         earnings: "-",
+        is_verified: u.is_verified ?? false,
+        verification_status: u.verification_status || "pending",
+        documents_received: u.documents_received ?? false,
       }));
       setRows(mapped);
     }
@@ -151,7 +165,6 @@ function Users() {
   const filtered = useMemo(() => {
     let data = [...rows];
 
-    // Apply stat filter
     if (activeStat === "providers")
       data = data.filter((r) => r.userType === "Care Provider");
     if (activeStat === "seekers")
@@ -164,7 +177,6 @@ function Users() {
       );
     }
     if (locationFilter !== "All") {
-      // demo: filter by fake "location" stored in email domain (not real) - placeholder
       data = data.filter((r) => r.email.includes(locationFilter.toLowerCase()));
     }
 
@@ -218,9 +230,32 @@ function Users() {
     URL.revokeObjectURL(url);
   }
 
+  // Helper function to get verification status badge
+  const getVerificationBadge = (row) => {
+    if (row.is_verified) {
+      return (
+        <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+          <FaCheck className="w-3 h-3" /> Verified
+        </span>
+      );
+    }
+    if (row.documents_received) {
+      return (
+        <span className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+          <FaFileAlt className="w-3 h-3" /> Docs Received
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
+        Pending
+      </span>
+    );
+  };
+
   return (
     <div className="p-4 sm:p-6 text-black bg-white font-sfpro">
-      {/* success/error alert */}
+      {/* Alert */}
       {alert && (
         <div
           className={`mb-4 px-4 py-3 rounded-md ${
@@ -247,6 +282,7 @@ function Users() {
           </div>
         </div>
       )}
+
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {statsConfig.map((s) => {
@@ -291,6 +327,141 @@ function Users() {
           );
         })}
       </div>
+
+      {/* Documents Received Modal */}
+      {showDocumentsModal && selectedUserForDocs && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Mark Documents Received</h3>
+              <button
+                className="text-gray-500"
+                onClick={() => setShowDocumentsModal(false)}
+              >
+                &times;
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4">
+              Mark physical documents as received for{" "}
+              <strong>{selectedUserForDocs.name}</strong>
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date Documents Received
+                </label>
+                <input
+                  type="date"
+                  value={documentsData.received_date}
+                  onChange={(e) =>
+                    setDocumentsData({
+                      ...documentsData,
+                      received_date: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  placeholder="e.g., Received NIN, Driver's License, Proof of Address"
+                  value={documentsData.notes}
+                  onChange={(e) =>
+                    setDocumentsData({
+                      ...documentsData,
+                      notes: e.target.value,
+                    })
+                  }
+                  rows="3"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white text-sm"
+                />
+              </div>
+            </div>
+
+            {documentsError && (
+              <div className="text-red-600 text-sm mt-4">
+                {typeof documentsError === "string"
+                  ? documentsError
+                  : documentsError?.error || "Action failed"}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md"
+                onClick={() => {
+                  setShowDocumentsModal(false);
+                  setSelectedUserForDocs(null);
+                  setDocumentsData({
+                    received_date: new Date().toISOString().split("T")[0],
+                    notes: "",
+                  });
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-[#0b93c6] text-white rounded-md disabled:opacity-50"
+                onClick={async () => {
+                  try {
+                    await dispatch(
+                      markDocumentsReceived({
+                        userId: selectedUserForDocs.id,
+                        documentDetails: documentsData,
+                      }),
+                    ).unwrap();
+
+                    setShowDocumentsModal(false);
+                    setSelectedUserForDocs(null);
+                    setDocumentsData({
+                      received_date: new Date().toISOString().split("T")[0],
+                      notes: "",
+                    });
+
+                    if (alertTimerRef.current) {
+                      clearTimeout(alertTimerRef.current);
+                      alertTimerRef.current = null;
+                    }
+                    setAlert({
+                      type: "success",
+                      text: "✅ Documents marked as received! Admin can now approve this user.",
+                    });
+                    alertTimerRef.current = setTimeout(
+                      () => setAlert(null),
+                      5000,
+                    );
+                  } catch (error) {
+                    console.error("Mark documents failed:", error);
+                    if (alertTimerRef.current) {
+                      clearTimeout(alertTimerRef.current);
+                      alertTimerRef.current = null;
+                    }
+                    setAlert({
+                      type: "error",
+                      text:
+                        error?.error || "Failed to mark documents as received",
+                    });
+                    alertTimerRef.current = setTimeout(
+                      () => setAlert(null),
+                      5000,
+                    );
+                  }
+                }}
+                disabled={documentsLoading}
+              >
+                {documentsLoading ? "Marking..." : "Mark Received"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit / Details Modal */}
       {editRow && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-24">
@@ -310,6 +481,12 @@ function Users() {
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-500">Name</span>
                 <span className="text-right">{editRow.name}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-slate-500">Status</span>
+                <span className="text-right">
+                  {getVerificationBadge(editRow)}
+                </span>
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-500">Phone Number</span>
@@ -371,7 +548,6 @@ function Users() {
                         activateUser(editRow.id),
                       ).unwrap();
                       const message = payload?.data?.status || "User activated";
-                      // update local rows to reflect activation
                       setRows((prev) =>
                         prev.map((r) =>
                           r.id === editRow.id
@@ -394,7 +570,6 @@ function Users() {
                         suspendUser(editRow.id),
                       ).unwrap();
                       const message = payload?.data?.status || "User suspended";
-                      // update local rows to reflect suspension
                       setRows((prev) =>
                         prev.map((r) =>
                           r.id === editRow.id
@@ -459,10 +634,8 @@ function Users() {
               <button
                 className="px-4 py-2 bg-red-600 text-white rounded-md"
                 onClick={async () => {
-                  // call delete API via redux thunk
                   try {
                     await dispatch(deleteUser(deleteRow.id)).unwrap();
-                    // on success remove local row
                     setRows(rows.filter((x) => x.id !== deleteRow.id));
                   } catch (e) {
                     console.error("Delete failed", e);
@@ -581,7 +754,7 @@ function Users() {
               <div className="text-red-600 mt-4">
                 {typeof suspendError === "string"
                   ? suspendError
-                  : suspendError?.status ||
+                  : suspendError?.detail ||
                     suspendError?.error ||
                     suspendError?.message ||
                     "Action failed"}
@@ -605,8 +778,17 @@ function Users() {
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-[#0b93c6] text-white rounded-md"
+                className="px-4 py-2 bg-[#0b93c6] text-white rounded-md disabled:opacity-50"
                 onClick={async () => {
+                  // Check if documents have been marked as received
+                  if (!selectedUserForPayment.documents_received) {
+                    setAlert({
+                      type: "error",
+                      text: "Documents must be marked as received before approval. Click 'Mark Documents' first.",
+                    });
+                    return;
+                  }
+
                   try {
                     const result = await dispatch(
                       approveUser({
@@ -626,17 +808,14 @@ function Users() {
 
                     console.log("Approval result:", result);
 
-                    // Update the currently logged-in user's verification status if they are being verified
                     if (currentUserId === selectedUserForPayment.id) {
                       if (result.updatedUser) {
-                        // Use the updated user data from the API
                         dispatch(
                           updateUserVerification(
                             result.updatedUser.is_verified || true,
                           ),
                         );
                       } else {
-                        // Fallback to just setting is_verified to true
                         dispatch(updateUserVerification(true));
                       }
                     }
@@ -668,9 +847,21 @@ function Users() {
                       clearTimeout(alertTimerRef.current);
                       alertTimerRef.current = null;
                     }
+
+                    let errorMessage = "Unknown error";
+                    if (error?.message) {
+                      errorMessage = error.message;
+                    } else if (typeof error === "string") {
+                      errorMessage = error;
+                    } else if (error?.detail) {
+                      errorMessage = error.detail;
+                    } else if (error?.error) {
+                      errorMessage = error.error;
+                    }
+
                     setAlert({
                       type: "error",
-                      text: `Failed to verify user: ${error?.message || "Please try again"}`,
+                      text: `Failed to verify user: ${errorMessage}`,
                     });
                     alertTimerRef.current = setTimeout(
                       () => setAlert(null),
@@ -744,23 +935,12 @@ function Users() {
               <th className="p-3 text-left">User Type</th>
               <th className="p-3 text-left">Email address</th>
               <th className="p-3 text-left">Phone Number</th>
+              <th className="p-3 text-left">Verification Status</th>
               <th
                 className="p-3 text-left cursor-pointer"
                 onClick={() => toggleSort("onboard")}
               >
                 onboarding Date
-              </th>
-              <th
-                className="p-3 text-left cursor-pointer"
-                onClick={() => toggleSort("lastLogin")}
-              >
-                last login
-              </th>
-              <th
-                className="p-3 text-left cursor-pointer"
-                onClick={() => toggleSort("lastUpdated")}
-              >
-                Last Updated
               </th>
               <th className="p-3"> </th>
             </tr>
@@ -787,9 +967,8 @@ function Users() {
                 <td className="p-3">{r.userType}</td>
                 <td className="p-3 text-slate-600">{r.email}</td>
                 <td className="p-3">{r.phone}</td>
+                <td className="p-3">{getVerificationBadge(r)}</td>
                 <td className="p-3">{r.onboard}</td>
-                <td className="p-3">{r.lastLogin}</td>
-                <td className="p-3">{r.lastUpdated}</td>
                 <td className="p-3">
                   <div className="relative inline-block">
                     <button
@@ -801,7 +980,7 @@ function Users() {
                       •••
                     </button>
                     {openMenuId === r.id && (
-                      <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow z-10 text-sm">
+                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow z-10 text-sm">
                         <ul>
                           <li
                             onClick={() => {
@@ -815,14 +994,26 @@ function Users() {
                           </li>
                           <li
                             onClick={() => {
-                              setSelectedUserForPayment(r);
-                              setShowManualPaymentModal(true);
+                              setSelectedUserForDocs(r);
+                              setShowDocumentsModal(true);
                               setOpenMenuId(null);
                             }}
                             className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
                           >
-                            Manual Payment
+                            Mark Documents
                           </li>
+                          {r.documents_received && (
+                            <li
+                              onClick={() => {
+                                setSelectedUserForPayment(r);
+                                setShowManualPaymentModal(true);
+                                setOpenMenuId(null);
+                              }}
+                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black font-medium text-blue-600"
+                            >
+                              Approve User
+                            </li>
+                          )}
                           <li
                             onClick={() => {
                               setDeleteRow(r);

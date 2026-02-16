@@ -454,7 +454,7 @@ function TutoringDetails({
 
         try {
           const response = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`,
           );
 
           const data = await response.json();
@@ -468,7 +468,7 @@ function TutoringDetails({
             data.results.find(
               (r) =>
                 r.types.includes("street_address") ||
-                r.types.includes("premise")
+                r.types.includes("premise"),
             ) || data.results[0];
 
           const components = result.address_components;
@@ -506,7 +506,7 @@ function TutoringDetails({
         alert("Please enable location services in your browser settings.");
         setShowLocationPopup(false);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 } // Production settings for better accuracy
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }, // Production settings for better accuracy
     );
   };
 
@@ -698,7 +698,7 @@ function TutoringDetails({
           /> */}
           <CheckboxGroup
             name="otherServices"
-            label="Other Services you can Offer"
+            label="Other Services you can Offer (Optional)"
             options={["Child Care", "Elderly Care", "House keeping"]}
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
@@ -901,14 +901,14 @@ function TutoringDetails({
                   formData.communicationLanguages.length > 0
                     ? formData.communicationLanguages
                     : formData.language
-                    ? [formData.language]
-                    : [],
+                      ? [formData.language]
+                      : [],
                 additional_services: formData.otherServices || [],
                 skills: formData.subjects || [],
                 category_specific_details: {
                   tutoring_services: formData.tutoringServices || [],
                   experience_level_taught: ensureArray(
-                    formData.tutoringExperienceLevel || []
+                    formData.tutoringExperienceLevel || [],
                   ),
                   subjects_experienced_in: formData.subjects || [],
                 },
@@ -926,11 +926,11 @@ function TutoringDetails({
                   last_name: trimmedLast,
                   full_name: (trimmedFirst + " " + trimmedLast).trim(),
                 },
-              })
+              }),
             );
             const flatProfile = { ...tutPayload.profile_data };
             dispatch(
-              saveStep({ stepName: "tutoring_profile", data: flatProfile })
+              saveStep({ stepName: "tutoring_profile", data: flatProfile }),
             );
             handleNext();
           }}

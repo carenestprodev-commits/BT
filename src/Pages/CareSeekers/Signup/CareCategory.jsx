@@ -62,7 +62,7 @@ const SignUpModal = ({ isOpen, onClose }) => {
       signupForm.password !== signupForm.confirmPassword
     ) {
       alert(
-        "Please provide first name, last name, valid email and matching passwords"
+        "Please provide first name, last name, valid email and matching passwords",
       );
       return;
     }
@@ -91,7 +91,7 @@ const SignUpModal = ({ isOpen, onClose }) => {
 
       const payload = buildRegisterAndPublishPayload(
         onboarding.steps,
-        userCredentials
+        userCredentials,
       );
 
       const resAction = await dispatch(registerAndPublish(payload));
@@ -104,7 +104,7 @@ const SignUpModal = ({ isOpen, onClose }) => {
       if (resAction.error) {
         alert(
           "Registration failed: " +
-            (resAction.payload || resAction.error.message)
+            (resAction.payload || resAction.error.message),
         );
         setIsLoading(false);
       } else {
@@ -562,7 +562,7 @@ function CareCategory({
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
         >
-          Sign Up
+          Continue to create a request
         </button>
 
         {/* Secondary "I'll do this later" Button */}
@@ -570,7 +570,7 @@ function CareCategory({
           onClick={() => setIsModalOpen(true)}
           className="w-full text-base lg:text-lg font-medium py-3 rounded-md border border-gray-300 text-gray-600 bg-white hover:bg-gray-50 transition mt-3"
         >
-          I'll do this later
+          Skip to complete sign up
         </button>
       </div>
 

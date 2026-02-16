@@ -97,7 +97,6 @@ export const suspendUser = createAsyncThunk(
       );
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
-      // return the id so reducers can update the store
       return { id, data };
     } catch {
       return rejectWithValue({ error: "Network error" });
@@ -130,6 +129,115 @@ export const activateUser = createAsyncThunk(
   },
 );
 
+/**
+ * ✅ NEW: Mark Physical Documents as Received
+ *
+ * This action creates or updates a verification record for a user
+ * when their physical documents are submitted offline.
+ *
+ * FLOW:
+ * 1. Admin receives physical documents in person
+ * 2. Admin clicks "Mark Documents Received" in the users table
+ * 3. This creates/updates a verification record with status "documents_received"
+ * 4. Now admin can approve the user
+ *
+ * BENEFIT:
+ * - Supports offline document verification
+ * - Creates the verification record needed by the backend
+ * - User now shows as "Documents Received" in the table
+ */
+export const markDocumentsReceived = createAsyncThunk(
+  "adminUsers/markDocumentsReceived",
+  async ({ userId, documentDetails }, { rejectWithValue }) => {
+    try {
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${access}`,
+      };
+
+      // First, try to find existing verification record for this user
+      let verificationId = null;
+      try {
+        const verRes = await fetchWithAuth(
+          `${BASE_URL}/api/admin/verifications/`,
+          { headers },
+        );
+        const verData = await verRes.json();
+        const verifications = Array.isArray(verData)
+          ? verData
+          : verData.results || [];
+        const userVerification = verifications.find(
+          (v) => v.user_id === userId,
+        );
+        if (userVerification) {
+          verificationId = userVerification.id;
+        }
+      } catch (err) {
+        console.error("Error checking for existing verification:", err);
+      }
+
+      const payload = {
+        user_id: userId,
+        verification_status: "documents_received",
+        verification_method: "physical_documents",
+        notes: documentDetails?.notes || "Physical documents received",
+        received_date:
+          documentDetails?.received_date ||
+          new Date().toISOString().split("T")[0],
+      };
+
+      let result;
+
+      if (verificationId) {
+        // Update existing verification record
+        const res = await fetchWithAuth(
+          `${BASE_URL}/api/admin/verifications/${verificationId}/`,
+          {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify(payload),
+          },
+        );
+        const data = await res.json();
+        if (!res.ok) return rejectWithValue(data);
+        result = data;
+      } else {
+        // Create new verification record for physical documents
+        const res = await fetchWithAuth(
+          `${BASE_URL}/api/admin/verifications/`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+          },
+        );
+        const data = await res.json();
+        if (!res.ok) return rejectWithValue(data);
+        result = data;
+      }
+
+      return { userId, data: result };
+    } catch (error) {
+      console.error("markDocumentsReceived error:", error);
+      return rejectWithValue({
+        error: "Failed to mark documents as received",
+      });
+    }
+  },
+);
+
+/**
+ * ✅ UPDATED: Approve User (Now works with physical documents)
+ *
+ * This has been updated to support the new flow:
+ * 1. User's physical documents are marked as received
+ * 2. Verification record now exists with status "documents_received"
+ * 3. Admin can now approve the user
+ *
+ * The approval now has better error handling and logs
+ */
 export const approveUser = createAsyncThunk(
   "adminUsers/approveUser",
   async ({ id, manualPayment }, { rejectWithValue, dispatch }) => {
@@ -153,38 +261,55 @@ export const approveUser = createAsyncThunk(
           ? verData
           : verData.results || [];
 
-        // Find the verification record for this user
         const userVerification = verifications.find((v) => v.user_id === id);
         if (userVerification) {
           verificationId = userVerification.id;
+          console.log(
+            "Found verification record:",
+            verificationId,
+            "with status:",
+            userVerification.verification_status,
+          );
+        } else {
+          console.log("No verification record found for user:", id);
         }
       } catch (err) {
         console.error("Error fetching verifications:", err);
       }
 
-      // If no verification found, return error
-      if (!verificationId) {
+      let approvalResult = null;
+
+      if (verificationId) {
+        // Approve via verification endpoint
+        console.log("Approving user via verification endpoint...");
+        const body = JSON.stringify({
+          action: "approve",
+          verification_status: "approved",
+          ...(manualPayment ? manualPayment : {}),
+        });
+
+        const res = await fetchWithAuth(
+          `${BASE_URL}/api/admin/verifications/${verificationId}/`,
+          {
+            method: "PATCH",
+            headers,
+            body,
+          },
+        );
+        const data = await res.json();
+        if (!res.ok) return rejectWithValue(data);
+        approvalResult = data;
+      } else {
+        // No verification record - this shouldn't happen after markDocumentsReceived
+        console.error(
+          "ERROR: No verification record found. User must mark documents as received first!",
+        );
         return rejectWithValue({
           detail:
-            "User has not started verification process yet. Please ask them to start verification.",
+            "User must have physical documents marked as received before approval. Please mark documents first.",
+          error_code: "NO_VERIFICATION_RECORD",
         });
       }
-
-      const body = JSON.stringify({
-        action: "approve",
-        ...(manualPayment ? manualPayment : {}),
-      });
-
-      const res = await fetchWithAuth(
-        `${BASE_URL}/api/admin/verifications/${verificationId}/`,
-        {
-          method: "PATCH",
-          headers,
-          body,
-        },
-      );
-      const data = await res.json();
-      if (!res.ok) return rejectWithValue(data);
 
       // Refresh the admin's user list
       try {
@@ -193,7 +318,7 @@ export const approveUser = createAsyncThunk(
         /* ignore refresh error */
       }
 
-      // Fetch the updated user profile to get the latest is_verified status
+      // Fetch the updated user profile
       let updatedUser = null;
       try {
         const userRes = await fetchWithAuth(`${BASE_URL}/api/auth/user/`, {
@@ -205,10 +330,10 @@ export const approveUser = createAsyncThunk(
         console.error("Error fetching updated user:", err);
       }
 
-      return { id, data, verified: true, updatedUser };
+      return { id, data: approvalResult, verified: true, updatedUser };
     } catch (error) {
       console.error("approveUser error:", error);
-      return rejectWithValue({ error: "Network error" });
+      return rejectWithValue({ error: "Network error during approval" });
     }
   },
 );
@@ -234,6 +359,8 @@ const slice = createSlice({
     deleteError: null,
     suspendLoading: false,
     suspendError: null,
+    documentsLoading: false,
+    documentsError: null,
   },
   reducers: {
     clearAdminUsers(state) {
@@ -315,13 +442,11 @@ const slice = createSlice({
       .addCase(suspendUser.fulfilled, (state, action) => {
         state.suspendLoading = false;
         const id = action.payload?.id;
-        // mark the user as not active in the users list
         if (id != null) {
           state.users = state.users.map((u) =>
             u.id === id ? { ...u, is_active: false } : u,
           );
         }
-        // also update currentUser if it's the same
         if (state.currentUser && state.currentUser.id === id) {
           state.currentUser = { ...state.currentUser, is_active: false };
         }
@@ -352,6 +477,31 @@ const slice = createSlice({
         state.suspendError = action.payload || action.error;
       })
 
+      // ✅ NEW: Mark Documents Received handlers
+      .addCase(markDocumentsReceived.pending, (state) => {
+        state.documentsLoading = true;
+        state.documentsError = null;
+      })
+      .addCase(markDocumentsReceived.fulfilled, (state, action) => {
+        state.documentsLoading = false;
+        const userId = action.payload?.userId;
+        if (userId != null) {
+          state.users = state.users.map((u) =>
+            u.id === userId
+              ? {
+                  ...u,
+                  verification_status: "documents_received",
+                  documents_received: true,
+                }
+              : u,
+          );
+        }
+      })
+      .addCase(markDocumentsReceived.rejected, (state, action) => {
+        state.documentsLoading = false;
+        state.documentsError = action.payload || action.error;
+      })
+
       .addCase(approveUser.pending, (state) => {
         state.suspendLoading = true;
         state.suspendError = null;
@@ -361,11 +511,21 @@ const slice = createSlice({
         const id = action.payload?.id;
         if (id != null) {
           state.users = state.users.map((u) =>
-            u.id === id ? { ...u, is_verified: true } : u,
+            u.id === id
+              ? {
+                  ...u,
+                  is_verified: true,
+                  verification_status: "approved",
+                }
+              : u,
           );
         }
         if (state.currentUser && state.currentUser.id === id) {
-          state.currentUser = { ...state.currentUser, is_verified: true };
+          state.currentUser = {
+            ...state.currentUser,
+            is_verified: true,
+            verification_status: "approved",
+          };
         }
       })
       .addCase(approveUser.rejected, (state, action) => {

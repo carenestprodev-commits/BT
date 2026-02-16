@@ -449,7 +449,7 @@ function ElderlyCareDetails({
 
         try {
           const response = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`,
           );
 
           const data = await response.json();
@@ -463,7 +463,7 @@ function ElderlyCareDetails({
             data.results.find(
               (r) =>
                 r.types.includes("street_address") ||
-                r.types.includes("premise")
+                r.types.includes("premise"),
             ) || data.results[0];
 
           const components = result.address_components;
@@ -501,7 +501,7 @@ function ElderlyCareDetails({
         alert("Please enable location services in your browser settings.");
         setShowLocationPopup(false);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 } // Production settings for better accuracy
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }, // Production settings for better accuracy
     );
   };
 
@@ -706,8 +706,7 @@ function ElderlyCareDetails({
             options={[]}
           /> */}
           <CheckboxGroup
-            required
-            label="Other Services you can Offer"
+            label="Other Services you can Offer (Optional)"
             options={["Child Care", "Elderly Care", "House keeping"]}
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
@@ -719,22 +718,14 @@ function ElderlyCareDetails({
 
         <CheckboxGroup
           required
-          label="What qualities matter most to you in a care provider? Select the ones that best align."
+          label="What qualities do you possess as a care provider? Select the ones that best align."
           options={[
-            "Hypertension",
-            "Diabetes",
             "Clean-up help",
             "Healthy diet",
             "CPR trained",
             "Non-smoker",
             "Medication reminder",
             "Can drive",
-            "Palliative care",
-            "Willing to live-in",
-            "Background checked",
-            "Speaks Yoruba",
-            "Speaks Igbo",
-            "Speaks Hausa",
             "Special Needs experience",
           ]}
           values={formData.careQualities || []}
@@ -987,8 +978,8 @@ function ElderlyCareDetails({
                   formData.communicationLanguages.length > 0
                     ? formData.communicationLanguages
                     : formData.language
-                    ? [formData.language]
-                    : [],
+                      ? [formData.language]
+                      : [],
                 additional_services: formData.otherServices || [],
                 skills: formData.skills || [],
                 category_specific_details: {
@@ -1001,7 +992,7 @@ function ElderlyCareDetails({
                       ? formData.communicationLanguages[0]
                       : formData.language || null,
                   preferred_option: Array.isArray(
-                    formData.housekeepingPreference
+                    formData.housekeepingPreference,
                   )
                     ? formData.housekeepingPreference[0]
                     : formData.preferredOption || null,
@@ -1020,24 +1011,24 @@ function ElderlyCareDetails({
                   last_name: trimmedLast,
                   full_name: (trimmedFirst + " " + trimmedLast).trim(),
                 },
-              })
+              }),
             );
             // save flattened profile fields under 'elderly_profile'
             const flatProfile = { ...elderPayload.profile_data };
             dispatch(
-              saveStep({ stepName: "elderly_profile", data: flatProfile })
+              saveStep({ stepName: "elderly_profile", data: flatProfile }),
             );
             console.debug &&
               console.debug(
                 "ElderlyCareDetails: saved steps, calling handleNext",
-                { handleNextType: typeof handleNext }
+                { handleNextType: typeof handleNext },
               );
             if (typeof handleNext === "function") {
               handleNext();
             } else {
               console.error(
                 "ElderlyCareDetails: handleNext is not a function",
-                handleNext
+                handleNext,
               );
             }
           }}
