@@ -484,7 +484,7 @@ function ChildInformation({
 
         try {
           const response = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`,
           );
 
           const data = await response.json();
@@ -503,7 +503,7 @@ function ChildInformation({
               longitude,
             });
             throw new Error(
-              "No address results found. Please ensure Google Maps Geocoding API is enabled in your Google Cloud Console."
+              "No address results found. Please ensure Google Maps Geocoding API is enabled in your Google Cloud Console.",
             );
           }
 
@@ -512,7 +512,7 @@ function ChildInformation({
             data.results.find(
               (r) =>
                 r.types.includes("street_address") ||
-                r.types.includes("premise")
+                r.types.includes("premise"),
             ) || data.results[0];
 
           const components = result.address_components;
@@ -543,7 +543,7 @@ function ChildInformation({
           console.error("Error fetching location:", error);
           alert(
             error.message ||
-              "Could not retrieve address details. Please enter manually."
+              "Could not retrieve address details. Please enter manually.",
           );
           setShowLocationPopup(false);
         }
@@ -553,7 +553,7 @@ function ChildInformation({
         alert("Please enable location services in your browser settings.");
         setShowLocationPopup(false);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
     );
   };
 
@@ -571,13 +571,13 @@ function ChildInformation({
     ];
 
     const basicFieldsComplete = requiredFields.every(
-      (field) => formData[field] || formData.childCount // fallback for numberOfChildren
+      (field) => formData[field] || formData.childCount, // fallback for numberOfChildren
     );
 
     const childrenDetailsComplete =
       (formData.childrenDetails || []).length === childCount &&
       (formData.childrenDetails || []).every(
-        (child) => child.age && child.gender
+        (child) => child.age && child.gender,
       );
 
     return basicFieldsComplete && childrenDetailsComplete;
@@ -889,7 +889,7 @@ function ChildInformation({
                   >
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Age of child {index + 1}
+                        Date of Birth {index + 1}
                       </label>
                       <input
                         type="date"
@@ -954,7 +954,7 @@ function ChildInformation({
                   first_name: formData.firstName || "",
                   last_name: formData.lastName || "",
                 },
-              })
+              }),
             );
             // Save location and child info to Redux before moving next
             dispatch(
@@ -969,7 +969,7 @@ function ChildInformation({
                   zipCode: formData.zipCode,
                   nationality: formData.nationality,
                 },
-              })
+              }),
             );
             dispatch(
               saveStep({
@@ -980,7 +980,7 @@ function ChildInformation({
                     formData.numberOfChildren || formData.childCount,
                   childrenDetails: formData.childrenDetails,
                 },
-              })
+              }),
             );
             handleNext();
           }}

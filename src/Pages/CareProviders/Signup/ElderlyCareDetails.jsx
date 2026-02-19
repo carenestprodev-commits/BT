@@ -718,7 +718,7 @@ function ElderlyCareDetails({
 
         <CheckboxGroup
           required
-          label="What qualities do you possess as a care provider? Select the ones that best align."
+          label="What skills do you possess as a care provider? Select the ones that best align."
           options={[
             "Clean-up help",
             "Healthy diet",

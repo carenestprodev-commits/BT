@@ -191,7 +191,7 @@ function ElderlyTimeDetails({
                       if (formData.repeatDays.includes(dayName)) {
                         updateFormData(
                           "repeatDays",
-                          formData.repeatDays.filter((d) => d !== dayName)
+                          formData.repeatDays.filter((d) => d !== dayName),
                         );
                       } else {
                         updateFormData("repeatDays", [
@@ -210,7 +210,7 @@ function ElderlyTimeDetails({
                           "Thursday",
                           "Friday",
                           "Saturday",
-                        ][index]
+                        ][index],
                       )
                         ? "bg-[#0093d1] text-white"
                         : "bg-gray-100 text-gray-600"
@@ -311,8 +311,59 @@ function ElderlyTimeDetails({
               if (v?.hourlyRateEnd !== undefined)
                 updateFormData("hourlyRateEnd", v.hourlyRateEnd);
             }}
-            currencyCode="NGN"
           />
+
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Min Rate (₦)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                  ₦
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 1000"
+                  className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#0093d1]"
+                  style={{ backgroundColor: "#fff", color: "#222" }}
+                  value={formData.hourlyRateStart ?? ""}
+                  onChange={(e) =>
+                    updateFormData(
+                      "hourlyRateStart",
+                      e.target.value === "" ? "" : Number(e.target.value),
+                    )
+                  }
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Max Rate (₦)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                  ₦
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 3000"
+                  className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#0093d1]"
+                  style={{ backgroundColor: "#fff", color: "#222" }}
+                  value={formData.hourlyRateEnd ?? ""}
+                  onChange={(e) =>
+                    updateFormData(
+                      "hourlyRateEnd",
+                      e.target.value === "" ? "" : Number(e.target.value),
+                    )
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
           {errors.hourlyRate && (
             <p className="text-sm text-red-600 mt-2">{errors.hourlyRate}</p>
           )}
@@ -401,7 +452,7 @@ function ElderlyTimeDetails({
           };
 
           dispatch(
-            saveStep({ stepName: "timeDetails", data: timeDetailsData })
+            saveStep({ stepName: "timeDetails", data: timeDetailsData }),
           );
 
           const allSteps = { ...onboardingSteps, timeDetails: timeDetailsData };
