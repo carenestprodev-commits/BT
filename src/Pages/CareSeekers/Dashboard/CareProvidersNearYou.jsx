@@ -17,7 +17,7 @@ function CareProvidersNearYou() {
 
   const { providers, loading, error } = useSelector(
     (s) =>
-      s.careProviderNearYou || { providers: [], loading: false, error: null }
+      s.careProviderNearYou || { providers: [], loading: false, error: null },
   );
 
   // No frontend gating by subscription: all actions are active
@@ -92,7 +92,7 @@ function CareProvidersNearYou() {
                     <div className="flex items-center mb-4">
                       <img
                         src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                          p.user?.full_name || "Provider"
+                          p.user?.full_name || "Provider",
                         )}&background=E5E7EB&color=374151&size=64`}
                         alt="Provider"
                         className="w-12 h-12 sm:w-14 sm:h-14 rounded-full mr-4 object-cover"
@@ -152,7 +152,7 @@ function CareProvidersNearYou() {
                           navigate(
                             `/careseekers/dashboard/details/${
                               p?.user?.id || p?.id
-                            }`
+                            }`,
                           )
                         }
                       >

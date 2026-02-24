@@ -1,24 +1,28 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import { BASE_URL } from './config'
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { BASE_URL } from "./config";
 
 export const fetchProviders = createAsyncThunk(
-  'careProviderNearYou/fetchProviders',
+  "careProviderNearYou/fetchProviders",
   async (_, { rejectWithValue }) => {
     try {
-      const access = localStorage.getItem('access')
-      const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
-      const res = await fetch(`${BASE_URL}/api/browse-providers/`, { headers })
-      const data = await res.json()
-      if (!res.ok) return rejectWithValue(data)
-      return Array.isArray(data) ? data : []
+      const access = localStorage.getItem("access");
+      const headers = access ? { Authorization: `Bearer ${access}` } : {};
+      const res = await fetch(`${BASE_URL}/api/browse-providers/`, { headers });
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data);
+      return Array.isArray(data)
+        ? data
+        : Array.isArray(data?.results)
+          ? data.results
+          : [];
     } catch {
-      return rejectWithValue({ error: 'Network error' })
+      return rejectWithValue({ error: "Network error" });
     }
-  }
-)
+  },
+);
 
 const slice = createSlice({
-  name: 'careProviderNearYou',
+  name: "careProviderNearYou",
   initialState: {
     providers: [],
     loading: false,
@@ -26,27 +30,27 @@ const slice = createSlice({
   },
   reducers: {
     clearProviders(state) {
-      state.providers = []
-      state.loading = false
-      state.error = null
+      state.providers = [];
+      state.loading = false;
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchProviders.pending, (state) => {
-        state.loading = true
-        state.error = null
+        state.loading = true;
+        state.error = null;
       })
       .addCase(fetchProviders.fulfilled, (state, action) => {
-        state.loading = false
-        state.providers = action.payload
+        state.loading = false;
+        state.providers = action.payload;
       })
       .addCase(fetchProviders.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload || action.error
-      })
-  }
-})
+        state.loading = false;
+        state.error = action.payload || action.error;
+      });
+  },
+});
 
-export const { clearProviders } = slice.actions
-export default slice.reducer
+export const { clearProviders } = slice.actions;
+export default slice.reducer;

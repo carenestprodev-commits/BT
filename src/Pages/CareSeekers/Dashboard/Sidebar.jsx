@@ -56,42 +56,6 @@ function Sidebar({ active = "Home", onNav }) {
   const [showCompletion, setShowCompletion] = React.useState(true);
   const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
-  React.useEffect(() => {
-    // Fetch profile completion from backend
-    const fetchProfileCompletion = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          console.warn("No authentication token found");
-          return;
-        }
-
-        const response = await fetchWithAuth("/api/profile/completion", {
-          headers: {
-            Authorization: `Bearer ${token}`, // adjust based on your auth setup
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`API returned status ${response.status}`);
-        }
-
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Response is not valid JSON");
-        }
-
-        const data = await response.json();
-        setProfileCompletion(data.percentage); // adjust based on your API response structure
-      } catch (error) {
-        console.error("Failed to fetch profile completion", error);
-        // Silently fail - don't block UI
-      }
-    };
-
-    fetchProfileCompletion();
-  }, []);
-
   const handleLogout = () => {
     try {
       localStorage.clear();

@@ -161,7 +161,7 @@ function Home() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Book a Service Card */}
-          <Link to="/careseekers/bookservice">
+          <Link to="/careseekers/dashboard/careproviders">
             <div className="bg-[#f3f9fc] rounded-xl px-4 py-6 sm:py-10 flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 shadow-sm border border-gray-100 hover:shadow-lg transition">
               <div className="p-2 rounded-md flex-shrink-0 flex items-center justify-center">
                 <img
