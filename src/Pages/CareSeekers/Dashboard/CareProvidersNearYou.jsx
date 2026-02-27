@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchProviders } from "../../../Redux/CareProviderNearYou";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import { AuthContext } from "../../../Context/AuthContext";
-// Subscription gating removed: buttons always active
 
 function CareProvidersNearYou() {
   const navigate = useNavigate();
@@ -20,29 +19,20 @@ function CareProvidersNearYou() {
       s.careProviderNearYou || { providers: [], loading: false, error: null },
   );
 
-  // No frontend gating by subscription: all actions are active
-
   useEffect(() => {
     dispatch(fetchProviders());
   }, [dispatch]);
 
   const handleMessageClick = (providerId) => {
-    // Check if user is verified
     if (!user?.is_verified) {
-      // Show verification modal
       setSelectedProviderId(providerId);
       setShowVerificationModal(true);
     } else {
-      // Proceed with messaging
       navigate("/careseekers/dashboard/message_provider/" + providerId);
     }
   };
 
-  const handleVerificationProceed = () => {
-    // Modal will handle navigation to settings with verify tab
-    setShowVerificationModal(false);
-  };
-
+  const handleVerificationProceed = () => setShowVerificationModal(false);
   const handleVerificationCancel = () => {
     setShowVerificationModal(false);
     setSelectedProviderId(null);
@@ -52,111 +42,132 @@ function CareProvidersNearYou() {
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
       <Sidebar active="Care Providers" />
       <div className="flex-1 font-sfpro px-4 md:px-8 py-8 md:ml-64">
-        {/* Main Content (Blurred when signup popup is active) */}
-        <div
-        // className={`font-sfpro w-full bg-white min-h-screen transition ${
-        //   showSignupPopup ? "blur-sm pointer-events-none" : ""
-        // }`}
-        >
+        <div>
           {/* Header */}
-          <div className="flex justify-between items-center px-8 pt-8">
-            <h2 className="text-3xl font-semibold text-gray-800">
+          <div className="flex justify-between items-center px-4 md:px-8 pt-4">
+            <h2 className="text-2xl md:text-3xl font-semibold text-gray-800">
               Care Providers near you
             </h2>
-            {/* <div className="flex items-center">
-              <span className="text-lg text-[#0093d1] font-bold">Step 8</span>
-              <span className="ml-2 text-lg text-gray-500"> of 8</span>
-            </div> */}
           </div>
 
           {/* Cards Grid */}
-          <div className="px-8 pb-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8">
+          <div className="px-4 md:px-8 pb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
               {loading && (
-                <div className="col-span-2 text-sm text-gray-500">
-                  Loading providers…
-                </div>
+                <div className="text-sm text-gray-500">Loading providers…</div>
               )}
               {error && (
-                <div className="col-span-2 text-sm text-red-600">
-                  {error.error || "Failed to load providers"}
+                <div className="text-sm text-red-600">
+                  {error.error || "Failed to load"}
                 </div>
               )}
+
               {!loading &&
                 !error &&
                 providers.map((p) => (
                   <div
                     key={p.id}
-                    className="bg-white border border-gray-200 rounded-2xl p-5 shadow-md hover:shadow-lg transition"
+                    className="bg-white border border-gray-100 rounded-2xl p-4 md:p-5 shadow-sm hover:shadow-md transition relative"
                   >
-                    <div className="flex items-center mb-4">
+                    {/* Top Profile Section */}
+                    <div className="flex items-start gap-4 mb-4">
                       <img
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                          p.user?.full_name || "Provider",
-                        )}&background=E5E7EB&color=374151&size=64`}
+                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.user?.full_name || "Provider")}&background=E5E7EB&color=374151&size=100`}
                         alt="Provider"
-                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full mr-4 object-cover"
+                        className="w-16 h-16 rounded-full object-cover flex-shrink-0"
                       />
-                      <div>
-                        <h4 className="font-semibold text-gray-800 text-lg">
-                          {p.user?.full_name || p.profile_title || "Provider"}
-                        </h4>
-                        <p className="text-sm text-gray-500">
-                          {p.city || p.country || ""}
+                      <div className="flex-1 pr-6">
+                        <div className="flex items-center gap-1">
+                          <h4 className="font-bold text-gray-800 text-lg">
+                            {p.user?.full_name || "Provider"}
+                          </h4>
+                          {/* Verified Badge Icon */}
+                          <svg
+                            className="w-5 h-5 text-[#0093d1]"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-xs text-gray-400 mb-1">
+                          {p.city}, {p.country}{" "}
+                          <span className="text-gray-300 ml-1">
+                            (45 mins from location)
+                          </span>
+                        </p>
+                        <p className="text-sm text-gray-500 line-clamp-2 leading-tight">
+                          {p.profile_title || "No description provided."}
                         </p>
                       </div>
+                      {/* Optional: Design Menu Icon if needed */}
                     </div>
 
-                    <p className="text-sm text-gray-500 mb-4 leading-snug">
-                      {p.profile_title || ""}
-                    </p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 border border-gray-200 rounded-lg overflow-hidden mb-4">
-                      <div className="p-2 text-center border-b sm:border-b-0 sm:border-r border-gray-200">
-                        <div className="text-xs text-gray-500">Experience</div>
-                        <div className="font-semibold text-sm text-gray-700">
+                    {/* Stats Grid - Fixed 3 columns on mobile */}
+                    <div className="grid grid-cols-3 border border-gray-100 rounded-xl mb-5 bg-gray-50/30">
+                      <div className="p-3 text-left border-r border-gray-100">
+                        <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">
+                          Experience
+                        </div>
+                        <div className="font-bold text-sm text-gray-700">
                           {p.years_of_experience ?? 0} years
                         </div>
                       </div>
-                      <div className="p-2 text-center border-b sm:border-b-0 sm:border-r border-gray-200">
-                        <div className="text-xs text-gray-500">Rate</div>
-                        <div className="font-semibold text-sm text-gray-700">
-                          ₦{p.hourly_rate ?? p.hourly_rate}
+                      <div className="p-3 text-left border-r border-gray-100">
+                        <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">
+                          Rate
+                        </div>
+                        <div className="font-bold text-sm text-gray-700">
+                          ₦{p.hourly_rate ?? 0}/hr
                         </div>
                       </div>
-                      <div className="p-2 text-center">
-                        <div className="text-xs text-gray-500">Rating</div>
-                        <div className="flex items-center justify-center">
-                          <span className="text-yellow-400 text-base">
-                            {Array(Math.round(p.average_rating || 0))
-                              .fill("★")
-                              .join("") || "★"}
-                          </span>
-                          <span className="text-xs text-gray-600 ml-1">
+                      <div className="p-3 text-left">
+                        <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">
+                          Rating
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold text-sm text-gray-700">
                             {(p.average_rating ?? 0).toFixed(1)}
                           </span>
+                          <div className="flex text-yellow-400 text-xs">
+                            {"★★★★★".split("").map((s, i) => (
+                              <span
+                                key={i}
+                                className={
+                                  i < Math.round(p.average_rating || 0)
+                                    ? "opacity-100"
+                                    : "opacity-30"
+                                }
+                              >
+                                {s}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2">
+                    {/* Buttons */}
+                    <div className="flex gap-3">
                       <button
-                        className="w-full sm:flex-1 bg-[#0093d1] text-white py-2 rounded-md font-medium hover:bg-[#007bb0] transition"
+                        className="flex-1 bg-[#0093d1] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#007bb0] transition"
                         onClick={() => handleMessageClick(p?.user?.id || p?.id)}
                       >
                         Message
                       </button>
                       <button
-                        className="w-full sm:flex-1 border border-[#0093d1] text-[#0093d1] py-2 rounded-md font-medium hover:bg-[#f0fbf9] transition"
+                        className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition"
                         onClick={() =>
                           navigate(
-                            `/careseekers/dashboard/details/${
-                              p?.user?.id || p?.id
-                            }`,
+                            `/careseekers/dashboard/details/${p?.user?.id || p?.id}`,
                           )
                         }
                       >
-                        View Details
+                        View details
                       </button>
                     </div>
                   </div>
@@ -166,7 +177,6 @@ function CareProvidersNearYou() {
         </div>
       </div>
 
-      {/* Verification Check Modal */}
       <VerificationCheckModal
         isOpen={showVerificationModal}
         user={user}
