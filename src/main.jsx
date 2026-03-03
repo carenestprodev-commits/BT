@@ -5,6 +5,7 @@ import { Provider } from "react-redux";
 import { store } from "./Redux/store";
 import { ToastProvider } from "./Context/ToastContext";
 import { AuthProvider } from "./Context/AuthContext";
+import { NotificationProvider } from "./Context/NotificationContext";
 
 import { RouterProvider } from "react-router-dom";
 import { router } from "./Routes/router";
@@ -13,10 +14,12 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Provider store={store}>
       <AuthProvider>
-        <ToastProvider>
-          <RouterProvider router={router} />
-        </ToastProvider>
+        <NotificationProvider>
+          <ToastProvider>
+            <RouterProvider router={router} />
+          </ToastProvider>
+        </NotificationProvider>
       </AuthProvider>
     </Provider>
-  </StrictMode>
+  </StrictMode>,
 );

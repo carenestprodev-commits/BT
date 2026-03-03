@@ -1,10 +1,12 @@
 /**
  * Paystack Payment Service
  * Handles provider subscriptions & seeker payments
+ * Includes support for multi-currency and localized pricing
  */
 
 import tokenService from "./tokenService";
 import { fetchWithAuth } from "../lib/fetchWithAuth";
+import { getUserCountry, detectUserCountry } from "./countryHelper";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -56,10 +58,22 @@ export const paystackService = {
   /**
    * Initiate provider subscription payment
    * @param {number} planId - subscription_plan.id from backend
+   * @returns {Promise<Object>} Payment initialization response with localized fields
    */
   initiateProviderSubscription: async (planId) => {
     if (!planId) {
       throw new Error("Invalid subscription plan selected");
+    }
+
+    // Detect user's country for localized pricing
+    let country = getUserCountry();
+    if (!country) {
+      try {
+        country = await detectUserCountry();
+      } catch (error) {
+        console.warn("Country detection failed, using default:", error);
+        country = "NG"; // Default to Nigeria
+      }
     }
 
     const response = await authRequest(
@@ -67,8 +81,9 @@ export const paystackService = {
       {
         method: "POST",
         body: JSON.stringify({
-          plan_id: planId, // ✅ THIS IS WHAT YOU PASS
+          plan_id: planId,
           payment_gateway: "paystack",
+          country: country, // ✅ Include country for localized pricing
         }),
       },
     );
@@ -77,13 +92,22 @@ export const paystackService = {
 
     if (!response.ok) {
       let message = "Failed to initiate subscription payment";
+      let supportedGateways = null;
+
       try {
         const err = JSON.parse(text);
         message = err.message || err.detail || message;
+        // Check for gateway availability error
+        supportedGateways = err.supported_gateways || err.supportedGateways;
       } catch {
         message = text || message;
       }
-      throw new Error(message);
+
+      const error = new Error(message);
+      if (supportedGateways) {
+        error.supportedGateways = supportedGateways;
+      }
+      throw error;
     }
 
     const data = JSON.parse(text);
@@ -98,10 +122,17 @@ export const paystackService = {
       throw new Error("Payment URL not returned from server");
     }
 
+    // Extract localized pricing fields from response
     return {
       authorizationUrl,
       reference: data.reference,
       accessCode: data.access_code,
+      // Localized pricing fields
+      localizedPrice: data.localized_price || data.amount,
+      currencyCode: data.currency_code || "NGN",
+      currencySymbol: data.currency_symbol || "₦",
+      countryUsed: data.country_used || country,
+      isFallbackPrice: data.is_fallback_price || false,
       raw: data,
     };
   },
@@ -119,16 +150,29 @@ export const paystackService = {
     console.log(bookingId);
     console.log(amount);
     console.log(bookingDetails);
+
     if (amount == null) {
       throw new Error("Invalid checkout details");
+    }
+
+    // Detect user's country for localized pricing
+    let country = getUserCountry();
+    if (!country) {
+      try {
+        country = await detectUserCountry();
+      } catch (error) {
+        console.warn("Country detection failed, using default:", error);
+        country = "NG"; // Default to Nigeria
+      }
     }
 
     const response = await authRequest(`${BASE_URL}/api/payments/checkout/`, {
       method: "POST",
       body: JSON.stringify({
-        booking_id: bookingId, // can be 0 for subscription
+        booking_id: bookingId,
         amount,
         payment_method: "paystack",
+        country: country, // ✅ Include country for localized pricing
         ...bookingDetails,
       }),
     });
@@ -136,13 +180,32 @@ export const paystackService = {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || "Checkout initiation failed");
+      let message = data.message || "Checkout initiation failed";
+      let supportedGateways = null;
+
+      // Check for gateway availability error
+      if (data.supported_gateways || data.supportedGateways) {
+        supportedGateways = data.supported_gateways || data.supportedGateways;
+      }
+
+      const error = new Error(message);
+      if (supportedGateways) {
+        error.supportedGateways = supportedGateways;
+      }
+      throw error;
     }
 
+    // Extract localized pricing fields from response
     return {
       authorizationUrl: data.authorization_url || data.checkout_url,
       reference: data.reference,
       accessCode: data.access_code,
+      // Localized pricing fields
+      localizedPrice: data.localized_price || data.amount,
+      currencyCode: data.currency_code || "NGN",
+      currencySymbol: data.currency_symbol || "₦",
+      countryUsed: data.country_used || country,
+      isFallbackPrice: data.is_fallback_price || false,
       raw: data,
     };
   },

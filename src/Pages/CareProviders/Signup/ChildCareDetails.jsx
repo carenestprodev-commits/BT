@@ -698,7 +698,7 @@ function ChildCareDetails({
               onChange={(e) => updateFormData("hourlyRate", e.target.value)}
             />
             <p className="text-sm text-green-600 mt-1">
-              Average hourly rate is between ₦1000 - ₦3000
+              Average hourly rate is ₦1000
             </p>
           </div>
         </div>

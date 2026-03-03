@@ -771,7 +771,7 @@ function TutoringDetails({
             <p className="text-sm text-red-600 mt-1">{errors.hourlyRate}</p>
           ) : (
             <p className="text-sm text-green-600 mt-1">
-              Average hourly rate is between ₦1000 - ₦3000 per hour
+              Average hourly rate is ₦1000
             </p>
           )}
         </div>

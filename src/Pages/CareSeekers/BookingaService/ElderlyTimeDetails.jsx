@@ -191,7 +191,7 @@ function ElderlyTimeDetails({
                       if (formData.repeatDays.includes(dayName)) {
                         updateFormData(
                           "repeatDays",
-                          formData.repeatDays.filter((d) => d !== dayName)
+                          formData.repeatDays.filter((d) => d !== dayName),
                         );
                       } else {
                         updateFormData("repeatDays", [
@@ -210,7 +210,7 @@ function ElderlyTimeDetails({
                           "Thursday",
                           "Friday",
                           "Saturday",
-                        ][index]
+                        ][index],
                       )
                         ? "bg-[#0093d1] text-white"
                         : "bg-gray-100 text-gray-600"
@@ -298,8 +298,7 @@ function ElderlyTimeDetails({
           </label>
           <div className="bg-green-100 text-green-700 text-sm p-2 rounded mb-4">
             <span className="inline-flex items-center">
-              <span className="mr-1">ℹ️</span> average range in your area is
-              ₦1000 - ₦3000
+              <span className="mr-1">ℹ️</span> Average hourly rate is ₦1000
             </span>
           </div>
           <DualRangeSlider
@@ -400,7 +399,7 @@ function ElderlyTimeDetails({
           };
 
           dispatch(
-            saveStep({ stepName: "timeDetails", data: timeDetailsData })
+            saveStep({ stepName: "timeDetails", data: timeDetailsData }),
           );
 
           const allSteps = { ...onboardingSteps, timeDetails: timeDetailsData };

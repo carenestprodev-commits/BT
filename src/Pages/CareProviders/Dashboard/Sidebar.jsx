@@ -6,12 +6,14 @@ import CareLogo from "../../../../public/CareLogo.png";
 
 import { PiSquaresFour } from "react-icons/pi";
 import { MdOutlineSettings } from "react-icons/md";
-import { FiLogOut } from "react-icons/fi";
+import { FiLogOut, FiMenu, FiX } from "react-icons/fi";
+import { IoNotificationsOutline } from "react-icons/io5";
 
 import Triangle from "../../../../public/triangle.svg";
 import Message from "../../../../public/receipt-text.svg";
 import WalletIcon from "../../../../public/wallet.svg";
 import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
+import { useNotifications } from "../../../Context/NotificationContext";
 
 /* ---------------- NAV ITEMS ---------------- */
 
@@ -30,6 +32,10 @@ const navItems = [
     icon: <img src={Message} alt="Message" className="h-6 w-6" />,
   },
   {
+    label: "Notifications",
+    icon: <IoNotificationsOutline className="h-6 w-6" />,
+  },
+  {
     label: "Settings",
     icon: <MdOutlineSettings className="h-6 w-6" />,
   },
@@ -39,20 +45,25 @@ const navItems = [
 
 function Sidebar({ active = "Home", onNav }) {
   const navigate = useNavigate();
+  const { unreadCount } = useNotifications();
+
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [profileCompletion, setProfileCompletion] = React.useState(null);
+  const [showCompletion, setShowCompletion] = React.useState(true);
+  const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
   const handleNav = (label) => {
     if (onNav) onNav(label);
+    setMobileMenuOpen(false); // close mobile menu on navigation
 
     if (label === "Home") navigate("/careproviders/dashboard/home");
     if (label === "Requests") navigate("/careproviders/dashboard/requests");
     if (label === "Wallet") navigate("/careproviders/dashboard/wallet");
     if (label === "Message") navigate("/careproviders/dashboard/message");
+    if (label === "Notifications")
+      navigate("/careproviders/dashboard/notifications");
     if (label === "Settings") navigate("/careproviders/dashboard/settings");
   };
-
-  const [profileCompletion, setProfileCompletion] = React.useState(null);
-  const [showCompletion, setShowCompletion] = React.useState(true);
-  const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
   React.useEffect(() => {
     const fetchProfileCompletion = async () => {
@@ -161,25 +172,111 @@ function Sidebar({ active = "Home", onNav }) {
 
   return (
     <>
-      {/* ================= MOBILE BOTTOM NAV ================= */}
-      {active !== "Message" && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 font-sfpro">
-          <nav className="flex justify-around items-center py-2">
+      {/* ================= MOBILE HAMBURGER BUTTON ================= */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between font-sfpro">
+        <div className="flex items-center gap-2">
+          <img src={CareLogo} alt="CareNestPro Logo" className="h-8" />
+          <span className="text-base font-semibold text-[#0e2f43]">
+            CareNestPro
+          </span>
+        </div>
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="text-[#0e2f43] p-1"
+          aria-label="Open menu"
+        >
+          <FiMenu className="h-6 w-6" />
+        </button>
+      </div>
+
+      {/* ================= MOBILE SIDEBAR OVERLAY ================= */}
+      {/* Backdrop */}
+      <div
+        className={`md:hidden fixed inset-0 z-50 transition-opacity duration-300 ${
+          mobileMenuOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+        }`}
+      >
+        {/* Dark overlay (right half) */}
+        <div
+          className="absolute inset-0 bg-black bg-opacity-50"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+
+        {/* Slide-in sidebar panel (left half) */}
+        <div
+          className={`absolute top-0 left-0 h-full w-1/2 bg-[#0e2f43] flex flex-col px-5 py-6 text-white font-sfpro shadow-2xl transition-transform duration-300 ease-in-out ${
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          {/* Logo + Close button row */}
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-2">
+              <img src={CareLogo} alt="CareNestPro Logo" className="h-8" />
+              <span className="text-white text-base font-semibold">
+                CareNestPro
+              </span>
+            </div>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-white/80 hover:text-white p-1"
+              aria-label="Close menu"
+            >
+              <FiX className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Navigation Items */}
+          <nav className="flex flex-col gap-1 flex-1">
             {navItems.map((item) => (
               <button
                 key={item.label}
                 onClick={() => handleNav(item.label)}
-                className={`flex flex-col items-center justify-center text-xs transition ${
-                  active === item.label ? "text-[#0e2f43]" : "text-gray-400"
+                className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm font-medium transition hover:bg-[#4a6576] ${
+                  active === item.label ? "bg-[#4a6576]" : ""
                 }`}
               >
-                <span className="mb-1">{item.icon}</span>
-                <span>{item.label}</span>
+                <span className="flex items-center gap-3">
+                  <span>{item.icon}</span>
+                  {item.label}
+                </span>
+                {item.label === "Notifications" && unreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
+
+          {/* Logout */}
+          <div className="pt-4 border-t border-white/20">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setShowLogoutModal(true);
+              }}
+              className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-sm font-medium text-[#4fd1c5] hover:bg-[#4a6576] transition"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+              Sign Out
+            </button>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* ================= DESKTOP SIDEBAR ================= */}
       <div className="hidden md:flex md:fixed md:top-0 md:left-0 md:h-screen md:w-64 md:flex-col md:bg-[#0e2f43] md:px-6 md:py-8 md:text-white md:font-sfpro z-40">
@@ -195,12 +292,19 @@ function Sidebar({ active = "Home", onNav }) {
             <button
               key={item.label}
               onClick={() => handleNav(item.label)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition hover:bg-[#4a6576] ${
+              className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-base font-medium transition hover:bg-[#4a6576] ${
                 active === item.label ? "bg-[#4a6576]" : ""
               }`}
             >
-              <span className="text-xl">{item.icon}</span>
-              {item.label}
+              <span className="flex items-center gap-3">
+                <span className="text-xl">{item.icon}</span>
+                {item.label}
+              </span>
+              {item.label === "Notifications" && unreadCount > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>

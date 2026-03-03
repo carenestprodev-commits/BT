@@ -95,7 +95,7 @@ const MobileConversationsList = ({
       (conv.last_message?.content || "")
         .toLowerCase()
         .includes(search.toLowerCase()) ||
-      (conv.job_title || "").toLowerCase().includes(search.toLowerCase())
+      (conv.job_title || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -161,7 +161,7 @@ const MobileConversationsList = ({
               >
                 <img
                   src={resolveImage(
-                    conversation.other_participant?.profile_image_url
+                    conversation.other_participant?.profile_image_url,
                   )}
                   alt="avatar"
                   className="w-12 h-12 rounded-full object-cover flex-shrink-0"
@@ -241,7 +241,7 @@ const MobileChatView = ({
           <>
             <img
               src={resolveImage(
-                currentConversation.other_participant?.profile_image_url
+                currentConversation.other_participant?.profile_image_url,
               )}
               alt="avatar"
               className="w-10 h-10 rounded-full mr-3 object-cover"
@@ -388,7 +388,7 @@ const MobileChatView = ({
         )}
       </div>
 
-      <div className="px-4 py-3 border-t border-gray-100 bg-white flex items-center gap-3 flex-shrink-0 z-60">
+      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-100 bg-white flex items-end gap-2 sm:gap-3 flex-shrink-0 z-60 safe-area-inset-bottom">
         <input
           ref={inputRef}
           type="text"
@@ -397,18 +397,19 @@ const MobileChatView = ({
           onKeyPress={handleKeyPress}
           placeholder="Write your message"
           disabled={!currentConversation || sendingMessage}
-          className="flex-1 px-4 py-3 rounded-full bg-gray-50 text-gray-700 text-sm focus:outline-none disabled:opacity-50"
+          className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-full bg-gray-50 text-gray-700 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#00A8E8] focus:ring-opacity-50 disabled:opacity-50 transition"
         />
         <button
           onClick={handleSendMessage}
           disabled={!currentConversation || sendingMessage || !input.trim()}
-          className="bg-[#00A8E8] rounded-full w-10 h-10 flex items-center justify-center disabled:opacity-50"
+          className="bg-[#00A8E8] rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center disabled:opacity-50 hover:bg-[#0091cc] transition-colors flex-shrink-0 touch-target"
+          aria-label="Send message"
         >
           {sendingMessage ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
             <svg
-              className="w-5 h-5 text-white"
+              className="w-5 h-5 sm:w-6 sm:h-6 text-white"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -453,7 +454,7 @@ function Message() {
   // otherwise show the conversations list. Also track whether viewport is mobile.
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
+    typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
 
   useEffect(() => {
@@ -483,7 +484,7 @@ function Message() {
       (conv.last_message?.content || "")
         .toLowerCase()
         .includes(search.toLowerCase()) ||
-      (conv.job_title || "").toLowerCase().includes(search.toLowerCase())
+      (conv.job_title || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   // Payment calculation (using current conversation's hourly rate or default)
@@ -519,7 +520,7 @@ function Message() {
       (c) =>
         String(c.booking) === bid ||
         String(c.booking_id) === bid ||
-        String(c.id) === bid
+        String(c.id) === bid,
     );
     if (idx >= 0) {
       const conv = conversations[idx];
@@ -539,7 +540,7 @@ function Message() {
           (c) =>
             String(c.booking) === bid ||
             String(c.booking_id) === bid ||
-            String(c.id) === bid
+            String(c.id) === bid,
         );
         if (idx2 >= 0) {
           const conv = convs[idx2];
@@ -605,7 +606,7 @@ function Message() {
       sendMessage({
         conversationId: currentConversation.id,
         content: activityMessage,
-      })
+      }),
     );
 
     // Clear flags immediately to avoid re-triggering
@@ -622,7 +623,7 @@ function Message() {
         sendMessage({
           conversationId: currentConversation.id,
           content: endMessage,
-        })
+        }),
       );
       setTimeout(() => {
         dispatch(clearActivityEnded());
@@ -748,7 +749,7 @@ function Message() {
         sendMessage({
           conversationId: currentConversation.id,
           content: messageContent,
-        })
+        }),
       );
 
       // After the send completes, scroll to bottom again to ensure server-rendered message is visible
@@ -782,7 +783,7 @@ function Message() {
           totalHours,
           paymentGateway: "stripe",
           perHourRate: RATE_PER_HOUR,
-        })
+        }),
       );
 
       if (initiateActivityPayment.fulfilled.match(result)) {
@@ -926,7 +927,7 @@ function Message() {
                       >
                         <img
                           src={resolveImage(
-                            conversation.other_participant?.profile_image_url
+                            conversation.other_participant?.profile_image_url,
                           )}
                           alt="avatar"
                           className="w-10 h-10 rounded-full object-cover"
@@ -969,7 +970,8 @@ function Message() {
                   <>
                     <img
                       src={resolveImage(
-                        currentConversation.other_participant?.profile_image_url
+                        currentConversation.other_participant
+                          ?.profile_image_url,
                       )}
                       alt="avatar"
                       className="w-10 h-10 rounded-full mr-3 object-cover"
@@ -1027,15 +1029,15 @@ function Message() {
                             setMenuOpen(false);
                             try {
                               const res = await dispatch(
-                                endActivity(bookingId)
+                                endActivity(bookingId),
                               );
                               const payload = res.payload || res.error || null;
                               alert(
                                 `End activity response:\n${JSON.stringify(
                                   payload,
                                   null,
-                                  2
-                                )}`
+                                  2,
+                                )}`,
                               );
                             } catch {
                               alert("Failed to end activity");
@@ -1094,7 +1096,7 @@ function Message() {
                               value={totalHours}
                               onChange={(e) =>
                                 setTotalHours(
-                                  Math.max(1, parseInt(e.target.value) || 1)
+                                  Math.max(1, parseInt(e.target.value) || 1),
                                 )
                               }
                             />

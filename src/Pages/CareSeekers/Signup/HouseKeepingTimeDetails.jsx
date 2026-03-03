@@ -298,8 +298,7 @@ function HouseKeepingTimeDetails({
           </label>
           <div className="bg-green-100 text-green-700 text-sm p-2 rounded mb-4">
             <span className="inline-flex items-center">
-              <span className="mr-1">ℹ️</span> Average range in your area is
-              ₦1000- ₦3000 per hour
+              <span className="mr-1">ℹ️</span> Average hourly rate is ₦1000
             </span>
           </div>
           <DualRangeSlider
