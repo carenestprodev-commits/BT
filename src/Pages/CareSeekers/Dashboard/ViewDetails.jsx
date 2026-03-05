@@ -85,16 +85,18 @@ function ViewDetails() {
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
       <Sidebar active="Home" />
-      <div className="flex-1 font-sfpro px-8 py-8 md:ml-64 overflow-y-auto">
+      <div className="flex-1 font-sfpro px-3 sm:px-6 md:px-8 py-4 sm:py-8 md:ml-64 overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center mb-8">
+        <div className="flex items-center mb-6 sm:mb-8">
           <button
-            className="mr-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            className="mr-3 sm:mr-4 text-gray-500 hover:text-gray-700 text-xl sm:text-2xl font-bold"
             onClick={() => navigate(-1)}
           >
             ←
           </button>
-          <h2 className="text-2xl font-semibold text-gray-800">Details</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">
+            Details
+          </h2>
         </div>
 
         {loading && <div className="py-8">Loading provider details…</div>}
@@ -110,57 +112,61 @@ function ViewDetails() {
         {details && (
           <>
             {/* Profile */}
-            <div className="flex items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
               <img
                 src={resolveImage(details?.user?.profile_image_url)}
                 alt="Provider"
-                className="w-16 h-16 rounded-full mr-4 object-cover"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full sm:flex-shrink-0 object-cover"
               />
-              <div>
-                <h4 className="font-semibold text-gray-800 text-lg">
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-gray-800 text-base sm:text-lg line-clamp-2">
                   {details?.user?.full_name || details?.title}
                 </h4>
-                <p className="text-md text-gray-500 mt-1 mb-2">
+                <p className="text-sm sm:text-base text-gray-500 mt-1 mb-2 line-clamp-1">
                   {[details?.city, details?.state, details?.country]
                     .filter(Boolean)
                     .join(", ")}
                 </p>
-                <p className="text-xs text-gray-500 max-w-2xl">
+                <p className="text-xs sm:text-sm text-gray-500 line-clamp-2">
                   {details?.summary}
                 </p>
               </div>
             </div>
 
             {/* Experience/Rate/Rating */}
-            <div className="flex gap-4 mb-6">
-              <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-center">
-                <span className="text-xs text-gray-500">Experience</span>
-                <span className="font-semibold text-gray-800 text-lg">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+              <div className="bg-white border border-gray-200 rounded-lg px-3 sm:px-6 py-2 sm:py-3 flex flex-col items-center">
+                <span className="text-xs text-gray-500 text-center">
+                  Experience
+                </span>
+                <span className="font-semibold text-gray-800 text-sm sm:text-lg mt-1">
                   {details?.years_of_experience ?? "N/A"}
                 </span>
               </div>
-              <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-left">
-                <span className="text-xs text-gray-500">Rate</span>
-                <span className="font-semibold text-gray-800 text-lg">
+              <div className="bg-white border border-gray-200 rounded-lg px-3 sm:px-6 py-2 sm:py-3 flex flex-col items-center">
+                <span className="text-xs text-gray-500 text-center">Rate</span>
+                <span className="font-semibold text-gray-800 text-sm sm:text-lg mt-1 line-clamp-1">
                   {details?.hourly_rate ? `₦${details.hourly_rate}` : "N/A"}
                 </span>
               </div>
-              <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-left">
-                <span className="text-xs text-gray-500">Rating</span>
-                <div className="flex items-center">
-                  <div className="flex mr-2">
+              <div className="bg-white border border-gray-200 rounded-lg px-3 sm:px-6 py-2 sm:py-3 flex flex-col items-center">
+                <span className="text-xs text-gray-500 text-center">
+                  Rating
+                </span>
+                <div className="flex flex-col items-center mt-1">
+                  <div className="flex">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <FaStar
                         key={i}
                         className={
                           i < Math.round(details?.average_rating || 0)
-                            ? "text-[#cb9e49] mr-1"
-                            : "text-gray-300 mr-1"
+                            ? "text-[#cb9e49] text-xs sm:text-sm"
+                            : "text-gray-300 text-xs sm:text-sm"
                         }
                       />
                     ))}
                   </div>
-                  <span className="text-xs text-gray-600 font-bold">
+                  <span className="text-xs text-gray-600 font-bold mt-1">
                     {details?.average_rating ?? "N/A"}
                   </span>
                 </div>
@@ -168,36 +174,42 @@ function ViewDetails() {
             </div>
 
             {/* Dedicated Childcare Provider */}
-            <div className="bg-blue-50 rounded-lg p-6 mb-6">
-              <h3 className="font-semibold text-gray-800 mb-2">
+            <div className="bg-blue-50 rounded-lg p-4 sm:p-6 mb-6">
+              <h3 className="font-semibold text-gray-800 mb-2 text-base sm:text-lg">
                 {details?.title || "Provider"}
               </h3>
-              <p className="text-sm text-gray-700">{details?.summary}</p>
+              <p className="text-xs sm:text-sm text-gray-700">
+                {details?.summary}
+              </p>
             </div>
 
             {/* Testimonials */}
             <div className="mb-8">
-              <h3 className="font-semibold text-gray-800 mb-4">Testimonials</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <h3 className="font-semibold text-gray-800 mb-3 sm:mb-4 text-base sm:text-lg">
+                Testimonials
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {Array.isArray(details?.testimonials) &&
                 details.testimonials.length > 0 ? (
                   details.testimonials.map((t) => (
                     <div
                       key={t.id}
-                      className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col"
+                      className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 flex flex-col"
                     >
-                      <p className="text-sm text-gray-700 mb-2">{t.comment}</p>
-                      <div className="flex items-center mt-2">
+                      <p className="text-xs sm:text-sm text-gray-700 mb-2 line-clamp-3">
+                        {t.comment}
+                      </p>
+                      <div className="flex items-center mt-auto pt-2">
                         <img
                           src={resolveImage(t.reviewer?.profile_image_url)}
                           alt={t.reviewer?.full_name}
-                          className="w-8 h-8 rounded-full mr-3 object-cover"
+                          className="w-8 h-8 rounded-full mr-2 sm:mr-3 object-cover flex-shrink-0"
                         />
-                        <div>
-                          <div className="text-xs font-semibold text-gray-700">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-semibold text-gray-700 line-clamp-1">
                             {t.reviewer?.full_name || "Anonymous"}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-500 line-clamp-1">
                             {t.reviewer?.id ? `User #${t.reviewer.id}` : ""}
                           </div>
                         </div>
@@ -205,7 +217,7 @@ function ViewDetails() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-sm text-gray-600">
+                  <div className="text-xs sm:text-sm text-gray-600">
                     No testimonials yet.
                   </div>
                 )}
@@ -215,12 +227,14 @@ function ViewDetails() {
             {/* Skills */}
             {Array.isArray(details?.skills) && details.skills.length > 0 && (
               <div className="mb-6 dark: text-black">
-                <h3 className="font-semibold text-gray-800 mb-2">Skills</h3>
+                <h3 className="font-semibold text-gray-800 mb-3 text-base sm:text-lg">
+                  Skills
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {details.skills.map((s, idx) => (
                     <span
                       key={idx}
-                      className="text-sm bg-white border border-gray-200 rounded-full px-3 py-1"
+                      className="text-xs sm:text-sm bg-white border border-gray-200 rounded-full px-3 py-1"
                     >
                       {s}
                     </span>
@@ -230,7 +244,7 @@ function ViewDetails() {
             )}
 
             <button
-              className={`w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold text-lg transition ${
+              className={`w-full bg-[#0093d1] text-white py-2.5 sm:py-3 rounded-md font-semibold text-base sm:text-lg transition ${
                 plan !== "Free" ||
                 (location.state && location.state.messageable)
                   ? "hover:bg-[#007bb0]"

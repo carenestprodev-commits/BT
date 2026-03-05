@@ -157,7 +157,7 @@ export default function HomePage() {
                   placeholder={
                     window.innerWidth < 768
                       ? "Search tutor, caregivers, housekeepers..."
-                      : "Q. Search for amount"
+                      : "Q. Search for jobs, care providers, and more..."
                   }
                   className="w-full pl-12 pr-4 py-3.5 md:py-3 rounded-xl md:rounded-lg border border-gray-300 md:border-gray-200 bg-white text-gray-700 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   value={search}

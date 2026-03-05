@@ -298,8 +298,8 @@ function ElderlyTimeDetails({
           </label>
           <div className="bg-green-100 text-green-700 text-sm p-2 rounded mb-4">
             <span className="inline-flex items-center">
-              <span className="mr-1">ℹ️</span> average range in your area is
-              ₦1000 - ₦3000
+              <span className="mr-1">ℹ️</span> Average hourly rate is ₦900 -
+              ₦1,000
             </span>
           </div>
           <DualRangeSlider
@@ -445,10 +445,10 @@ function ElderlyTimeDetails({
             endTime: formData.endTime,
             priceMin: formData.hourlyRateStart
               ? Number(formData.hourlyRateStart).toFixed(2)
-              : "1000",
+              : "900",
             priceMax: formData.hourlyRateEnd
               ? Number(formData.hourlyRateEnd).toFixed(2)
-              : "3000",
+              : "1000",
           };
 
           dispatch(

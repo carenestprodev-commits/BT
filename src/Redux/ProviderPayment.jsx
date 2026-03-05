@@ -10,7 +10,7 @@ export const initiateProviderSubscription = createAsyncThunk(
     try {
       const result = await paystackService.initiateProviderSubscription(
         planType,
-        amount
+        amount,
       );
 
       // console.log(result);
@@ -23,7 +23,7 @@ export const initiateProviderSubscription = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 /**
@@ -43,7 +43,7 @@ export const verifyProviderPayment = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 const initialState = {
@@ -53,6 +53,17 @@ const initialState = {
   authorizationUrl: null,
   reference: null,
   accessCode: null,
+
+  // Localized pricing fields
+  localizedPrice: null,
+  currencyCode: "NGN",
+  currencySymbol: "₦",
+  countryUsed: null,
+  isFallbackPrice: false,
+
+  // Gateway information
+  gatewayError: null,
+  supportedGateways: [],
 
   // Payment verification state
   verifying: false,
@@ -74,6 +85,13 @@ const providerPaymentSlice = createSlice({
       state.authorizationUrl = null;
       state.reference = null;
       state.accessCode = null;
+      state.localizedPrice = null;
+      state.currencyCode = "NGN";
+      state.currencySymbol = "₦";
+      state.countryUsed = null;
+      state.isFallbackPrice = false;
+      state.gatewayError = null;
+      state.supportedGateways = [];
       state.verifying = false;
       state.paymentVerified = false;
       state.paymentStatus = null;
@@ -98,12 +116,24 @@ const providerPaymentSlice = createSlice({
         state.authorizationUrl = action.payload.authorizationUrl;
         state.reference = action.payload.reference;
         state.accessCode = action.payload.accessCode;
+        // Store localized pricing fields
+        state.localizedPrice = action.payload.localizedPrice;
+        state.currencyCode = action.payload.currencyCode || "NGN";
+        state.currencySymbol = action.payload.currencySymbol || "₦";
+        state.countryUsed = action.payload.countryUsed;
+        state.isFallbackPrice = action.payload.isFallbackPrice || false;
+        state.gatewayError = null;
         state.success = true;
       })
       .addCase(initiateProviderSubscription.rejected, (state, action) => {
         state.initiating = false;
         state.paymentInitiated = false;
         state.error = action.payload;
+        // Extract gateway error info if available
+        if (action.payload?.supportedGateways) {
+          state.gatewayError = action.payload;
+          state.supportedGateways = action.payload.supportedGateways;
+        }
         state.success = false;
       });
 

@@ -9,10 +9,12 @@ import { PiSquaresFour } from "react-icons/pi";
 import { MdOutlineSettings } from "react-icons/md";
 import { FiLogOut, FiMenu, FiX } from "react-icons/fi";
 import { IoPeopleCircle } from "react-icons/io5";
+import { IoNotificationsOutline } from "react-icons/io5";
 
 import Triangle from "../../../../public/triangle.svg";
 import Message from "../../../../public/receipt-text.svg";
 import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
+import { useNotifications } from "../../../Context/NotificationContext";
 
 /* ---------------- NAV ITEMS ---------------- */
 
@@ -25,6 +27,10 @@ const navItems = [
   {
     label: "Message",
     icon: <img src={Message} alt="Message" className="h-6 w-6" />,
+  },
+  {
+    label: "Notifications",
+    icon: <IoNotificationsOutline className="h-6 w-6" />,
   },
   /*{
     label: "Care Providers",
@@ -40,6 +46,7 @@ const navItems = [
 
 function Sidebar({ active = "Home", onNav }) {
   const navigate = useNavigate();
+  const { unreadCount } = useNotifications();
 
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [profileCompletion, setProfileCompletion] = React.useState(null);
@@ -53,6 +60,8 @@ function Sidebar({ active = "Home", onNav }) {
     if (label === "Home") navigate("/careseekers/dashboard/home");
     if (label === "Requests") navigate("/careseekers/dashboard/requests");
     if (label === "Message") navigate("/careseekers/dashboard/message");
+    if (label === "Notifications")
+      navigate("/careseekers/dashboard/notifications");
     /*if (label === "Care Providers")
       navigate("/careseekers/dashboard/careproviders");*/
     if (label === "Settings") navigate("/careseekers/dashboard/settings");
@@ -206,12 +215,19 @@ function Sidebar({ active = "Home", onNav }) {
               <button
                 key={item.label}
                 onClick={() => handleNav(item.label)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition hover:bg-[#4a6576] ${
+                className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm font-medium transition hover:bg-[#4a6576] ${
                   active === item.label ? "bg-[#4a6576]" : ""
                 }`}
               >
-                <span>{item.icon}</span>
-                {item.label}
+                <span className="flex items-center gap-3">
+                  <span>{item.icon}</span>
+                  {item.label}
+                </span>
+                {item.label === "Notifications" && unreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -258,12 +274,19 @@ function Sidebar({ active = "Home", onNav }) {
             <button
               key={item.label}
               onClick={() => handleNav(item.label)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition hover:bg-[#4a6576] ${
+              className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-base font-medium transition hover:bg-[#4a6576] ${
                 active === item.label ? "bg-[#4a6576]" : ""
               }`}
             >
-              <span className="text-xl">{item.icon}</span>
-              {item.label}
+              <span className="flex items-center gap-3">
+                <span className="text-xl">{item.icon}</span>
+                {item.label}
+              </span>
+              {item.label === "Notifications" && unreadCount > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>

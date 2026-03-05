@@ -19,6 +19,31 @@ function CareProvidersNearYou() {
       s.careProviderNearYou || { providers: [], loading: false, error: null },
   );
 
+  // Helper function to get category title based on service category
+  const getCategoryTitle = () => {
+    // Try to get service_category from various sources
+    const serviceCategory =
+      user?.service_category ||
+      user?.care_category ||
+      user?.job_data?.service_category ||
+      localStorage.getItem("seeker_care_category") ||
+      localStorage.getItem("service_category");
+
+    const categoryMap = {
+      childcare: "Child Care Providers Near You",
+      "childcare ": "Child Care Providers Near You",
+      "elderly care": "Adult & Senior Care Providers Near You",
+      elderlycare: "Adult & Senior Care Providers Near You",
+      elderly: "Adult & Senior Care Providers Near You",
+      tutoring: "Tutors near you",
+      housekeeping: "Housekeepers near you",
+      "house keeping": "Housekeepers near you",
+    };
+
+    const normalizedCategory = serviceCategory?.toLowerCase().trim() || "";
+    return categoryMap[normalizedCategory] || "Care Providers near you";
+  };
+
   useEffect(() => {
     dispatch(fetchProviders());
   }, [dispatch]);
@@ -46,7 +71,7 @@ function CareProvidersNearYou() {
           {/* Header */}
           <div className="flex justify-between items-center px-4 md:px-8 pt-4">
             <h2 className="text-2xl md:text-3xl font-semibold text-gray-800">
-              Care Providers near you
+              {getCategoryTitle()}
             </h2>
           </div>
 

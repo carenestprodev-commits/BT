@@ -46,6 +46,47 @@ function CareProvidersNearYou() {
     }
   };
 
+  // Helper function to get category title and text based on care category
+  const getCategoryInfo = () => {
+    const onboarding = readOnboarding();
+    const careCategory = onboarding.steps?.careCategory || "";
+
+    const categoryMap = {
+      Childcare: {
+        title: "Child Care Providers Near You",
+        signupTitle: "Sign Up to View Child Care Providers Near You",
+        description:
+          "Kindly enter your details below to view child care providers near you.",
+      },
+      "Elderly Care": {
+        title: "Adult & Senior Care Providers Near You",
+        signupTitle: "Sign Up to View Adult & Senior Care Providers Near You",
+        description:
+          "Kindly enter your details below to view adult & senior care providers near you.",
+      },
+      Tutoring: {
+        title: "Tutors near you",
+        signupTitle: "Sign Up to View Tutors Near You",
+        description: "Kindly enter your details below to view tutors near you.",
+      },
+      Housekeeping: {
+        title: "Housekeepers near you",
+        signupTitle: "Sign Up to View Housekeepers Near You",
+        description:
+          "Kindly enter your details below to view housekeepers near you.",
+      },
+    };
+
+    return (
+      categoryMap[careCategory] || {
+        title: "Care Providers near you",
+        signupTitle: "Sign Up to View Care Providers near you",
+        description:
+          "Kindly enter your details below to view care providers near you.",
+      }
+    );
+  };
+
   const handleRegister = async () => {
     if (
       !signupForm.email ||
@@ -87,19 +128,44 @@ function CareProvidersNearYou() {
         // Save registration result and redirect to login
         dispatch(saveStep({ stepName: "registered", data: resAction.payload }));
 
-        // Set user in AuthContext
-        if (resAction.payload?.user) {
-          setUser({
-            ...resAction.payload.user,
-            user_type: "seeker",
-            email: signupForm.email,
-          });
+        // Store tokens for subsequent API calls
+        if (resAction.payload?.access) {
+          localStorage.setItem("accessToken", resAction.payload.access);
+          localStorage.setItem("access", resAction.payload.access);
         }
+        if (resAction.payload?.refresh) {
+          localStorage.setItem("refreshToken", resAction.payload.refresh);
+          localStorage.setItem("refresh", resAction.payload.refresh);
+        }
+
+        // Store the care category in localStorage for later use
+        const careCategory = onboarding.steps?.careCategory || "";
+        if (careCategory) {
+          localStorage.setItem("seeker_care_category", careCategory);
+        }
+
+        // Set user in AuthContext and localStorage with proper user_type
+        const userData = {
+          ...resAction.payload.user,
+          user_type: "seeker",
+          email: signupForm.email,
+          care_category: careCategory,
+        };
+
+        // Store to localStorage so AuthContext can read it
+        localStorage.setItem("user", JSON.stringify(userData));
+
+        // Also update AuthContext
+        setUser(userData);
 
         setShowPaymentPopup(false);
         setShowSubscribePopup(false);
         setShowSignupPopup(false);
-        navigate("/careseekers/dashboard/home");
+
+        // Navigate to CareProvidersNearYou page after a short delay to ensure state updates
+        setTimeout(() => {
+          navigate("/careseekers/dashboard/careproviders");
+        }, 100);
       }
     } catch (e) {
       alert("Unexpected error: " + e.message);
@@ -124,10 +190,10 @@ function CareProvidersNearYou() {
               className="w-32 h-32 mx-auto mb-4"
             />
             <h2 className="text-xl font-semibold text-center text-gray-800 mb-1">
-              Sign Up to View Care Providers near you
+              {getCategoryInfo().signupTitle}
             </h2>
             <p className="text-sm text-gray-500 text-center mb-6">
-              Kindly enter your details below to view care providers near you.
+              {getCategoryInfo().description}
             </p>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <input
@@ -328,7 +394,7 @@ function CareProvidersNearYou() {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center px-4 lg:px-8 pt-6 lg:pt-8 gap-3 lg:gap-0">
           <h2 className="text-2xl lg:text-3xl font-semibold text-gray-800">
-            Care Providers near you
+            {getCategoryInfo().title}
           </h2>
           <div className="flex items-center">
             <span className="text-base lg:text-lg text-[#0093d1] font-bold">

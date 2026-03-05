@@ -1,16 +1,26 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
+import { getSliderRange } from "../../../constants/hourlyRates";
 
 export default function DualRangeSlider({
-  valueStart = 1000,
-  valueEnd = 3000,
-  minValue = 10,
-  maxValue = 3000,
+  valueStart,
+  valueEnd,
+  minValue,
+  maxValue,
+  countryCode = "NG",
   onChange,
 }) {
-  const [start, setStart] = useState(valueStart);
-  const [end, setEnd] = useState(valueEnd);
+  // Get country-specific slider range
+  const [minRate, maxRate] = getSliderRange(countryCode);
+
+  // Use provided values or defaults from config
+  const defaultStart = valueStart ?? minRate;
+  const defaultEnd = valueEnd ?? maxRate;
+  const defaultMin = minValue ?? minRate;
+  const defaultMax = maxValue ?? maxRate;
+  const [start, setStart] = useState(defaultStart);
+  const [end, setEnd] = useState(defaultEnd);
   const [isDragging, setIsDragging] = useState(null);
   const sliderRef = useRef(null);
 
@@ -19,13 +29,13 @@ export default function DualRangeSlider({
   }, [start, end, onChange]);
 
   const getPercentage = (value) =>
-    ((value - minValue) / (maxValue - minValue)) * 100;
+    ((value - defaultMin) / (defaultMax - defaultMin)) * 100;
 
   const handleSliderClick = (e) => {
     if (!sliderRef.current || isDragging) return;
     const rect = sliderRef.current.getBoundingClientRect();
     const clickPosition = (e.clientX - rect.left) / rect.width;
-    const clickValue = minValue + clickPosition * (maxValue - minValue);
+    const clickValue = defaultMin + clickPosition * (defaultMax - defaultMin);
     const distanceToStart = Math.abs(clickValue - start);
     const distanceToEnd = Math.abs(clickValue - end);
     if (distanceToStart < distanceToEnd) {
@@ -40,11 +50,13 @@ export default function DualRangeSlider({
       if (!isDragging || !sliderRef.current) return;
       const rect = sliderRef.current.getBoundingClientRect();
       const position = (e.clientX - rect.left) / rect.width;
-      const value = Math.round(minValue + position * (maxValue - minValue));
+      const value = Math.round(
+        defaultMin + position * (defaultMax - defaultMin),
+      );
       if (isDragging === "start") {
-        setStart(Math.max(minValue, Math.min(value, end)));
+        setStart(Math.max(defaultMin, Math.min(value, end)));
       } else if (isDragging === "end") {
-        setEnd(Math.min(maxValue, Math.max(value, start)));
+        setEnd(Math.min(defaultMax, Math.max(value, start)));
       }
     };
     const handleMouseUp = () => setIsDragging(null);
@@ -66,8 +78,8 @@ export default function DualRangeSlider({
     <div>
       <div className="bg-white border border-gray-200 rounded-lg p-4 font-sfpro">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 lg:gap-0 mb-2">
-          <span className="text-sm text-gray-500">₦{minValue}</span>
-          <span className="text-sm text-gray-500">₦{maxValue}</span>
+          <span className="text-sm text-gray-500">₦{defaultMin}</span>
+          <span className="text-sm text-gray-500">₦{defaultMax}</span>
         </div>
         <div
           ref={sliderRef}
@@ -100,8 +112,8 @@ export default function DualRangeSlider({
           ></div>
           <input
             type="range"
-            min={minValue}
-            max={maxValue}
+            min={defaultMin}
+            max={defaultMax}
             value={start}
             onChange={(e) => setStart(Math.min(parseInt(e.target.value), end))}
             className="sr-only"
@@ -109,8 +121,8 @@ export default function DualRangeSlider({
           />
           <input
             type="range"
-            min={minValue}
-            max={maxValue}
+            min={defaultMin}
+            max={defaultMax}
             value={end}
             onChange={(e) => setEnd(Math.max(parseInt(e.target.value), start))}
             className="sr-only"

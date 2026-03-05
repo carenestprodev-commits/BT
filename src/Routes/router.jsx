@@ -13,12 +13,14 @@ import CareProvidersNearYouDashboard from "../Pages/CareSeekers/Dashboard/CarePr
 import ViewDetails from "../Pages/CareSeekers/Dashboard/ViewDetails";
 import Requests from "../Pages/CareSeekers/Dashboard/Requests";
 import Message from "../Pages/CareSeekers/Dashboard/Message";
+import Notifications from "../Pages/CareSeekers/Dashboard/Notifications";
 import PaymentSuccessRedirect from "../Pages/PaymentSuccessRedirect";
 import Settings from "../Pages/CareSeekers/Dashboard/Settings.jsx";
 import VerifyIdentity from "../Pages/CareSeekers/Dashboard/VerifyIdentity";
 import PersonalInformation from "../Pages/CareSeekers/Dashboard/PersonalInformation";
 import Password from "../Pages/CareSeekers/Dashboard/Password";
 import MessageDetails from "../Pages/CareSeekers/Dashboard/MessageDetails";
+import MessageDetailsProvider from "../Pages/CareProviders/Dashboard/MessageDetails";
 import RequestDetails from "../Pages/CareSeekers/Dashboard/RequestDetails";
 import PersonalInformationProvider from "../Pages/CareProviders/Dashboard/PersonalInformation";
 import DashboardHome from "../Pages/CareSeekers/Dashboard/Home";
@@ -27,6 +29,7 @@ import PendingDetails from "../Pages/CareSeekers/Dashboard/PendingDetails";
 import HomePage from "../Pages/CareProviders/Dashboard/HomePage";
 import JobDetails from "../Pages/CareProviders/Dashboard/JobDetails";
 import MessageProvider from "../Pages/CareProviders/Dashboard/Message";
+import NotificationsProvider from "../Pages/CareProviders/Dashboard/Notifications";
 import RequestsProvider from "../Pages/CareProviders/Dashboard/Requests";
 import RequestDetailsProvider from "../Pages/CareProviders/Dashboard/RequestDetails";
 import SettingsProvider from "../Pages/CareProviders/Dashboard/Settings";
@@ -222,6 +225,22 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/careseekers/dashboard/message/:id",
+    element: (
+      <RoleProtectedRoute allowedRole="seeker">
+        <MessageDetails />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
+    path: "/careseekers/dashboard/notifications",
+    element: (
+      <RoleProtectedRoute allowedRole="seeker">
+        <Notifications />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
     path: "/payment-success",
     element: <PaymentSuccessRedirect />,
   },
@@ -319,6 +338,22 @@ export const router = createBrowserRouter([
     element: (
       <RoleProtectedRoute allowedRole="provider">
         <MessageProvider />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
+    path: "/careproviders/dashboard/message/:id",
+    element: (
+      <RoleProtectedRoute allowedRole="provider">
+        <MessageDetailsProvider />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
+    path: "/careproviders/dashboard/notifications",
+    element: (
+      <RoleProtectedRoute allowedRole="provider">
+        <NotificationsProvider />
       </RoleProtectedRoute>
     ),
   },
