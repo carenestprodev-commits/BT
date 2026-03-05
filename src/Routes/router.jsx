@@ -20,6 +20,7 @@ import VerifyIdentity from "../Pages/CareSeekers/Dashboard/VerifyIdentity";
 import PersonalInformation from "../Pages/CareSeekers/Dashboard/PersonalInformation";
 import Password from "../Pages/CareSeekers/Dashboard/Password";
 import MessageDetails from "../Pages/CareSeekers/Dashboard/MessageDetails";
+import MessageDetailsProvider from "../Pages/CareProviders/Dashboard/MessageDetails";
 import RequestDetails from "../Pages/CareSeekers/Dashboard/RequestDetails";
 import PersonalInformationProvider from "../Pages/CareProviders/Dashboard/PersonalInformation";
 import DashboardHome from "../Pages/CareSeekers/Dashboard/Home";
@@ -224,6 +225,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/careseekers/dashboard/message/:id",
+    element: (
+      <RoleProtectedRoute allowedRole="seeker">
+        <MessageDetails />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
     path: "/careseekers/dashboard/notifications",
     element: (
       <RoleProtectedRoute allowedRole="seeker">
@@ -329,6 +338,14 @@ export const router = createBrowserRouter([
     element: (
       <RoleProtectedRoute allowedRole="provider">
         <MessageProvider />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
+    path: "/careproviders/dashboard/message/:id",
+    element: (
+      <RoleProtectedRoute allowedRole="provider">
+        <MessageDetailsProvider />
       </RoleProtectedRoute>
     ),
   },
