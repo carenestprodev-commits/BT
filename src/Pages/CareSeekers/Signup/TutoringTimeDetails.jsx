@@ -306,7 +306,8 @@ function TutoringTimeDetails({
           </label>
           <div className="bg-green-100 text-green-700 text-sm p-2 rounded mb-4">
             <span className="inline-flex items-center">
-              <span className="mr-1">ℹ️</span> Average hourly rate is ₦1000
+              <span className="mr-1">ℹ️</span> Average hourly rate is ₦900 -
+              ₦1,000
             </span>
           </div>
           <DualRangeSlider
@@ -356,7 +357,7 @@ function TutoringTimeDetails({
                 <input
                   type="number"
                   min={0}
-                  placeholder="e.g. 3000"
+                  placeholder="e.g. 1000"
                   className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#0093d1]"
                   style={{ backgroundColor: "#fff", color: "#222" }}
                   value={formData.hourlyRateEnd ?? ""}
@@ -441,10 +442,10 @@ function TutoringTimeDetails({
             endTime: formData.endTime,
             priceMin: formData.hourlyRateStart
               ? Number(formData.hourlyRateStart).toFixed(2)
-              : "1000",
+              : "900",
             priceMax: formData.hourlyRateEnd
               ? Number(formData.hourlyRateEnd).toFixed(2)
-              : "3000",
+              : "1000",
           };
 
           dispatch(
