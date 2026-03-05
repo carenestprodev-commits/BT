@@ -1620,7 +1620,7 @@ function Settings() {
                         <option>₦800</option>
                       </select>
                       <p className="text-xs sm:text-sm text-green-600 mt-2">
-                        Average hourly rate is ₦900-₦1,000 depending on
+                        Average hourly rate is ₦900-₦1,200 depending on
                         experience and services offered
                       </p>
                     </div>
