@@ -14,7 +14,7 @@ function CareCategory({
   const dispatch = useDispatch();
   const categoryKeyMap = {
     Childcare: "childcare",
-    "Adult & Senior Care": "seniorcare",
+    "Adult & Senior Care": "elderlycare",
     Tutoring: "tutoring",
     Housekeeping: "housekeeping",
   };

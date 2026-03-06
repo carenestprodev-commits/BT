@@ -162,7 +162,10 @@ export const buildJobPayload = (formData) => {
         onboarding.steps?.experience?.additionalCareCategories ||
         [],
     };
-  } else if (serviceCategory === "adult & senior care") {
+  } else if (
+    serviceCategory === "elderlycare" ||
+    serviceCategory === "elderly care"
+  ) {
     job_data.details.elderly_information = {
       care_type:
         formData.elderlyCareType ||

@@ -960,7 +960,7 @@ function ElderlyCareDetails({
                 full_name: (trimmedFirst + " " + trimmedLast).trim(),
               },
               profile_data: {
-                service_category: "seniorcare",
+                service_category: "elderlycare",
                 country: formData.country || null,
                 city: formData.city || null,
                 state: formData.state || null,

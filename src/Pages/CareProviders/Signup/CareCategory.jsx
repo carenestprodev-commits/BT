@@ -238,7 +238,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
               mergedProfile.subjects,
           ),
         };
-      } else if (cat === "seniorcare") {
+      } else if (cat === "elderlycare") {
         profileData.category_specific_details = {
           personality_and_interpersonal_skills: ensureArray(
             mergedProfile.careQualities ||
@@ -656,7 +656,7 @@ function CareCategory({
 
   const categoryKeyMap = {
     Childcare: "childcare",
-    "Adult & Senior Care": "seniorcare",
+    "Adult & Senior Care": "elderlycare",
     Tutoring: "tutoring",
     Housekeeping: "housekeeping",
   };

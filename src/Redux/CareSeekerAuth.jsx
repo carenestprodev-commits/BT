@@ -220,7 +220,10 @@ export const buildPayloadFromSteps = (steps) => {
       specify_pet_present: steps.housekeeping?.petDetails || "",
       additional_care: steps.housekeeping?.additionalCare || [],
     };
-  } else if (steps.careCategory === "Adult & Senior Care") {
+  } else if (
+    steps.careCategory === "elderlycare" ||
+    steps.careCategory === "Elderly Care"
+  ) {
     payload.details.elderly_information = {
       care_type: steps.elderlyInfo?.elderlyCareType || "Companion",
       relationship: steps.elderlyInfo?.relationshipWithElderly || "",
