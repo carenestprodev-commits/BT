@@ -32,12 +32,12 @@ Care seekers now see dynamic page titles based on their selected care category a
 
 The implementation maps care categories to the following titles:
 
-| Care Category | Display Title                          |
-| ------------- | -------------------------------------- |
-| Childcare     | Child Care Providers Near You          |
-| Elderly Care  | Adult & Senior Care Providers Near You |
-| Tutoring      | Tutors near you                        |
-| Housekeeping  | Housekeepers near you                  |
+| Care Category       | Display Title                          |
+| ------------------- | -------------------------------------- |
+| Childcare           | Child Care Providers Near You          |
+| Adult & Senior Care | Adult & Senior Care Providers Near You |
+| Tutoring            | Tutors near you                        |
+| Housekeeping        | Housekeepers near you                  |
 
 ### Signup Modal Messages
 
@@ -46,7 +46,7 @@ The implementation maps care categories to the following titles:
 - Title: "Sign Up to View Child Care Providers Near You"
 - Description: "Kindly enter your details below to view child care providers near you."
 
-**Elderly Care:**
+**Adult & Senior Care:**
 
 - Title: "Sign Up to View Adult & Senior Care Providers Near You"
 - Description: "Kindly enter your details below to view adult & senior care providers near you."
@@ -107,7 +107,7 @@ Both desktop and mobile views display the correct titles:
 ## Tested Scenarios
 
 ✅ User selects "Childcare" → Sees "Child Care Providers Near You"
-✅ User selects "Elderly Care" → Sees "Adult & Senior Care Providers Near You"
+✅ User selects "Adult & Senior Care" → Sees "Adult & Senior Care Providers Near You"
 ✅ User selects "Tutoring" → Sees "Tutors near you"
 ✅ User selects "Housekeeping" → Sees "Housekeepers near you"
 ✅ Signup modal updates with category-specific messaging

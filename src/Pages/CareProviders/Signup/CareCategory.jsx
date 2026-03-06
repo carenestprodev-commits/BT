@@ -51,7 +51,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
       signupForm.password !== signupForm.confirmPassword
     ) {
       alert(
-        "Please provide first name, last name, valid email and matching passwords"
+        "Please provide first name, last name, valid email and matching passwords",
       );
       return;
     }
@@ -168,27 +168,27 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
             mergedProfile.yearsOfExperience ||
               mergedProfile.years_of_experience ||
               mergedProfile.years ||
-              0
+              0,
           ) || 0,
         hourly_rate:
           parseFloat(
-            mergedProfile.hourlyRate || mergedProfile.hourly_rate || 0
+            mergedProfile.hourlyRate || mergedProfile.hourly_rate || 0,
           ) || 0,
         languages: ensureArray(
           mergedProfile.languages ||
             mergedProfile.nativeLanguage ||
-            mergedProfile.otherLanguage
+            mergedProfile.otherLanguage,
         ),
         additional_services: ensureArray(
           mergedProfile.additional_services ||
             mergedProfile.otherServices ||
-            mergedProfile.other_services
+            mergedProfile.other_services,
         ),
         skills: ensureArray(
           mergedProfile.skills ||
             mergedProfile.servicesProvided ||
             mergedProfile.careQualities ||
-            mergedProfile.subjects
+            mergedProfile.subjects,
         ),
         category_specific_details: {},
       };
@@ -212,7 +212,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
             mergedProfile.specialPreferences ||
               mergedProfile.special_preferences ||
               mergedProfile.servicesProvided ||
-              mergedProfile.careQualities
+              mergedProfile.careQualities,
           ),
           communication_language:
             mergedProfile.communicationLanguage ||
@@ -225,29 +225,29 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
           tutoring_services: ensureArray(
             mergedProfile.tutoringServices ||
               mergedProfile.tutoring_services ||
-              []
+              [],
           ),
           experience_level_taught: ensureArray(
             mergedProfile.tutoringExperienceLevel ||
               mergedProfile.tutoring_experience_level ||
-              mergedProfile.tutoringExperienceLevel
+              mergedProfile.tutoringExperienceLevel,
           ),
           subjects_experienced_in: ensureArray(
             mergedProfile.subjects ||
               mergedProfile.subjects_experienced_in ||
-              mergedProfile.subjects
+              mergedProfile.subjects,
           ),
         };
-      } else if (cat === "elderlycare") {
+      } else if (cat === "seniorcare") {
         profileData.category_specific_details = {
           personality_and_interpersonal_skills: ensureArray(
             mergedProfile.careQualities ||
-              mergedProfile.personality_and_interpersonal_skills
+              mergedProfile.personality_and_interpersonal_skills,
           ),
           special_preferences: ensureArray(
             mergedProfile.specialPreferences ||
               mergedProfile.special_preferences ||
-              mergedProfile.careQualities
+              mergedProfile.careQualities,
           ),
           communication_language:
             mergedProfile.communicationLanguage ||
@@ -263,14 +263,14 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
       } else if (cat === "housekeeping") {
         profileData.category_specific_details = {
           housekeeping_preference: Array.isArray(
-            mergedProfile.housekeepingPreference
+            mergedProfile.housekeepingPreference,
           )
             ? mergedProfile.housekeepingPreference[0]
             : mergedProfile.housekeepingPreference ||
               mergedProfile.housekeeping_preference ||
               "",
           services_offered: ensureArray(
-            mergedProfile.servicesProvided || mergedProfile.skills || []
+            mergedProfile.servicesProvided || mergedProfile.skills || [],
           ),
         };
       }
@@ -295,7 +295,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
           "Registration failed: " +
             (resultAction.payload ||
               resultAction.error.message ||
-              JSON.stringify(resultAction.error))
+              JSON.stringify(resultAction.error)),
         );
         setIsLoading(false);
       } else {
@@ -656,7 +656,7 @@ function CareCategory({
 
   const categoryKeyMap = {
     Childcare: "childcare",
-    "Elderly Care": "elderlycare",
+    "Adult & Senior Care": "seniorcare",
     Tutoring: "tutoring",
     Housekeeping: "housekeeping",
   };
@@ -668,8 +668,8 @@ function CareCategory({
       img: "/box1.svg",
     },
     {
-      name: "Elderly Care",
-      desc: "Find Your Perfect Elderly Care Provider",
+      name: "Adult & Senior Care",
+      desc: "Find Your Perfect Adult & Senior Care Provider",
       img: "/box2.svg",
     },
     {

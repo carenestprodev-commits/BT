@@ -681,7 +681,7 @@ function ChildCareDetails({
           /> */}
           <CheckboxGroup
             label="Other Services you can Offer (Optional)"
-            options={["Elderly Care", "Tutoring", "Housekeeping"]}
+            options={["Adult & Senior Care", "Tutoring", "Housekeeping"]}
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
           />

@@ -7,6 +7,7 @@ This document outlines the backend API endpoints and user data structure. The ba
 ## 1. Authentication API Endpoints
 
 ### Login
+
 ```
 POST /api/auth/login/
 
@@ -45,6 +46,7 @@ Error (401 Unauthorized):
 ```
 
 ### Refresh Token
+
 ```
 POST /api/auth/token/refresh/
 
@@ -65,6 +67,7 @@ Error (401):
 ```
 
 ### Get Current User
+
 ```
 GET /api/auth/user/
 
@@ -101,6 +104,7 @@ Error (401):
 ## 2. User Management API (Admin)
 
 ### List All Users
+
 ```
 GET /api/admin/users/all/
 
@@ -140,6 +144,7 @@ Response (200 OK):
 ```
 
 ### Get Specific User
+
 ```
 GET /api/admin/users/{id}/
 
@@ -167,6 +172,7 @@ Response (200 OK):
 ```
 
 ### Update User
+
 ```
 PATCH /api/admin/users/{id}/
 
@@ -192,6 +198,7 @@ Response (200 OK):
 ```
 
 ### Delete User
+
 ```
 DELETE /api/admin/users/{id}/
 
@@ -202,6 +209,7 @@ Response (204 No Content): (empty)
 ```
 
 ### Suspend User
+
 ```
 POST /api/admin/users/{id}/suspend/
 
@@ -226,6 +234,7 @@ Response (200 OK):
 ## 3. Verification Management API
 
 ### List All Verifications
+
 ```
 GET /api/admin/verifications/
 
@@ -272,6 +281,7 @@ Response (200 OK):
 ```
 
 ### Get Specific Verification
+
 ```
 GET /api/admin/verifications/{id}/
 
@@ -310,6 +320,7 @@ Response (200 OK):
 ```
 
 ### Approve Verification (Manual Payment)
+
 ```
 PATCH /api/admin/verifications/{id}/
 
@@ -346,6 +357,7 @@ Response (200 OK):
 ```
 
 ### Reject Verification
+
 ```
 PATCH /api/admin/verifications/{id}/
 
@@ -374,6 +386,7 @@ Response (200 OK):
 ## 4. Jobs API
 
 ### List Jobs Feed
+
 ```
 GET /api/jobs/feed/
 
@@ -381,7 +394,7 @@ Headers:
 Authorization: Bearer <access_token>
 
 Query Parameters:
-- search: "elderly care"
+- search: "adult & senior care"
 - page: 1
 - page_size: 20
 
@@ -393,16 +406,16 @@ Response (200 OK):
   "results": [
     {
       "id": 54,
-      "title": "Eldercare",
+      "title": "Senior Care",
       "seeker_name": "Emerald Femi",
-      "summary": "Elderly care needed",
-      "summary_short": "Elderly care",
+      "summary": "Adult & Senior care needed",
+      "summary_short": "Adult & Senior care",
       "posted_ago": "Posted 5 days, 19 hours ago",
       "budget": "₦50,000",
       "budget_display": "₦50,000/day",
       "is_verified": true,
       "skills_and_expertise": [
-        "Patience with elderly",
+        "Patience with seniors",
         "Basic medical knowledge"
       ],
       "created_at": "2024-01-29T10:30:00Z"
@@ -413,6 +426,7 @@ Response (200 OK):
 ```
 
 ### Get Specific Job
+
 ```
 GET /api/jobs/feed/{id}/
 
@@ -422,17 +436,17 @@ Authorization: Bearer <access_token>
 Response (200 OK):
 {
   "id": 54,
-  "title": "Eldercare",
+  "title": "Senior Care",
   "seeker_name": "Emerald Femi",
   "seeker_id": 10,
   "summary": "Looking for a compassionate caregiver...",
-  "summary_short": "Elderly care",
+  "summary_short": "Adult & Senior care",
   "description": "Full details...",
   "posted_ago": "Posted 5 days, 19 hours ago",
   "budget": "₦50,000",
   "budget_display": "₦50,000/day",
   "job_type": "Full-time",
-  "service_category": "Elderly Care",
+  "service_category": "Adult & Senior Care",
   "location": "Lagos, Nigeria",
   "is_verified": true,
   "skills_and_expertise": [
@@ -449,6 +463,7 @@ Response (200 OK):
 ```
 
 ### Submit Job Application
+
 ```
 POST /api/provider/applications/
 
@@ -482,55 +497,58 @@ Error (403 - User not verified):
 
 ### User Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | integer | Unique user identifier |
-| `email` | string | User's email (unique) |
-| `full_name` | string | User's full name |
-| `phone` | string | Phone number with country code |
-| `user_type` | enum | "provider", "seeker", or "admin" |
-| `is_verified` | boolean | ⭐ Can apply for jobs, has verification badge |
-| `is_active` | boolean | Account is active (not suspended/deleted) |
-| `is_subscribed` | boolean | Has paid subscription |
-| `subscription_expiry` | datetime | When subscription expires |
-| `profile_picture` | string (URL) | Avatar image URL |
-| `bio` | string | Short biography |
-| `location` | string | City/address |
-| `date_joined` | datetime | Account creation date |
-| `last_login` | datetime | Last login timestamp |
-| `updated_at` | datetime | Last profile update |
-| `created_at` | datetime | Creation timestamp |
+| Field                 | Type         | Description                                   |
+| --------------------- | ------------ | --------------------------------------------- |
+| `id`                  | integer      | Unique user identifier                        |
+| `email`               | string       | User's email (unique)                         |
+| `full_name`           | string       | User's full name                              |
+| `phone`               | string       | Phone number with country code                |
+| `user_type`           | enum         | "provider", "seeker", or "admin"              |
+| `is_verified`         | boolean      | ⭐ Can apply for jobs, has verification badge |
+| `is_active`           | boolean      | Account is active (not suspended/deleted)     |
+| `is_subscribed`       | boolean      | Has paid subscription                         |
+| `subscription_expiry` | datetime     | When subscription expires                     |
+| `profile_picture`     | string (URL) | Avatar image URL                              |
+| `bio`                 | string       | Short biography                               |
+| `location`            | string       | City/address                                  |
+| `date_joined`         | datetime     | Account creation date                         |
+| `last_login`          | datetime     | Last login timestamp                          |
+| `updated_at`          | datetime     | Last profile update                           |
+| `created_at`          | datetime     | Creation timestamp                            |
 
 ### Verification Record Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | integer | Verification record ID |
-| `user_id` | integer | Links to User.id |
-| `status` | enum | "pending", "approved", "rejected" |
-| `is_verified` | boolean | Same as user.is_verified |
-| `payment_verified_manually` | boolean | Admin manually approved payment |
-| `manual_payment_method` | string | "bank_transfer", "card", etc. |
-| `manual_payment_date` | datetime | When payment was received |
-| `manual_payment_reference` | string | Transaction/reference ID |
-| `manual_payment_notes` | string | Admin notes about payment |
-| `rejection_reason` | string | Why verification was rejected |
-| `approved_at` | datetime | When verification was approved |
-| `created_at` | datetime | Record creation date |
-| `updated_at` | datetime | Last update date |
+| Field                       | Type     | Description                       |
+| --------------------------- | -------- | --------------------------------- |
+| `id`                        | integer  | Verification record ID            |
+| `user_id`                   | integer  | Links to User.id                  |
+| `status`                    | enum     | "pending", "approved", "rejected" |
+| `is_verified`               | boolean  | Same as user.is_verified          |
+| `payment_verified_manually` | boolean  | Admin manually approved payment   |
+| `manual_payment_method`     | string   | "bank_transfer", "card", etc.     |
+| `manual_payment_date`       | datetime | When payment was received         |
+| `manual_payment_reference`  | string   | Transaction/reference ID          |
+| `manual_payment_notes`      | string   | Admin notes about payment         |
+| `rejection_reason`          | string   | Why verification was rejected     |
+| `approved_at`               | datetime | When verification was approved    |
+| `created_at`                | datetime | Record creation date              |
+| `updated_at`                | datetime | Last update date                  |
 
 ---
 
 ## 6. Environment Configuration
 
 ### Frontend (.env.local or .env)
+
 ```env
 VITE_API_BASE_URL=https://backend.staging.bristones.com
 VITE_ENV=development
 ```
 
 ### Authentication Headers
+
 All authenticated requests must include:
+
 ```
 Authorization: Bearer <access_token>
 Content-Type: application/json
@@ -541,48 +559,58 @@ Content-Type: application/json
 ## 7. Common API Errors
 
 ### 401 Unauthorized
+
 ```json
 {
   "detail": "Authentication credentials were not provided."
 }
 ```
+
 **Cause**: Missing or invalid token
 **Fix**: Re-login or refresh token
 
 ### 403 Forbidden
+
 ```json
 {
   "detail": "User must be verified to apply for jobs"
 }
 ```
+
 **Cause**: User is not verified
 **Fix**: Complete verification process
 
 ### 404 Not Found
+
 ```json
 {
   "detail": "Not found"
 }
 ```
+
 **Cause**: Resource doesn't exist
 **Fix**: Check ID/endpoint
 
 ### 400 Bad Request
+
 ```json
 {
   "email": ["This field may not be blank."],
   "password": ["This field may not be blank."]
 }
 ```
+
 **Cause**: Invalid request data
 **Fix**: Check request body format
 
 ### 500 Internal Server Error
+
 ```json
 {
   "detail": "Internal server error"
 }
 ```
+
 **Cause**: Server-side issue
 **Fix**: Check logs and retry
 
@@ -591,6 +619,7 @@ Content-Type: application/json
 ## 8. Frontend-Backend Data Flow
 
 ### Verification Approval Flow
+
 ```
 Admin UI (Users.jsx)
   ↓
@@ -630,6 +659,7 @@ Components re-render:
 ## 9. Testing API Endpoints
 
 ### Using cURL
+
 ```bash
 # Login
 curl -X POST "https://backend.staging.bristones.com/api/auth/login/" \
@@ -648,6 +678,7 @@ curl -X PATCH "https://backend.staging.bristones.com/api/admin/verifications/12/
 ```
 
 ### Using Postman
+
 1. Create a new POST request to `/api/auth/login/`
 2. In Body (JSON), enter credentials
 3. Save the access token from response
@@ -659,6 +690,7 @@ curl -X PATCH "https://backend.staging.bristones.com/api/admin/verifications/12/
 ## 10. Key Takeaways
 
 **User Verification Chain**:
+
 ```
 User Not Verified
   ↓
@@ -674,6 +706,7 @@ Components re-render with badge & no verification modal
 ```
 
 **Critical Field**: `is_verified` on user object
+
 - Controls verification badge display
 - Controls job application access
 - Managed by backend during approval

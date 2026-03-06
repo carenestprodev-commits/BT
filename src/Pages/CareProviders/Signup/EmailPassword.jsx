@@ -224,7 +224,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
             mergedProfile.subjects,
         ),
       };
-    } else if (cat === "elderlycare") {
+    } else if (cat === "seniorcare") {
       profileData.category_specific_details = {
         personality_and_interpersonal_skills: ensureArray(
           mergedProfile.careQualities ||

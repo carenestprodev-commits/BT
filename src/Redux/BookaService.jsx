@@ -162,7 +162,7 @@ export const buildJobPayload = (formData) => {
         onboarding.steps?.experience?.additionalCareCategories ||
         [],
     };
-  } else if (serviceCategory === "elderly care") {
+  } else if (serviceCategory === "adult & senior care") {
     job_data.details.elderly_information = {
       care_type:
         formData.elderlyCareType ||
@@ -209,7 +209,7 @@ export const buildJobPayload = (formData) => {
 
   console.log(
     "📤 Sending payload to API:",
-    JSON.stringify(finalPayload, null, 2)
+    JSON.stringify(finalPayload, null, 2),
   );
   return finalPayload;
 };
@@ -233,7 +233,7 @@ export const postJob = createAsyncThunk(
           method: "POST",
           headers,
           body: JSON.stringify(payload),
-        }
+        },
       );
 
       const data = await res.json();
@@ -244,7 +244,7 @@ export const postJob = createAsyncThunk(
     } catch (err) {
       return rejectWithValue({ message: err.message || "Network error" });
     }
-  }
+  },
 );
 
 const bookaSlice = createSlice({

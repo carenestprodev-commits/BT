@@ -12,8 +12,8 @@ function Hero() {
             Verified Care <br /> Providers for your <br /> Family
           </h1>
           <p className="text-gray-600 text-lg mb-6 max-w-lg">
-            Whether you need a Nanny, Elderly care provider, Special needs
-            Support, Home Assistant or Tutor, we’re here for you.
+            Whether you need a Nanny, Adult & Senior Care provider, Special
+            needs Support, Home Assistant or Tutor, we’re here for you.
           </p>
           <button className="bg-[#0093d1] hover:bg-[#007bb0] text-white px-6 py-3 rounded-md text-lg font-medium transition">
             Get Started
@@ -25,7 +25,7 @@ function Hero() {
           {/* Hero Image */}
           <img
             src={HeroImage}
-            alt="Caregiver with elderly person"
+            alt="Caregiver with senior person"
             className="shadow-lg object-cover w-[420px] h-[450px]"
             style={{
               borderTopLeftRadius: "1rem", // ≈ rounded-l-2xl

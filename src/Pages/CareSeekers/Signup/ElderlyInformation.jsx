@@ -452,7 +452,7 @@ function ElderlyInformation({
 
         try {
           const response = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`,
           );
 
           const data = await response.json();
@@ -471,7 +471,7 @@ function ElderlyInformation({
               longitude,
             });
             throw new Error(
-              "No address results found. Please ensure Google Maps Geocoding API is enabled in your Google Cloud Console."
+              "No address results found. Please ensure Google Maps Geocoding API is enabled in your Google Cloud Console.",
             );
           }
 
@@ -480,7 +480,7 @@ function ElderlyInformation({
             data.results.find(
               (r) =>
                 r.types.includes("street_address") ||
-                r.types.includes("premise")
+                r.types.includes("premise"),
             ) || data.results[0];
 
           const components = result.address_components;
@@ -511,7 +511,7 @@ function ElderlyInformation({
           console.error("Error fetching location:", error);
           alert(
             error.message ||
-              "Could not retrieve address details. Please enter manually."
+              "Could not retrieve address details. Please enter manually.",
           );
           setShowLocationPopup(false);
         }
@@ -521,7 +521,7 @@ function ElderlyInformation({
         alert("Please enable location services in your browser settings.");
         setShowLocationPopup(false);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
     );
   };
 
@@ -585,7 +585,7 @@ function ElderlyInformation({
             ←
           </button>
           <h3 className="text-base lg:text-lg text-gray-700 flex-1">
-            Elderly care details
+            Adult & Senior Care Details
           </h3>
           <span className="text-base lg:text-lg text-[#0093d1] font-bold">
             Step {currentStep}
@@ -810,7 +810,7 @@ function ElderlyInformation({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Elderly care type <span className="text-red-600">*</span>
+                Senior Care Type <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
@@ -834,7 +834,7 @@ function ElderlyInformation({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Relationship with elderly{" "}
+                Relationship with Senior Care Recipient{" "}
                 <span className="text-red-600">*</span>
               </label>
               <select
@@ -864,7 +864,8 @@ function ElderlyInformation({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Age of elderly <span className="text-red-600">*</span>
+                Age of Senior Care Recipient{" "}
+                <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
@@ -884,7 +885,8 @@ function ElderlyInformation({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Gender of elderly <span className="text-red-600">*</span>
+                Gender of Senior Care Recipient{" "}
+                <span className="text-red-600">*</span>
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900"
@@ -912,7 +914,7 @@ function ElderlyInformation({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Health condition of elderly
+                Health Conditions of Senior Care Recipient
               </label>
               <div className="bg-white rounded-lg border border-gray-200 p-4">
                 {[
@@ -944,7 +946,7 @@ function ElderlyInformation({
                         } else {
                           updateFormData(
                             "healthCondition",
-                            arr.filter((o) => o !== option)
+                            arr.filter((o) => o !== option),
                           );
                         }
                       }}
@@ -987,14 +989,14 @@ function ElderlyInformation({
                           } else {
                             updateFormData(
                               "assistanceForm",
-                              arr.filter((o) => o !== option)
+                              arr.filter((o) => o !== option),
                             );
                           }
                         }}
                       />
                       <span className="text-gray-700">{option}</span>
                     </label>
-                  )
+                  ),
                 )}
               </div>
               {errors.assistanceForm && (
@@ -1044,14 +1046,16 @@ function ElderlyInformation({
               newErrors.nationality = "Nationality is required.";
             if (!formData.zipCode) newErrors.zipCode = "Zip code is required.";
             if (!formData.elderlyCareType)
-              newErrors.elderlyCareType = "Please select elderly care type.";
+              newErrors.elderlyCareType = "Please select a senior care type.";
             if (!formData.relationshipWithElderly)
               newErrors.relationshipWithElderly =
                 "Please select your relationship.";
             if (!formData.ageOfElderly)
-              newErrors.ageOfElderly = "Age of elderly is required.";
+              newErrors.ageOfElderly =
+                "Age of senior care recipient is required.";
             if (!formData.genderOfElderly)
-              newErrors.genderOfElderly = "Gender of elderly is required.";
+              newErrors.genderOfElderly =
+                "Gender of senior care recipient is required.";
             if (
               !formData.healthCondition ||
               formData.healthCondition.length === 0
@@ -1084,7 +1088,7 @@ function ElderlyInformation({
                   first_name: formData.firstName || "",
                   last_name: formData.lastName || "",
                 },
-              })
+              }),
             );
             handleNext();
           }}

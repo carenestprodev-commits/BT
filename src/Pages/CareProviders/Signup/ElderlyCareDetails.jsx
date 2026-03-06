@@ -561,7 +561,7 @@ function ElderlyCareDetails({
             ←
           </button>
           <h3 className="text-base lg:text-lg text-gray-700 flex-1">
-            Elderly care details
+            Adult & Senior Care Details
           </h3>
         </div>
         {/* Name fields */}
@@ -707,7 +707,7 @@ function ElderlyCareDetails({
           /> */}
           <CheckboxGroup
             label="Other Services you can Offer (Optional)"
-            options={["Child Care", "Elderly Care", "House keeping"]}
+            options={["Child Care", "Adult & Senior Care", "House keeping"]}
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
           />
@@ -960,7 +960,7 @@ function ElderlyCareDetails({
                 full_name: (trimmedFirst + " " + trimmedLast).trim(),
               },
               profile_data: {
-                service_category: "elderlycare",
+                service_category: "seniorcare",
                 country: formData.country || null,
                 city: formData.city || null,
                 state: formData.state || null,

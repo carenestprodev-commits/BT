@@ -693,7 +693,7 @@ function HouseKeepingDetails({
           <CheckboxGroup
             name="otherServices"
             label="Other Services you can Offer (Optional)"
-            options={["Child Care", "Elderly Care", "Tutoring"]}
+            options={["Child Care", "Adult & Senior Care", "Tutoring"]}
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
           />

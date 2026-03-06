@@ -55,7 +55,7 @@ function Signup() {
   const handleDetailsNext = () => {
     console.debug &&
       console.debug(
-        "Signup: handleDetailsNext called - advancing to emailPassword"
+        "Signup: handleDetailsNext called - advancing to emailPassword",
       );
     setCurrentStep("emailPassword");
   };
@@ -112,7 +112,7 @@ function Signup() {
                 setShowLocationPopup={setShowLocationPopup}
               />
             );
-          case "Elderly Care":
+          case "Adult & Senior Care":
             return (
               <ElderlyCareDetails
                 formData={formData}
