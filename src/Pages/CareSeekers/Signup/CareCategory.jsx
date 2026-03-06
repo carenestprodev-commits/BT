@@ -466,7 +466,7 @@ function CareCategory({
 
   const categoryKeyMap = {
     Childcare: "childcare",
-    "Elderly Care": "elderlycare",
+    "Adult & Senior Care": "elderlycare",
     Tutoring: "tutoring",
     Housekeeping: "housekeeping",
   };
@@ -478,8 +478,8 @@ function CareCategory({
       img: "/box1.svg",
     },
     {
-      name: "Elderly Care",
-      desc: "Find Your Perfect Elderly Care Provider",
+      name: "Adult & Senior Care",
+      desc: "Find Your Perfect Adult & Senior Care Provider",
       img: "/box2.svg",
     },
     {

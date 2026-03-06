@@ -15,8 +15,8 @@ function WhatWeDo() {
       img: ChildImg,
     },
     {
-      name: "Elder care",
-      desc: "Gentle, respectful assistance for elderly loved ones from companionship to specialized daily care.",
+      name: "Adult & Senior Care",
+      desc: "Gentle, respectful assistance for senior loved ones from companionship to specialized daily care.",
       img: ElderImg,
     },
     {

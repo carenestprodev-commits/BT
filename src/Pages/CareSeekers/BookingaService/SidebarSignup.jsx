@@ -54,13 +54,13 @@ export function getStepsForCategory(selectedCategory = "") {
         },
       ];
 
-    case "Elderly Care":
+    case "Adult & Senior Care":
       return [
         ...commonSteps,
         {
           id: 2,
-          name: "Elderly Information",
-          desc: "Provide elderly care details",
+          name: "Senior Information",
+          desc: "Provide adult & senior care details",
           icon: <BsExclamationOctagonFill className="text-[#00b3a4] h-5 w-5" />,
         },
         {
