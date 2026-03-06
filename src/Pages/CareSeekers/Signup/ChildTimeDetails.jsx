@@ -299,7 +299,7 @@ function ChildTimeDetails({
           <div className="bg-green-100 text-green-700 text-sm p-2 rounded mb-4">
             <span className="inline-flex items-center">
               <span className="mr-1">ℹ️</span> Average hourly rate is ₦900 -
-              ₦1,000
+              ₦1,200
             </span>
           </div>
           <DualRangeSlider
@@ -325,7 +325,7 @@ function ChildTimeDetails({
                 <input
                   type="number"
                   min={0}
-                  placeholder="e.g. 1000"
+                  placeholder="e.g. 1,200"
                   className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#0093d1]"
                   style={{ backgroundColor: "#fff", color: "#222" }}
                   value={formData.hourlyRateStart ?? ""}
@@ -448,7 +448,7 @@ function ChildTimeDetails({
               : "900",
             priceMax: formData.hourlyRateEnd
               ? Number(formData.hourlyRateEnd).toFixed(2)
-              : "1000",
+              : "1200",
           };
 
           dispatch(
