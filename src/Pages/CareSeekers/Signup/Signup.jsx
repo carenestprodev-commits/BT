@@ -128,7 +128,7 @@ function Signup() {
           default:
             return null;
         }
-      case "Elderly Care":
+      case "Adult & Senior Care":
         switch (currentStep) {
           case 1:
             return 2; // CareCategory → ElderlyInformation
@@ -297,7 +297,7 @@ function Signup() {
             );
         }
 
-      case "Elderly Care":
+      case "Adult & Senior Care":
         switch (currentStep) {
           case 2:
             return (

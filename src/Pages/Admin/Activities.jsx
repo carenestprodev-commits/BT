@@ -26,7 +26,7 @@ function Activities() {
   const dispatch = useDispatch();
   const { stats, activities, currentActivity } = useSelector(
     (s) =>
-      s.adminActivities || { stats: {}, activities: [], currentActivity: null }
+      s.adminActivities || { stats: {}, activities: [], currentActivity: null },
   );
   const [activeStat, setActiveStat] = useState("all");
   const [rows, setRows] = useState([]);
@@ -55,10 +55,10 @@ function Activities() {
           a.status === "pending_approval"
             ? "Pending"
             : a.status === "ongoing_activity"
-            ? "Ongoing Activity"
-            : a.status === "fulfilled" || a.status === "completed"
-            ? "Fulfilled"
-            : a.status,
+              ? "Ongoing Activity"
+              : a.status === "fulfilled" || a.status === "completed"
+                ? "Fulfilled"
+                : a.status,
         date: a.date_created ? dayjs(a.date_created).format("DD-MM-YYYY") : "",
       }));
       setRows(mapped);
@@ -85,11 +85,11 @@ function Activities() {
 
   const statusOptions = useMemo(
     () => ["All", "Pending", "Ongoing Activity", "Fulfilled"],
-    []
+    [],
   );
   const serviceOptions = useMemo(
-    () => ["All", "Child Care", "Tutoring", "Elderly Care"],
-    []
+    () => ["All", "Child Care", "Tutoring", "Adult & Senior Care"],
+    [],
   );
 
   const filtered = useMemo(() => {
@@ -109,7 +109,7 @@ function Activities() {
       data = data.filter(
         (r) =>
           String(r.id).toLowerCase().includes(q) ||
-          r.name.toLowerCase().includes(q)
+          r.name.toLowerCase().includes(q),
       );
     }
 
@@ -142,7 +142,7 @@ function Activities() {
     setSortBy((s) =>
       s.key === key
         ? { key, dir: s.dir === "asc" ? "desc" : "asc" }
-        : { key, dir: "asc" }
+        : { key, dir: "asc" },
     );
   }
 
@@ -152,7 +152,7 @@ function Activities() {
       ...filtered.map((r) => [r.id, r.name, r.careType, r.status, r.date]),
     ]
       .map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
       )
       .join("\n");
 
@@ -397,8 +397,8 @@ function Activities() {
                       r.status === "Pending"
                         ? "bg-purple-50 text-purple-600"
                         : r.status === "Ongoing Activity"
-                        ? "bg-sky-50 text-sky-600"
-                        : "bg-green-50 text-green-600"
+                          ? "bg-sky-50 text-sky-600"
+                          : "bg-green-50 text-green-600"
                     }`}
                   >
                     {r.status}
@@ -539,7 +539,7 @@ function Activities() {
                   try {
                     await dispatch(deleteActivity(deleteRow.id)).unwrap();
                     setRows((prev) =>
-                      prev.filter((x) => x.id !== deleteRow.id)
+                      prev.filter((x) => x.id !== deleteRow.id),
                     );
                     setDeleteRow(null);
                     if (alertTimer.current) {

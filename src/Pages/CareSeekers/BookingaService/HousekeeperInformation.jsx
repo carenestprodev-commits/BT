@@ -482,11 +482,11 @@ function HousekeeperInformation({
                         updateFormData("city", d.city || formData.city);
                         updateFormData(
                           "zipCode",
-                          d.zip_code || d.postcode || formData.zipCode
+                          d.zip_code || d.postcode || formData.zipCode,
                         );
                         updateFormData(
                           "nationality",
-                          d.nationality || formData.nationality
+                          d.nationality || formData.nationality,
                         );
                         if (
                           d.common_languages &&
@@ -919,7 +919,7 @@ function HousekeeperInformation({
               >
                 <option value="">Select option</option>
                 <option>Child Care</option>
-                <option>Elderly Care</option>
+                <option>Adult & Senior Care</option>
                 <option>Tutoring</option>
               </select>
               {errors.additionalCare && (
@@ -982,7 +982,7 @@ function HousekeeperInformation({
                   first_name: formData.firstName || "",
                   last_name: formData.lastName || "",
                 },
-              })
+              }),
             );
             handleNext();
           }}

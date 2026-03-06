@@ -699,7 +699,7 @@ function TutoringDetails({
           <CheckboxGroup
             name="otherServices"
             label="Other Services you can Offer (Optional)"
-            options={["Child Care", "Elderly Care", "House keeping"]}
+            options={["Child Care", "Adult & Senior Care", "House keeping"]}
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
           />
@@ -771,7 +771,7 @@ function TutoringDetails({
             <p className="text-sm text-red-600 mt-1">{errors.hourlyRate}</p>
           ) : (
             <p className="text-sm text-green-600 mt-1">
-              Average hourly rate is ₦900 - ₦1,000
+              Average hourly rate is ₦900 - ₦1,200
             </p>
           )}
         </div>

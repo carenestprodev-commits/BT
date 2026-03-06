@@ -58,7 +58,7 @@ function CareProvidersNearYou() {
         description:
           "Kindly enter your details below to view child care providers near you.",
       },
-      "Elderly Care": {
+      "Adult & Senior Care": {
         title: "Adult & Senior Care Providers Near You",
         signupTitle: "Sign Up to View Adult & Senior Care Providers Near You",
         description:

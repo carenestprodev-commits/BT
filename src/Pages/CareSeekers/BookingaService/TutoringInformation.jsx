@@ -485,11 +485,11 @@ function TutoringInformation({
                           updateFormData("city", d.city || formData.city);
                           updateFormData(
                             "zipCode",
-                            d.zip_code || d.postcode || formData.zipCode
+                            d.zip_code || d.postcode || formData.zipCode,
                           );
                           updateFormData(
                             "nationality",
-                            d.nationality || formData.nationality
+                            d.nationality || formData.nationality,
                           );
                           if (
                             d.common_languages &&
@@ -787,7 +787,7 @@ function TutoringInformation({
                           "tutoringSubject",
                           e.target.checked
                             ? [...arr, subject]
-                            : arr.filter((s) => s !== subject)
+                            : arr.filter((s) => s !== subject),
                         );
                       }}
                     />
@@ -899,7 +899,7 @@ function TutoringInformation({
                 Additional Care <span className="text-red-600">*</span>
               </label>
               <div className="bg-white rounded-lg border border-gray-200 p-4">
-                {["Child Care", "Elderly Care"].map((care) => (
+                {["Child Care", "Adult & Senior Care"].map((care) => (
                   <label
                     key={care}
                     className="flex items-center py-2 border-b last:border-b-0 border-gray-100"
@@ -917,7 +917,7 @@ function TutoringInformation({
                           "additionalCare",
                           e.target.checked
                             ? [...arr, care]
-                            : arr.filter((s) => s !== care)
+                            : arr.filter((s) => s !== care),
                         );
                       }}
                     />
@@ -980,7 +980,7 @@ function TutoringInformation({
                   first_name: formData.firstName || "",
                   last_name: formData.lastName || "",
                 },
-              })
+              }),
             );
             handleNext();
           }}

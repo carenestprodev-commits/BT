@@ -9,16 +9,15 @@ function Mobile() {
       style={{ backgroundImage: `url(${BG})` }} // ✅ you can change this dynamically
     >
       <div className="max-w-6xl w-full flex flex-col md:flex-row items-center md:items-start gap-10">
-        
         {/* Left Content */}
         <div className="flex-1 text-white">
           <h2 className="text-3xl md:text-4xl font-semibold leading-snug mb-4 mt-20">
             Start your worry-free care <br /> journey today!
           </h2>
           <p className="text-gray-300 mb-6 text-base leading-relaxed max-w-lg">
-            Join hundreds of Nigerian families putting their trust in CareNestPro.
-            Whether you need a nanny, elderly caregiver, special needs support,
-            home assistant, or tutor — we’re here for you.
+            Join hundreds of Nigerian families putting their trust in
+            CareNestPro. Whether you need a nanny, senior caregiver, special
+            needs support, home assistant, or tutor — we’re here for you.
           </p>
 
           {/* Buttons */}

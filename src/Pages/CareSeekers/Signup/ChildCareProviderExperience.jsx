@@ -53,7 +53,7 @@ function ChildCareProviderExperience({
                 onClick={() =>
                   updateFormData(
                     "showLanguageDropdown",
-                    !formData.showLanguageDropdown
+                    !formData.showLanguageDropdown,
                   )
                 }
               >
@@ -75,11 +75,11 @@ function ChildCareProviderExperience({
                         type="checkbox"
                         className="mr-2 bg-white text-gray-900"
                         checked={formData.communicationLanguage?.includes(
-                          language
+                          language,
                         )}
                         onChange={(e) => {
                           let arr = Array.isArray(
-                            formData.communicationLanguage
+                            formData.communicationLanguage,
                           )
                             ? formData.communicationLanguage
                             : [];
@@ -91,7 +91,7 @@ function ChildCareProviderExperience({
                           } else {
                             updateFormData(
                               "communicationLanguage",
-                              arr.filter((l) => l !== language)
+                              arr.filter((l) => l !== language),
                             );
                           }
                         }}
@@ -140,7 +140,7 @@ function ChildCareProviderExperience({
                 onClick={() =>
                   updateFormData(
                     "showPreferenceDropdown",
-                    !formData.showPreferenceDropdown
+                    !formData.showPreferenceDropdown,
                   )
                 }
               >
@@ -161,7 +161,7 @@ function ChildCareProviderExperience({
                         type="checkbox"
                         className="mr-2 bg-white text-gray-900"
                         checked={formData.specialPreferences?.includes(
-                          preference
+                          preference,
                         )}
                         onChange={(e) => {
                           let arr = Array.isArray(formData.specialPreferences)
@@ -175,7 +175,7 @@ function ChildCareProviderExperience({
                           } else {
                             updateFormData(
                               "specialPreferences",
-                              arr.filter((p) => p !== preference)
+                              arr.filter((p) => p !== preference),
                             );
                           }
                         }}
@@ -221,7 +221,7 @@ function ChildCareProviderExperience({
                 onClick={() =>
                   updateFormData(
                     "showOptionDropdown",
-                    !formData.showOptionDropdown
+                    !formData.showOptionDropdown,
                   )
                 }
               >
@@ -244,7 +244,7 @@ function ChildCareProviderExperience({
                           } else {
                             updateFormData(
                               "preferredOption",
-                              arr.filter((o) => o !== option)
+                              arr.filter((o) => o !== option),
                             );
                           }
                         }}
@@ -291,7 +291,7 @@ function ChildCareProviderExperience({
                 onClick={() =>
                   updateFormData(
                     "showExtraCategoryDropdown",
-                    !formData.showExtraCategoryDropdown
+                    !formData.showExtraCategoryDropdown,
                   )
                 }
               >
@@ -299,14 +299,14 @@ function ChildCareProviderExperience({
               </button>
               {formData.showExtraCategoryDropdown && (
                 <div className="absolute z-10 bg-white border border-gray-300 rounded-md shadow-lg p-4">
-                  {["Elderly Care", "Tutoring", "Housekeeping"].map(
+                  {["Adult & Senior Care", "Tutoring", "Housekeeping"].map(
                     (category) => (
                       <label key={category} className="flex items-center">
                         <input
                           type="checkbox"
                           className="mr-2 bg-white text-gray-900"
                           checked={formData.extraCareCategory?.includes(
-                            category
+                            category,
                           )}
                           onChange={(e) => {
                             let arr = Array.isArray(formData.extraCareCategory)
@@ -320,7 +320,7 @@ function ChildCareProviderExperience({
                             } else {
                               updateFormData(
                                 "extraCareCategory",
-                                arr.filter((c) => c !== category)
+                                arr.filter((c) => c !== category),
                               );
                             }
                           }}
@@ -329,7 +329,7 @@ function ChildCareProviderExperience({
                           {category}
                         </span>
                       </label>
-                    )
+                    ),
                   )}
                   <button
                     className="mt-4 w-full bg-[#0093d1] text-white text-sm font-medium py-2 rounded-md hover:bg-[#007bb0] transition"
@@ -384,7 +384,7 @@ function ChildCareProviderExperience({
                 preferredOption: formData.preferredOption || [],
                 extraCareCategory: formData.extraCareCategory || [],
               },
-            })
+            }),
           );
           handleNext();
         }}

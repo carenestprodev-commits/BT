@@ -449,7 +449,7 @@ function TutoringInformation({
 
         try {
           const response = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}`,
           );
 
           const data = await response.json();
@@ -468,7 +468,7 @@ function TutoringInformation({
               longitude,
             });
             throw new Error(
-              "No address results found. Please ensure Google Maps Geocoding API is enabled in your Google Cloud Console."
+              "No address results found. Please ensure Google Maps Geocoding API is enabled in your Google Cloud Console.",
             );
           }
 
@@ -477,7 +477,7 @@ function TutoringInformation({
             data.results.find(
               (r) =>
                 r.types.includes("street_address") ||
-                r.types.includes("premise")
+                r.types.includes("premise"),
             ) || data.results[0];
 
           const components = result.address_components;
@@ -508,7 +508,7 @@ function TutoringInformation({
           console.error("Error fetching location:", error);
           alert(
             error.message ||
-              "Could not retrieve address details. Please enter manually."
+              "Could not retrieve address details. Please enter manually.",
           );
           setShowLocationPopup(false);
         }
@@ -518,7 +518,7 @@ function TutoringInformation({
         alert("Please enable location services in your browser settings.");
         setShowLocationPopup(false);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
     );
   };
 
@@ -861,7 +861,7 @@ function TutoringInformation({
                             "tutoringSubject",
                             e.target.checked
                               ? [...arr, subject]
-                              : arr.filter((s) => s !== subject)
+                              : arr.filter((s) => s !== subject),
                           );
                           if (!e.target.checked && subject === "Others") {
                             setOtherSubject("");
@@ -989,31 +989,33 @@ function TutoringInformation({
                 Additional Care <span className="text-red-600">*</span>
               </label>
               <div className="bg-white rounded-lg border border-gray-200 p-4">
-                {["Child Care", "Elderly Care", "Housekeeping"].map((care) => (
-                  <label
-                    key={care}
-                    className="flex items-center py-2 border-b last:border-b-0 border-gray-100"
-                  >
-                    <input
-                      type="checkbox"
-                      name="additionalCare"
-                      required
-                      aria-required="true"
-                      className="mr-2"
-                      checked={formData.additionalCare?.includes(care)}
-                      onChange={(e) => {
-                        let arr = formData.additionalCare || [];
-                        updateFormData(
-                          "additionalCare",
-                          e.target.checked
-                            ? [...arr, care]
-                            : arr.filter((s) => s !== care)
-                        );
-                      }}
-                    />
-                    <span className="text-gray-700">{care}</span>
-                  </label>
-                ))}
+                {["Child Care", "Adult & Senior Care", "Housekeeping"].map(
+                  (care) => (
+                    <label
+                      key={care}
+                      className="flex items-center py-2 border-b last:border-b-0 border-gray-100"
+                    >
+                      <input
+                        type="checkbox"
+                        name="additionalCare"
+                        required
+                        aria-required="true"
+                        className="mr-2"
+                        checked={formData.additionalCare?.includes(care)}
+                        onChange={(e) => {
+                          let arr = formData.additionalCare || [];
+                          updateFormData(
+                            "additionalCare",
+                            e.target.checked
+                              ? [...arr, care]
+                              : arr.filter((s) => s !== care),
+                          );
+                        }}
+                      />
+                      <span className="text-gray-700">{care}</span>
+                    </label>
+                  ),
+                )}
               </div>
               {errors.additionalCare && (
                 <p className="text-sm text-red-600 mt-1">
@@ -1082,7 +1084,7 @@ function TutoringInformation({
                   first_name: formData.firstName || "",
                   last_name: formData.lastName || "",
                 },
-              })
+              }),
             );
             handleNext();
           }}
