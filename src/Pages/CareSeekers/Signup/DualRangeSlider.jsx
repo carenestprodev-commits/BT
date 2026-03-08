@@ -2,142 +2,152 @@
 import React, { useState, useRef, useEffect } from "react";
 
 export default function DualRangeSlider({
-  valueStart = 80,
-  valueEnd = 1230,
-  minValue = 10,
-  maxValue = 3000,
+  valueStart = 900,
+  valueEnd = 1200,
+  minValue = 900,
+  maxValue = 1200,
   onChange,
   currencySymbol = "₦",
-  currencyCode = null,
-  locale = "en-NG",
 }) {
+  const clamp = (v, min, max) => Math.max(min, Math.min(v, max));
+
   const [start, setStart] = useState(valueStart);
   const [end, setEnd] = useState(valueEnd);
   const [isDragging, setIsDragging] = useState(null);
+
   const sliderRef = useRef(null);
+  const startRef = useRef(null);
+  const endRef = useRef(null);
 
   useEffect(() => {
-    if (onChange) onChange({ hourlyRateStart: start, hourlyRateEnd: end });
-  }, [start, end, onChange]);
+    if (onChange) {
+      onChange({
+        hourlyRateStart: start,
+        hourlyRateEnd: end,
+      });
+    }
+  }, [start, end]);
 
-  const getPercentage = (value) =>
+  const getPercent = (value) =>
     ((value - minValue) / (maxValue - minValue)) * 100;
 
-  const formatValue = (v) => {
-    if (currencyCode) {
-      try {
-        return new Intl.NumberFormat(locale, {
-          style: "currency",
-          currency: currencyCode,
-          maximumFractionDigits: 0,
-        }).format(v);
-      } catch {
-        return `${currencySymbol}${v}`;
-      }
-    }
-    return `${currencySymbol}${v}`;
-  };
+  const formatValue = (v) => `${currencySymbol}${v}`;
 
-  const handleSliderClick = (e) => {
-    if (!sliderRef.current || isDragging) return;
+  const getClientX = (e) => (e.touches ? e.touches[0].clientX : e.clientX);
+
+  const handleMove = (e) => {
+    if (!isDragging || !sliderRef.current) return;
+
     const rect = sliderRef.current.getBoundingClientRect();
-    const clickPosition = (e.clientX - rect.left) / rect.width;
-    const clickValue = minValue + clickPosition * (maxValue - minValue);
-    const distanceToStart = Math.abs(clickValue - start);
-    const distanceToEnd = Math.abs(clickValue - end);
-    if (distanceToStart < distanceToEnd) {
-      setStart(Math.round(Math.min(clickValue, end)));
-    } else {
-      setEnd(Math.round(Math.max(clickValue, start)));
+    const percent = (getClientX(e) - rect.left) / rect.width;
+
+    let value = Math.round(minValue + percent * (maxValue - minValue));
+    value = clamp(value, minValue, maxValue);
+
+    if (isDragging === "start") {
+      setStart(Math.min(value, end));
+    }
+
+    if (isDragging === "end") {
+      setEnd(Math.max(value, start));
     }
   };
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isDragging || !sliderRef.current) return;
-      const rect = sliderRef.current.getBoundingClientRect();
-      const position = (e.clientX - rect.left) / rect.width;
-      const value = Math.round(minValue + position * (maxValue - minValue));
-      if (isDragging === "start") {
-        setStart(Math.max(minValue, Math.min(value, end)));
-      } else if (isDragging === "end") {
-        setEnd(Math.min(maxValue, Math.max(value, start)));
-      }
-    };
-    const handleMouseUp = () => setIsDragging(null);
+    const stopDrag = () => setIsDragging(null);
+
     if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.addEventListener("touchmove", handleMouseMove);
-      document.addEventListener("touchend", handleMouseUp);
+      document.addEventListener("mousemove", handleMove);
+      document.addEventListener("mouseup", stopDrag);
+      document.addEventListener("touchmove", handleMove);
+      document.addEventListener("touchend", stopDrag);
     }
+
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-      document.removeEventListener("touchmove", handleMouseMove);
-      document.removeEventListener("touchend", handleMouseUp);
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", stopDrag);
+      document.removeEventListener("touchmove", handleMove);
+      document.removeEventListener("touchend", stopDrag);
     };
   }, [isDragging, start, end]);
 
+  /* Keyboard Controls */
+
+  const handleKey = (e, type) => {
+    const step = 10;
+
+    if (type === "start") {
+      if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+        setStart((prev) => clamp(prev + step, minValue, end));
+      }
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+        setStart((prev) => clamp(prev - step, minValue, end));
+      }
+    }
+
+    if (type === "end") {
+      if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+        setEnd((prev) => clamp(prev + step, start, maxValue));
+      }
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+        setEnd((prev) => clamp(prev - step, start, maxValue));
+      }
+    }
+  };
+
   return (
-    <div>
-      <div className="bg-white border border-gray-200 rounded-lg p-4 font-sfpro">
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 lg:gap-0 mb-2">
-          <span className="text-sm text-gray-500">{formatValue(minValue)}</span>
-          <span className="text-sm text-gray-500">{formatValue(maxValue)}</span>
-        </div>
+    <div className="bg-white border border-gray-200 rounded-lg p-4">
+      {/* FIXED MOBILE LAYOUT */}
+      <div className="flex justify-between mb-3 text-sm text-gray-500">
+        <span>{formatValue(minValue)}</span>
+        <span>{formatValue(maxValue)}</span>
+      </div>
+
+      <div
+        ref={sliderRef}
+        className="relative w-full h-8 flex items-center cursor-pointer"
+      >
+        {/* background */}
+        <div className="absolute w-full h-2 bg-gray-200 rounded-full"></div>
+
+        {/* active range */}
         <div
-          ref={sliderRef}
-          className="relative w-full h-8 flex items-center mb-4 cursor-pointer"
-          onClick={handleSliderClick}
-        >
-          <div className="absolute w-full h-2 bg-gray-200 rounded-full"></div>
-          <div
-            className="absolute h-2 bg-blue-500 rounded-full pointer-events-none"
-            style={{
-              left: `${getPercentage(start)}%`,
-              width: `${getPercentage(end) - getPercentage(start)}%`,
-            }}
-          ></div>
-          <div
-            className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow-md cursor-grab active:cursor-grabbing transform -translate-x-1/2 z-10"
-            style={{ left: `${getPercentage(start)}%` }}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              setIsDragging("start");
-            }}
-          ></div>
-          <div
-            className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow-md cursor-grab active:cursor-grabbing transform -translate-x-1/2 z-10"
-            style={{ left: `${getPercentage(end)}%` }}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              setIsDragging("end");
-            }}
-          ></div>
-          <input
-            type="range"
-            min={minValue}
-            max={maxValue}
-            value={start}
-            onChange={(e) => setStart(Math.min(parseInt(e.target.value), end))}
-            className="sr-only"
-            aria-label="Minimum hourly rate"
-          />
-          <input
-            type="range"
-            min={minValue}
-            max={maxValue}
-            value={end}
-            onChange={(e) => setEnd(Math.max(parseInt(e.target.value), start))}
-            className="sr-only"
-            aria-label="Maximum hourly rate"
-          />
-        </div>
-        <div className="flex justify-between mt-2 dark: text-blue-500">
-          <span className="text-lg font-semibold">{formatValue(start)}</span>
-          <span className="text-lg font-semibold">{formatValue(end)}</span>
-        </div>
+          className="absolute h-2 bg-blue-500 rounded-full"
+          style={{
+            left: `${getPercent(start)}%`,
+            width: `${getPercent(end) - getPercent(start)}%`,
+          }}
+        ></div>
+
+        {/* start thumb */}
+        <div
+          ref={startRef}
+          tabIndex={0}
+          onKeyDown={(e) => handleKey(e, "start")}
+          onMouseDown={() => setIsDragging("start")}
+          onTouchStart={() => setIsDragging("start")}
+          className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow-md -translate-x-1/2 cursor-pointer"
+          style={{ left: `${getPercent(start)}%` }}
+        ></div>
+
+        {/* end thumb */}
+        <div
+          ref={endRef}
+          tabIndex={0}
+          onKeyDown={(e) => handleKey(e, "end")}
+          onMouseDown={() => setIsDragging("end")}
+          onTouchStart={() => setIsDragging("end")}
+          className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow-md -translate-x-1/2 cursor-pointer"
+          style={{ left: `${getPercent(end)}%` }}
+        ></div>
+      </div>
+
+      {/* Selected values */}
+      <div className="flex justify-between mt-4 text-blue-600 font-semibold text-lg">
+        <span>{formatValue(start)}</span>
+        <span>{formatValue(end)}</span>
       </div>
     </div>
   );

@@ -17,7 +17,7 @@ function RequestDetails() {
   const [rating, setRating] = useState(0);
   const dispatch = useDispatch();
   const { currentRequest, submit } = useSelector(
-    (s) => s.seekerRequests || { currentRequest: null, submit: {} }
+    (s) => s.seekerRequests || { currentRequest: null, submit: {} },
   );
   const params = useParams();
   const routeId = params?.id || params?.requestId || params?.bookingId;
@@ -26,13 +26,11 @@ function RequestDetails() {
     const id = routeId || 11;
     dispatch(fetchSeekerRequestDetails(id));
     return () => dispatch(clearCurrentRequest());
-    // intentionally only run on mount/unmount; routeId included so it re-fetches if URL param changes
   }, [dispatch, routeId]);
 
   useEffect(() => {
     if (submit && submit.response) {
       alert(`Review submitted: ${JSON.stringify(submit.response)}`);
-      // navigate back after successful submit
       navigate("/careseekers/dashboard/requests");
     } else if (submit && submit.error) {
       alert(
@@ -42,7 +40,7 @@ function RequestDetails() {
             : submit.error?.error ||
               submit.error?.message ||
               JSON.stringify(submit.error)
-        }`
+        }`,
       );
     }
   }, [submit, navigate]);
@@ -50,14 +48,25 @@ function RequestDetails() {
   return (
     <div className="flex min-h-screen bg-white font-sfpro">
       <Sidebar active="Requests" />
-      <div className="flex-1 font-sfpro px-8 py-8 md:ml-64">
-        <button
-          className="mb-8 text-gray-500 hover:text-gray-700 text-2xl font-bold"
-          onClick={() => navigate(-1)}
-        >
-          ←
-        </button>
-        <h2 className="text-2xl font-semibold text-gray-800 mb-8">Details</h2>
+
+      {/*
+        pt-24 on mobile (96px) clears the fixed top navbar (~56px) with room to breathe.
+        md:pt-8 resets on desktop where the sidebar is on the left, not top.
+      */}
+      <div className="flex-1 font-sfpro px-6 pt-24 pb-8 md:pt-8 md:px-8 md:ml-64">
+        {/* Back arrow + page title in one row so both are always visible */}
+        <div className="flex items-center gap-3 mb-8">
+          <button
+            className="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none"
+            onClick={() => navigate(-1)}
+            aria-label="Go back"
+          >
+            ←
+          </button>
+          <h2 className="text-2xl font-semibold text-gray-800">Details</h2>
+        </div>
+
+        {/* Provider avatar + name */}
         <div className="flex items-center mb-6">
           <img
             src={
@@ -78,12 +87,10 @@ function RequestDetails() {
             </div>
             <div className="text-gray-500 text-sm mt-1">
               {currentRequest?.hired_at
-                ? `${new Date(
-                    currentRequest.hired_at
-                  ).toLocaleDateString()} - ${
+                ? `${new Date(currentRequest.hired_at).toLocaleDateString()} - ${
                     currentRequest?.completed_at
                       ? new Date(
-                          currentRequest.completed_at
+                          currentRequest.completed_at,
                         ).toLocaleDateString()
                       : "Ongoing"
                   }`
@@ -91,14 +98,16 @@ function RequestDetails() {
             </div>
           </div>
         </div>
-        <div className="flex gap-6 mb-8">
-          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
+
+        {/* Stats cards */}
+        <div className="flex gap-4 mb-8 flex-wrap">
+          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[100px]">
             <span className="text-gray-500 text-xs mb-1">Experience</span>
             <span className="text-gray-800 font-semibold text-lg">
               {currentRequest?.provider?.years_of_experience ?? "N/A"}
             </span>
           </div>
-          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
+          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[100px]">
             <span className="text-gray-500 text-xs mb-1">Rate</span>
             <span className="text-gray-800 font-semibold text-lg">
               {currentRequest?.provider?.hourly_rate
@@ -106,9 +115,9 @@ function RequestDetails() {
                 : "N/A"}
             </span>
           </div>
-          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
+          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[100px]">
             <span className="text-gray-500 text-xs mb-1">Rating</span>
-            <span className="text-gray-800 font-semibold text-lg flex items-center gap-2">
+            <span className="text-gray-800 font-semibold text-lg flex items-center gap-1">
               {currentRequest?.provider?.average_rating ?? "N/A"}{" "}
               {Array.from({ length: 5 }).map((_, i) => (
                 <FaStar
@@ -124,9 +133,11 @@ function RequestDetails() {
             </span>
           </div>
         </div>
+
+        {/* Provider Details */}
         <div className="mb-6">
           <div className="text-gray-700 font-medium mb-2">Provider Details</div>
-          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 text-gray-700 text-base">
+          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 text-gray-700 text-base space-y-1">
             <div>
               <strong>Profile Title:</strong>{" "}
               {currentRequest?.provider?.profile_title}
@@ -143,23 +154,26 @@ function RequestDetails() {
             </div>
           </div>
         </div>
+
+        {/* Feedback textarea + star rating */}
         <div className="mb-8">
           <div className="text-gray-700 font-medium mb-2">
             Message to Care Provider
           </div>
           <textarea
-            className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-white text-gray-800 min-h-[100px] resize-none mb-2 dark:bg-white dark:text-black"
+            className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-white text-gray-800 min-h-[100px] resize-none mb-3 dark:bg-white dark:text-black"
             placeholder="Input feedback of your time with care provider"
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
           />
-          <div className="flex gap-1 mb-2">
+          {/* Stars sit naturally below the textarea — no negative margin */}
+          <div className="flex gap-2">
             {Array.from({ length: 5 }).map((_, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => setRating(i + 1)}
-                className="focus:outline-none -mt-20 ml-5"
+                className="focus:outline-none"
               >
                 <FaStar
                   className={
@@ -172,6 +186,8 @@ function RequestDetails() {
             ))}
           </div>
         </div>
+
+        {/* Testimonials */}
         <div className="mb-8">
           <div className="text-gray-700 font-medium mb-2">Testimonials</div>
           <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 text-gray-700 text-base">
@@ -182,16 +198,25 @@ function RequestDetails() {
             during our daily walks.
           </div>
         </div>
-        <button
-          className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition"
-          onClick={() => {
-            // send review
-            const booking_id = currentRequest?.id || routeId || 11;
-            dispatch(submitReview({ booking_id, rating, comment: feedback }));
-          }}
-        >
-          {submit?.loading ? "Submitting…" : "Submit"}
-        </button>
+
+        {/* Action buttons — side by side on BOTH mobile and desktop */}
+        <div className="flex gap-3">
+          <button
+            className="flex-1 border border-[#0d99c9] text-[#0d99c9] py-3 rounded-md font-semibold hover:bg-[#f0faff] transition"
+            onClick={() => navigate(-1)}
+          >
+            Edit
+          </button>
+          <button
+            className="flex-1 bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition"
+            onClick={() => {
+              const booking_id = currentRequest?.id || routeId || 11;
+              dispatch(submitReview({ booking_id, rating, comment: feedback }));
+            }}
+          >
+            {submit?.loading ? "Submitting…" : "Submit"}
+          </button>
+        </div>
       </div>
     </div>
   );
