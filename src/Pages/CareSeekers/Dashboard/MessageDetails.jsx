@@ -161,13 +161,17 @@ function MessageDetails() {
       dispatch(fetchMessages(currentConversation.id));
       dispatch(setActiveConversation(currentConversation.id));
       dispatch(connectWebSocket(currentConversation.id));
-      setMessageCount(currentMessages.length);
     }
 
     return () => {
       dispatch(disconnectWebSocket());
     };
-  }, [dispatch, currentConversation, currentMessages]);
+  }, [dispatch, currentConversation]);
+
+  // Update message count when messages arrive
+  useEffect(() => {
+    setMessageCount(currentMessages.length);
+  }, [currentMessages]);
 
   // Redirect to Stripe checkout
   useEffect(() => {
