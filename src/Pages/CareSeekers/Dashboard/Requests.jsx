@@ -10,8 +10,6 @@ import {
 
 const tabs = ["Active", "Closed", "Pending"];
 
-// Data and formatting are provided by the Redux slice; helpers removed.
-
 function Requests() {
   const [selectedTab, setSelectedTab] = useState(0);
   const navigate = useNavigate();
@@ -31,7 +29,7 @@ function Requests() {
         pending: [],
         loading: false,
         error: null,
-      }
+      },
   );
   const fetchErrorMsg =
     typeof fetchError === "string"
@@ -48,10 +46,14 @@ function Requests() {
   return (
     <div className="flex min-h-screen bg-white font-sfpro">
       <Sidebar active="Requests" />
-      <div className="flex-1 font-sfpro px-8 py-8 md:ml-64 overflow-y-auto">
+      {/* pt-20 on mobile offsets the fixed top navbar height; md:pt-8 resets for desktop */}
+      <div className="flex-1 font-sfpro px-8 py-8 pt-20 md:pt-8 md:ml-64 overflow-y-auto">
         {/* Header */}
         <div className="flex items-center mb-8">
-          <button className="mr-4 text-gray-500 hover:text-[#0d99c9] text-xl">
+          <button
+            className="mr-4 text-gray-500 hover:text-[#0d99c9] text-xl"
+            onClick={() => navigate(-1)}
+          >
             &#8592;
           </button>
           <h1 className="text-2xl font-semibold text-gray-800">Request</h1>
@@ -174,11 +176,9 @@ function PendingRequestCard({ req }) {
   };
   const handleClose = () => {
     setMenuOpen(false);
-    // Add close logic here
   };
   const handleEdit = () => {
     setMenuOpen(false);
-    // Navigate to summary (edit) page
     navigate("/careseekers/dashboard/summary");
   };
   return (
