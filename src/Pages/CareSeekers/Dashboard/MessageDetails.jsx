@@ -295,6 +295,16 @@ function MessageDetails() {
       );
       setInput("");
       setMessageCount(messageCount + 1);
+
+      // End the activity
+      try {
+        if (bookingId) {
+          dispatch(endActivity(bookingId));
+        }
+      } catch (e) {
+        console.error("Failed to end activity:", e);
+      }
+
       setShowActivityModal(false);
 
       // Show payment for ending activity
