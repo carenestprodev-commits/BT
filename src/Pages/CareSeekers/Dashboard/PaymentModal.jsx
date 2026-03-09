@@ -136,6 +136,12 @@ const PaymentModal = ({
     }
   };
 
+  // Calculate display price and currency values
+  const displayPrice =
+    localizedPrice !== null ? localizedPrice : selectedPlan.price;
+  const displayCurrency = currencyCode || "NGN";
+  const displaySymbol = currencySymbol || "₦";
+
   const amount = parseFloat(displayPrice || 0);
   const displayAmount = formatCurrencyAmount(
     amount,
@@ -151,12 +157,12 @@ const PaymentModal = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4"
       style={{ backdropFilter: "blur(2px)" }}
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-[400px] relative animate-fade-in overflow-hidden"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-xs sm:max-w-[400px] relative animate-fade-in overflow-hidden max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -169,23 +175,23 @@ const PaymentModal = ({
           <IoMdClose className="w-6 h-6" />
         </button>
 
-        <div className="p-8 pt-10">
+        <div className="p-4 sm:p-8 sm:pt-10">
           {/* Header */}
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
               {selectedPlan.name}
             </h2>
-            <p className="text-gray-500 text-sm leading-snug">
+            <p className="text-gray-500 text-xs sm:text-sm leading-snug">
               One-time payment via secure gateway
             </p>
           </div>
 
           {/* Price */}
           <div className="mb-6">
-            <div className="text-[#0093d1] text-5xl font-bold mb-2 tracking-tight drop-shadow-sm">
+            <div className="text-[#0093d1] text-3xl sm:text-5xl font-bold mb-2 tracking-tight drop-shadow-sm">
               {displayAmount}
             </div>
-            <p className="text-gray-500 text-base font-medium">
+            <p className="text-gray-500 text-xs sm:text-base font-medium">
               ≈ {monthlyBreakdown} / month
             </p>
             {isFallbackPrice && (
@@ -203,10 +209,10 @@ const PaymentModal = ({
           <hr className="border-gray-200 mb-6" />
 
           <div className="mb-8">
-            <h3 className="text-gray-800 font-semibold text-base mb-1">
+            <h3 className="text-gray-800 font-semibold text-sm sm:text-base mb-1">
               One-time payment only
             </h3>
-            <p className="text-gray-500 text-sm leading-relaxed">
+            <p className="text-gray-500 text-xs sm:text-sm leading-relaxed">
               Monthly breakdown is for display purposes — no recurring charges.
             </p>
           </div>
@@ -214,7 +220,9 @@ const PaymentModal = ({
           {/* Error */}
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 rounded p-3">
-              <p className="text-red-600 text-sm text-center">{error}</p>
+              <p className="text-red-600 text-xs sm:text-sm text-center">
+                {error}
+              </p>
             </div>
           )}
 
@@ -223,7 +231,7 @@ const PaymentModal = ({
             <button
               onClick={handlePayment}
               disabled={isProcessing || initiating || loading}
-              className={`w-full bg-[#0093d1] text-white py-3.5 rounded-lg font-semibold text-base shadow-md hover:bg-[#0082b9] hover:shadow-lg transition-all duration-200 ${
+              className={`w-full bg-[#0093d1] text-white py-3 sm:py-3.5 rounded-lg font-semibold text-sm sm:text-base shadow-md hover:bg-[#0082b9] hover:shadow-lg transition-all duration-200 ${
                 isProcessing || initiating || loading
                   ? "opacity-60 cursor-not-allowed"
                   : ""
@@ -236,7 +244,7 @@ const PaymentModal = ({
 
             <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500">
               <FaLock className="w-3 h-3 text-[#BFA15F]" />
-              <span>
+              <span className="text-xs">
                 Secure payment via{" "}
                 <span className="text-[#0093d1] font-medium">Paystack</span>
               </span>

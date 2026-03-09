@@ -284,7 +284,6 @@ function MessageDetails() {
       }
 
       setShowActivityModal(false);
-      setShowPayment(true);
     } else if (action === "end") {
       // Send message first
       dispatch(
@@ -349,12 +348,11 @@ function MessageDetails() {
         console.error("Failed to start activity:", e);
       }
       setMenuOpen(false);
-      setShowPayment(true);
     } else if (action === "end") {
       setMenuOpen(false);
       try {
         const res = await dispatch(endActivity(bookingId));
-        alert(`Activity ended successfully`);
+        setShowPayment(true);
       } catch {
         alert("Failed to end activity");
       }
