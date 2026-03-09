@@ -389,10 +389,10 @@ function MessageDetails() {
     <div className="flex min-h-screen bg-white font-sfpro">
       <Sidebar active="Message" />
       <div className="flex-1 font-sfpro md:ml-64 flex flex-col h-screen overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0 gap-2 sm:gap-4">
+        {/* Header - Sticky */}
+        <div className="sticky top-0 z-40 flex items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0 gap-2 sm:gap-4">
           <button
-            className="mr-4 text-gray-500 hover:text-gray-700 text-xl"
+            className="mr-4 text-gray-500 hover:text-gray-700 text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
             onClick={() => navigate("/careseekers/dashboard/message")}
             aria-label="Back to messages"
           >
@@ -406,7 +406,10 @@ function MessageDetails() {
                   src={resolveImage(
                     currentConversation.other_participant?.profile_image_url,
                   )}
-                  alt="avatar"
+                  alt={
+                    currentConversation.other_participant?.full_name ||
+                    "Provider avatar"
+                  }
                   className="w-10 h-10 rounded-full mr-3 object-cover"
                 />
                 <div className="font-semibold text-gray-800 text-lg">
@@ -425,27 +428,40 @@ function MessageDetails() {
           )}
 
           {/* Call and Video icons */}
-          <div className="flex gap-4 items-center mr-4">
-            <button className="text-[#0d99c9] hover:text-[#007bb0] text-xl">
+          <div className="flex gap-3 sm:gap-4 items-center mr-2 sm:mr-4">
+            <button
+              className="text-[#0d99c9] hover:text-[#007bb0] text-lg sm:text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
+              aria-label="Call provider"
+              title="Call provider"
+            >
               <i className="fas fa-phone"></i>
             </button>
-            <button className="text-[#0d99c9] hover:text-[#007bb0] text-xl">
+            <button
+              className="text-[#0d99c9] hover:text-[#007bb0] text-lg sm:text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
+              aria-label="Video call with provider"
+              title="Video call with provider"
+            >
               <i className="fas fa-video"></i>
             </button>
           </div>
 
-          {/* Three-dot menu */}
+          {/* Three-dot menu - Sticky and always visible */}
           {currentConversation?.booking && (
             <div className="relative">
               <button
-                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded p-1 transition"
                 onClick={() => setMenuOpen((v) => !v)}
+                aria-label="Open activity menu"
+                aria-expanded={menuOpen}
+                aria-haspopup="menu"
+                title="Activity options"
               >
                 <svg
-                  width="22"
-                  height="22"
+                  width="24"
+                  height="24"
                   fill="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <circle cx="12" cy="6" r="2" />
                   <circle cx="12" cy="12" r="2" />
@@ -453,18 +469,50 @@ function MessageDetails() {
                 </svg>
               </button>
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                <div
+                  className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50"
+                  role="menu"
+                  aria-orientation="vertical"
+                >
                   <button
-                    className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
+                    className="w-full text-left px-4 py-3 text-gray-700 hover:bg-[#f7fafd] focus:bg-[#f7fafd] focus:outline-none text-sm font-medium transition border-b border-gray-100"
                     onClick={() => handleMenuAction("start")}
+                    role="menuitem"
+                    aria-label="Start activity with provider"
                   >
-                    Start Activity
+                    <span className="flex items-center">
+                      <svg
+                        width="18"
+                        height="18"
+                        fill="#0d99c9"
+                        viewBox="0 0 24 24"
+                        className="mr-2"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                      </svg>
+                      Start Activity
+                    </span>
                   </button>
                   <button
-                    className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
+                    className="w-full text-left px-4 py-3 text-gray-700 hover:bg-[#f7fafd] focus:bg-[#f7fafd] focus:outline-none text-sm font-medium transition"
                     onClick={() => handleMenuAction("end")}
+                    role="menuitem"
+                    aria-label="End activity and proceed to payment"
                   >
-                    End Activity
+                    <span className="flex items-center">
+                      <svg
+                        width="18"
+                        height="18"
+                        fill="#0d99c9"
+                        viewBox="0 0 24 24"
+                        className="mr-2"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
+                      </svg>
+                      End Activity
+                    </span>
                   </button>
                 </div>
               )}
@@ -548,17 +596,26 @@ function MessageDetails() {
                 : "Select a conversation first"
             }
             disabled={!currentConversation || sendingMessage}
-            className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-md border border-gray-200 bg-[#f7fafd] text-gray-700 text-xs sm:text-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 border-gray-200 bg-[#f7fafd] text-gray-700 text-sm sm:text-base focus:outline-none focus:border-[#0d99c9] focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            aria-label="Message input field"
           />
           <button
             onClick={handleSendMessage}
             disabled={!currentConversation || sendingMessage || !input.trim()}
-            className="bg-[#0d99c9] hover:bg-[#007bb0] rounded-full w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            className="bg-[#0d99c9] hover:bg-[#007bb0] rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition"
+            aria-label="Send message"
+            title="Send message (Enter)"
           >
             {sendingMessage ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             ) : (
-              <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+              <svg
+                width="20"
+                height="20"
+                fill="white"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
                 <path d="M2 21l21-9-21-9v7l15 2-15 2z" />
               </svg>
             )}
@@ -567,144 +624,264 @@ function MessageDetails() {
 
         {/* First Message Activity Modal */}
         {showActivityModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full sm:w-[400px] max-w-full p-6 sm:p-8 relative">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="activity-modal-title"
+          >
+            <div className="bg-white rounded-2xl shadow-2xl w-full sm:w-[420px] max-w-full p-6 sm:p-8 relative">
+              <h2
+                id="activity-modal-title"
+                className="text-xl sm:text-2xl font-semibold text-gray-800 mb-2"
+              >
                 Initiate Activity
               </h2>
-              <p className="text-gray-600 mb-6">
-                How would you like to proceed with this conversation?
+              <p className="text-gray-600 text-sm sm:text-base mb-6">
+                How would you like to proceed with this conversation with{" "}
+                <span className="font-medium">
+                  {currentConversation?.other_participant?.full_name}
+                </span>
+                ?
               </p>
 
-              <button
-                className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition mb-3"
-                onClick={() => handleFirstMessageAction("start")}
-              >
-                Start Activity
-              </button>
-              <button
-                className="w-full border border-[#0d99c9] text-[#0d99c9] py-3 rounded-md font-semibold bg-white hover:bg-[#f7fafd] transition"
-                onClick={() => handleFirstMessageAction("end")}
-              >
-                End Activity
-              </button>
+              <div className="space-y-3">
+                <button
+                  className="w-full bg-[#0d99c9] text-white py-3 sm:py-4 rounded-lg font-semibold hover:bg-[#007bb0] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition text-sm sm:text-base"
+                  onClick={() => handleFirstMessageAction("start")}
+                  aria-label="Start activity - enable messaging and responses"
+                >
+                  <span className="flex items-center justify-center">
+                    <svg
+                      width="20"
+                      height="20"
+                      fill="white"
+                      viewBox="0 0 24 24"
+                      className="mr-2"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                    </svg>
+                    Start Activity
+                  </span>
+                </button>
+                <button
+                  className="w-full border-2 border-[#0d99c9] text-[#0d99c9] py-3 sm:py-4 rounded-lg font-semibold bg-white hover:bg-[#f7fafd] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition text-sm sm:text-base"
+                  onClick={() => handleFirstMessageAction("end")}
+                  aria-label="End activity - proceed to payment with 15% service fee"
+                >
+                  <span className="flex items-center justify-center">
+                    <svg
+                      width="20"
+                      height="20"
+                      fill="#0d99c9"
+                      viewBox="0 0 24 24"
+                      className="mr-2"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
+                    </svg>
+                    End Activity
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {/* Payment Modal */}
         {showPayment && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full sm:w-[400px] max-w-full p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="payment-modal-title"
+          >
+            <div className="bg-white rounded-2xl shadow-2xl w-full sm:w-[480px] max-w-full p-6 sm:p-8 relative max-h-[95vh] overflow-y-auto">
               <button
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0d99c9] rounded p-1 transition"
                 onClick={() => {
                   setShowPayment(false);
                   setPaymentSuccess(false);
                   setTotalHours(1);
                 }}
+                aria-label="Close payment modal"
               >
-                &times;
+                <svg
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+                </svg>
               </button>
               {!paymentSuccess ? (
                 <>
-                  <h2 className="text-2xl font-semibold text-gray-800 text-center mb-2">
+                  <h2
+                    id="payment-modal-title"
+                    className="text-xl sm:text-2xl font-semibold text-gray-800 text-center mb-2"
+                  >
                     Proceed to Payment
                   </h2>
-                  <p className="text-center text-gray-500 mb-6">
+                  <p className="text-center text-gray-500 text-sm sm:text-base mb-6">
                     Enter total hours and confirm payment
                   </p>
-                  <div className="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-                    <div className="flex justify-between items-center mb-2 text-sm">
-                      <span className="text-gray-500">Rate per hour</span>
-                      <span className="text-gray-800 font-semibold">
-                        ₦{perHourRate}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center mb-2 text-sm">
-                      <span className="text-gray-500">Total hours</span>
-                      <input
-                        className="bg-white border border-gray-300 rounded w-16 sm:w-20 px-2 py-1 text-gray-800 font-semibold text-right text-sm"
-                        type="number"
-                        min="1"
-                        value={totalHours}
-                        onChange={(e) =>
-                          setTotalHours(
-                            Math.max(1, parseInt(e.target.value) || 1),
-                          )
-                        }
-                      />
-                    </div>
-                    <div className="flex justify-between items-center mb-2 text-sm">
-                      <span className="text-gray-500">Subtotal</span>
-                      <span className="text-gray-800 font-semibold">
-                        ₦{subtotal.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center mb-2 text-sm">
-                      <span className="text-gray-500">Service Fee (15%)</span>
-                      <span className="text-gray-800 font-semibold">
-                        ₦{serviceFee.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="border-t border-gray-200 my-2"></div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-700 font-medium text-sm">
-                        Total Amount
-                      </span>
-                      <span className="text-[#0d99c9] text-lg sm:text-xl font-bold">
-                        ₦{calculatedTotal.toFixed(2)}
-                      </span>
+                  <div className="bg-gradient-to-br from-[#f7fafd] to-[#f0f8fc] rounded-xl p-4 sm:p-6 mb-6 border border-gray-200">
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm font-medium">
+                          Rate per hour
+                        </span>
+                        <span className="text-gray-800 font-semibold text-lg">
+                          ₦{perHourRate.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <label
+                          htmlFor="total-hours"
+                          className="text-gray-600 text-sm font-medium"
+                        >
+                          Total hours
+                        </label>
+                        <input
+                          id="total-hours"
+                          className="bg-white border-2 border-gray-300 rounded-lg w-20 px-3 py-2 text-gray-800 font-semibold text-right text-sm focus:outline-none focus:border-[#0d99c9] focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition"
+                          type="number"
+                          min="1"
+                          value={totalHours}
+                          onChange={(e) =>
+                            setTotalHours(
+                              Math.max(1, parseInt(e.target.value) || 1),
+                            )
+                          }
+                          aria-label="Total hours for service"
+                        />
+                      </div>
+                      <div className="border-t border-gray-300 my-3"></div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm font-medium">
+                          Subtotal
+                        </span>
+                        <span className="text-gray-800 font-semibold">
+                          ₦
+                          {subtotal.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm font-medium">
+                          Service Fee (15%)
+                        </span>
+                        <span className="text-[#0d99c9] font-semibold">
+                          ₦
+                          {serviceFee.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <div className="border-t-2 border-gray-300 my-3"></div>
+                      <div className="flex justify-between items-center bg-white rounded-lg p-3">
+                        <span className="text-gray-700 font-semibold text-base">
+                          Total Amount
+                        </span>
+                        <span className="text-[#0d99c9] text-2xl font-bold">
+                          ₦
+                          {calculatedTotal.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   {paymentError && (
-                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
-                      {paymentError}
+                    <div
+                      className="mb-4 p-4 bg-red-50 border-l-4 border-red-400 rounded text-red-700 text-sm"
+                      role="alert"
+                    >
+                      <p className="font-semibold">Payment Error</p>
+                      <p>{paymentError}</p>
                     </div>
                   )}
-                  <button
-                    className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleProceedToPayment}
-                    disabled={initiatingPayment || totalHours < 1}
-                  >
-                    {initiatingPayment ? "Processing..." : "Proceed to Payment"}
-                  </button>
-                  <button
-                    className="w-full border border-[#0d99c9] text-[#0d99c9] py-3 rounded-md font-semibold bg-white hover:bg-[#f7fafd] transition"
-                    onClick={() => {
-                      setShowPayment(false);
-                      setPaymentSuccess(false);
-                      setTotalHours(1);
-                    }}
-                    disabled={initiatingPayment}
-                  >
-                    Cancel
-                  </button>
+                  <div className="space-y-3">
+                    <button
+                      className="w-full bg-[#0d99c9] text-white py-3 sm:py-4 rounded-lg font-semibold hover:bg-[#007bb0] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                      onClick={handleProceedToPayment}
+                      disabled={initiatingPayment || totalHours < 1}
+                      aria-label="Proceed to payment"
+                    >
+                      {initiatingPayment ? (
+                        <span className="flex items-center justify-center">
+                          <svg
+                            width="18"
+                            height="18"
+                            className="animate-spin mr-2"
+                            fill="white"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 4V1m0 22v-3m7.07-7.07h3v3h-3m-14.14 0H1v3h3m18.8-6.07h3v-3h-3m-14.14 0H1v-3h3M20.485 3.515l2.121-2.121-2.121-2.121M3.394 20.606l2.121-2.121-2.121-2.121M20.485 20.485l2.121 2.121 2.121-2.121M3.394 3.394l2.121 2.121 2.121-2.121" />
+                          </svg>
+                          Processing...
+                        </span>
+                      ) : (
+                        "Proceed to Payment"
+                      )}
+                    </button>
+                    <button
+                      className="w-full border-2 border-[#0d99c9] text-[#0d99c9] py-3 sm:py-4 rounded-lg font-semibold bg-white hover:bg-[#f7fafd] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                      onClick={() => {
+                        setShowPayment(false);
+                        setPaymentSuccess(false);
+                        setTotalHours(1);
+                      }}
+                      disabled={initiatingPayment}
+                      aria-label="Cancel payment"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center h-64">
-                  <svg
-                    width="48"
-                    height="48"
-                    fill="#0d99c9"
-                    viewBox="0 0 24 24"
-                    className="mb-4"
-                  >
-                    <path d="M20.285 6.709l-11.285 11.285-5.285-5.285 1.415-1.415 3.87 3.87 9.87-9.87z" />
-                  </svg>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="mb-4 p-4 bg-green-100 rounded-full">
+                    <svg
+                      width="48"
+                      height="48"
+                      fill="#10b981"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="M20.285 6.709l-11.285 11.285-5.285-5.285 1.415-1.415 3.87 3.87 9.87-9.87z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-2">
                     Payment Successful!
                   </h3>
-                  <p className="text-gray-500 mb-4">
-                    Your payment has been processed.
+                  <p className="text-gray-600 text-sm sm:text-base mb-6">
+                    Your payment of{" "}
+                    <span className="font-semibold">
+                      ₦
+                      {calculatedTotal.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>{" "}
+                    has been processed.
                   </p>
                   <button
-                    className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition"
+                    className="w-full bg-[#0d99c9] text-white py-3 sm:py-4 rounded-lg font-semibold hover:bg-[#007bb0] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition text-sm sm:text-base"
                     onClick={() => {
                       setShowPayment(false);
                       setPaymentSuccess(false);
                       setTotalHours(1);
                     }}
+                    aria-label="Close payment success modal"
                   >
                     Close
                   </button>
