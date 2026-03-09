@@ -70,9 +70,7 @@ function ViewDetails() {
         details?.user?.user_id ||
         details?.user?.uid ||
         details?.id;
-      navigate("/careseekers/dashboard/message", {
-        state: { other_user_id: otherId },
-      });
+      navigate(`/careseekers/dashboard/message/${otherId}`);
     } catch (err) {
       console.error("Failed to navigate to message page", err);
     }
