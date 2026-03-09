@@ -389,8 +389,8 @@ function MessageDetails() {
     <div className="flex min-h-screen bg-white font-sfpro">
       <Sidebar active="Message" />
       <div className="flex-1 font-sfpro md:ml-64 flex flex-col h-screen overflow-hidden">
-        {/* Header - Sticky */}
-        <div className="sticky top-0 z-40 flex items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0 gap-2 sm:gap-4">
+        {/* Header - Sticky (z-50 on mobile to appear above Sidebar mobile header, z-40 on desktop) */}
+        <div className="sticky top-0 z-50 md:z-40 flex items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0 gap-2 sm:gap-4">
           <button
             className="mr-4 text-gray-500 hover:text-gray-700 text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
             onClick={() => navigate("/careseekers/dashboard/message")}
