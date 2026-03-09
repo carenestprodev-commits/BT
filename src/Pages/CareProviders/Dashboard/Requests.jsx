@@ -11,8 +11,6 @@ import { BASE_URL } from "../../../Redux/config";
 
 const tabs = ["Active", "Closed", "Pending"];
 
-// We'll load lists from Redux
-
 function Requests() {
   const location = useLocation();
   const initialTab =
@@ -29,7 +27,7 @@ function Requests() {
         closed: [],
         pending: [],
         loading: false,
-      }
+      },
   );
 
   useEffect(() => {
@@ -49,39 +47,53 @@ function Requests() {
   return (
     <div className="flex min-h-screen bg-white font-sfpro">
       <Sidebar active="Requests" />
-      <div className="flex-1 font-sfpro px-4 md:px-8 py-8 md:ml-64 overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center mb-8">
-          <button className="mr-4 text-gray-500 hover:text-[#0d99c9] text-xl">
-            &#8592;
-          </button>
-          <h1 className="text-2xl font-semibold text-gray-800">Request</h1>
+
+      <div className="flex-1 md:ml-64">
+        {/*
+          Sticky sub-header: on mobile sits just below the fixed Sidebar top
+          navbar (~57px tall). On desktop top-0 is correct — no top navbar.
+        */}
+        <div className="sticky top-[57px] md:top-0 z-30 bg-white border-b border-gray-100 px-6 py-4 flex flex-col">
+          {/* Back arrow + title */}
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              className="text-gray-500 hover:text-[#0d99c9] text-2xl font-bold leading-none"
+              onClick={() => navigate(-1)}
+              aria-label="Go back"
+            >
+              ←
+            </button>
+            <h1 className="text-2xl font-semibold text-gray-800">Request</h1>
+          </div>
+
+          {/* Tabs live inside the sticky bar so they stay visible too */}
+          <div className="flex border-b border-gray-100 -mb-[1px]">
+            {tabs.map((tab, idx) => {
+              let count = 0;
+              if (tab === "Active") count = active.length;
+              else if (tab === "Closed") count = closed.length;
+              else if (tab === "Pending") count = pending.length;
+              return (
+                <button
+                  key={tab}
+                  className={`py-2 px-4 text-gray-500 font-medium focus:outline-none relative ${
+                    selectedTab === idx ? "text-[#0d99c9]" : ""
+                  }`}
+                  onClick={() => setSelectedTab(idx)}
+                >
+                  {tab} <span className="ml-1 text-gray-400">({count})</span>
+                  {selectedTab === idx && (
+                    <span className="absolute left-0 right-0 -bottom-[1px] h-0.5 bg-[#0d99c9] rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        {/* Tabs */}
-        <div className="flex border-b border-gray-100">
-          {tabs.map((tab, idx) => {
-            let count = 0;
-            if (tab === "Active") count = active.length;
-            else if (tab === "Closed") count = closed.length;
-            else if (tab === "Pending") count = pending.length;
-            return (
-              <button
-                key={tab}
-                className={`py-2 px-4 text-gray-500 font-medium focus:outline-none relative ${
-                  selectedTab === idx ? "text-[#0d99c9]" : ""
-                }`}
-                onClick={() => setSelectedTab(idx)}
-              >
-                {tab} <span className="ml-1 text-gray-400">({count})</span>{" "}
-                {selectedTab === idx && (
-                  <span className="absolute left-0 right-0 -bottom-1 h-0.5 bg-[#0d99c9] rounded-full"></span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        {/* Tab Content */}
-        <div className="pt-6">
+
+        {/* Scrollable tab content */}
+        <div className="px-4 md:px-8 pt-6 overflow-y-auto">
+          {/* Active */}
           {selectedTab === 0 && (
             <div>
               {loading && (
@@ -92,7 +104,7 @@ function Requests() {
                   key={req.id}
                   onClick={() =>
                     navigate(
-                      `/careproviders/dashboard/request_details/${req.id}`
+                      `/careproviders/dashboard/request_details/${req.id}`,
                     )
                   }
                   className="w-full text-left flex items-center bg-gray-50 rounded-lg shadow-sm p-4 mb-4 hover:bg-gray-100 transition"
@@ -109,10 +121,10 @@ function Requests() {
                       {req.date ? new Date(req.date).getDate() : ""}
                     </span>
                   </div>
-                  <div className="py-8 px-0.5 mr-2 bg-[#0d99c9] rounded-l-lg"></div>
+                  <div className="py-8 px-0.5 mr-2 bg-[#0d99c9] rounded-l-lg" />
                   <img
                     src={resolveImage(
-                      req.seeker && req.seeker.profile_image_url
+                      req.seeker && req.seeker.profile_image_url,
                     )}
                     alt="avatar"
                     className="w-10 h-10 rounded-full mr-4"
@@ -130,12 +142,10 @@ function Requests() {
                         : "Date: Not specified"}
                       {(req.start_time || req.end_time) && (
                         <span className="ml-2">
-                          {req.start_time ? req.start_time : ""}
+                          {req.start_time || ""}
                           {req.start_time && req.end_time
                             ? ` - ${req.end_time}`
-                            : req.end_time
-                            ? req.end_time
-                            : ""}
+                            : req.end_time || ""}
                         </span>
                       )}
                     </div>
@@ -144,6 +154,8 @@ function Requests() {
               ))}
             </div>
           )}
+
+          {/* Closed */}
           {selectedTab === 1 && (
             <div>
               {loading && (
@@ -155,13 +167,13 @@ function Requests() {
                   className="w-full text-left bg-gray-50 rounded-lg shadow-sm p-6 mb-4 flex hover:bg-gray-100 transition"
                   onClick={() =>
                     navigate(
-                      `/careproviders/dashboard/request_details/${req.id}`
+                      `/careproviders/dashboard/request_details/${req.id}`,
                     )
                   }
                 >
                   <img
                     src={resolveImage(
-                      req.seeker && req.seeker.profile_image_url
+                      req.seeker && req.seeker.profile_image_url,
                     )}
                     alt="avatar"
                     className="w-12 h-12 rounded-full mr-4"
@@ -177,8 +189,8 @@ function Requests() {
                       {req.job_details && req.job_details.posted_ago
                         ? req.job_details.posted_ago
                         : req.created_at
-                        ? `Posted ${new Date(req.created_at).toLocaleString()}`
-                        : ""}
+                          ? `Posted ${new Date(req.created_at).toLocaleString()}`
+                          : ""}
                     </div>
                     <div className="text-sm text-gray-600 leading-relaxed">
                       {(req.job_details && req.job_details.summary) ||
@@ -190,6 +202,8 @@ function Requests() {
               ))}
             </div>
           )}
+
+          {/* Pending */}
           {selectedTab === 2 && (
             <div>
               {loading && (
@@ -203,8 +217,8 @@ function Requests() {
                       req.job_details && req.job_details.posted_ago
                         ? req.job_details.posted_ago
                         : req.created_at
-                        ? `Posted ${new Date(req.created_at).toLocaleString()}`
-                        : "",
+                          ? `Posted ${new Date(req.created_at).toLocaleString()}`
+                          : "",
                     title: req.job_details && req.job_details.title,
                     desc: req.job_details && req.job_details.summary,
                   }}
@@ -224,14 +238,9 @@ function PendingRequestCard({ req }) {
     e.stopPropagation();
     setMenuOpen((v) => !v);
   };
-  const handleClose = () => {
-    setMenuOpen(false);
-    // Add close logic here
-  };
-  const handleEdit = () => {
-    setMenuOpen(false);
-    // Add edit logic here
-  };
+  const handleClose = () => setMenuOpen(false);
+  const handleEdit = () => setMenuOpen(false);
+
   return (
     <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4 relative">
       <div className="absolute top-3 right-3">
@@ -268,7 +277,7 @@ function PendingRequestCard({ req }) {
           </div>
         )}
       </div>
-      <div className="text-xs text-gray-400 mb-1">{req.posted} </div>
+      <div className="text-xs text-gray-400 mb-1">{req.posted}</div>
       <div className="font-medium text-gray-800 mb-1">{req.title}</div>
       <div className="text-sm text-gray-600">{req.desc}</div>
     </div>
