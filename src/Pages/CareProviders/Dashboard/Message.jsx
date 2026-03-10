@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Sidebar from "./Sidebar";
@@ -500,10 +500,17 @@ function Message() {
     setSelectedIndex(index);
   };
 
-  const currentConversation = conversations[selectedIndex] || null;
-  const currentMessages = currentConversation
-    ? messagesByConversation[currentConversation.id] || []
-    : [];
+  const currentConversation = useMemo(
+    () => conversations[selectedIndex] || null,
+    [conversations, selectedIndex],
+  );
+  const currentMessages = useMemo(
+    () =>
+      currentConversation
+        ? messagesByConversation[currentConversation.id] || []
+        : [],
+    [currentConversation, messagesByConversation],
+  );
 
   const filteredConversations = conversations.filter(
     (conv) =>
@@ -682,7 +689,10 @@ function Message() {
     };
   };
 
-  const displayMessages = currentMessages.map(convertMessageToDisplay);
+  const displayMessages = useMemo(
+    () => currentMessages.map(convertMessageToDisplay),
+    [currentMessages],
+  );
 
   const chatBodyRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -730,9 +740,9 @@ function Message() {
     }
   }, [
     selectedIndex,
-    currentConversation,
     currentConversation?.id,
     displayMessages,
+    currentConversation,
   ]);
 
   useEffect(() => {
