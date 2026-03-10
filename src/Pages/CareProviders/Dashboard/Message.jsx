@@ -22,9 +22,14 @@ import {
 import { endActivity, startActivity } from "../../../Redux/StartActivity";
 import { BASE_URL } from "../../../Redux/config";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// Helper functions
+const resolveImage = (url) => {
+  if (!url)
+    return "https://ui-avatars.com/api/?name=User&background=E5E7EB&color=374151&size=64";
+  if (url.startsWith("http") || url.startsWith("https")) return url;
+  if (url.startsWith("/")) return `${BASE_URL}${url}`;
+  return url;
+};
 
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
@@ -33,14 +38,6 @@ const formatTime = (timestamp) => {
     minute: "2-digit",
     hour12: true,
   });
-};
-
-const resolveImage = (url) => {
-  if (!url)
-    return "https://ui-avatars.com/api/?name=User&background=E5E7EB&color=374151&size=64";
-  if (url.startsWith("http") || url.startsWith("https")) return url;
-  if (url.startsWith("/")) return `${BASE_URL}${url}`;
-  return url;
 };
 
 const formatDate = (timestamp) => {
@@ -52,19 +49,12 @@ const formatDate = (timestamp) => {
   });
 };
 
-/**
- * Returns true when an error string is a raw HTML page (e.g. Django 500).
- * These occur when the backend saves the message but crashes during serialisation.
- */
 const isServerHtmlError = (err) =>
   typeof err === "string" &&
   (err.includes("<!doctype") ||
     err.includes("<html") ||
     err.includes("Server Error"));
 
-/**
- * Converts a raw error string into a clean, user-facing message.
- */
 const cleanErrorMessage = (err) => {
   if (!err) return null;
   if (isServerHtmlError(err))
@@ -89,7 +79,7 @@ const getCurrentUserId = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mobile Conversations List
+// Mobile Conversations List Component
 // ─────────────────────────────────────────────────────────────────────────────
 const MobileConversationsList = ({
   conversations,
@@ -116,7 +106,8 @@ const MobileConversationsList = ({
   );
 
   return (
-    <div className="w-full bg-white flex flex-col h-full">
+    // FIX: Added pt-16 to push content below the Sidebar mobile top bar
+    <div className="w-full bg-white flex flex-col h-full pt-16">
       <div className="px-4 py-4 border-b border-gray-100">
         <div className="flex items-center mb-4">
           <button
@@ -170,7 +161,9 @@ const MobileConversationsList = ({
             return (
               <button
                 key={conversation.id}
-                className="w-full flex items-center gap-3 px-4 py-4 transition text-left border-b border-gray-50 hover:bg-gray-50"
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left mb-1 hover:bg-gray-100 focus:outline-none ${
+                  selectedIndex === originalIndex ? "bg-gray-100" : ""
+                }`}
                 onClick={() => {
                   handleConversationSelect(originalIndex);
                   setShowChatOnMobile(true);
@@ -181,28 +174,26 @@ const MobileConversationsList = ({
                     conversation.other_participant?.profile_image_url,
                   )}
                   alt="avatar"
-                  className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                  className="w-10 h-10 rounded-full object-cover"
                 />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1 mb-1">
-                    <span className="font-medium text-gray-900 text-sm truncate">
-                      {conversation.other_participant?.full_name ||
-                        conversation.other_participant?.email ||
-                        "Unknown User"}
-                    </span>
+                <div className="flex-1">
+                  <div className="font-medium text-gray-800 text-base">
+                    {conversation.other_participant?.full_name ||
+                      conversation.other_participant?.email ||
+                      "Unknown User"}
                   </div>
-                  <p className="text-xs text-gray-500 truncate">
+                  <div className="text-xs text-gray-500 mt-1">
                     {conversation.last_message?.content || "No messages yet"}
-                  </p>
+                  </div>
                 </div>
-                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                <div className="flex flex-col items-end">
                   <span className="text-xs text-gray-400">
                     {conversation.last_message?.timestamp
                       ? formatTime(conversation.last_message.timestamp)
                       : ""}
                   </span>
                   {conversation.unread_count > 0 && (
-                    <span className="bg-[#00A8E8] text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                    <span className="bg-[#0d99c9] text-white text-xs rounded-full px-2 py-1 mt-1">
                       {conversation.unread_count}
                     </span>
                   )}
@@ -217,7 +208,7 @@ const MobileConversationsList = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mobile Chat View
+// Mobile Chat View Component
 // ─────────────────────────────────────────────────────────────────────────────
 const MobileChatView = ({
   currentConversation,
@@ -235,9 +226,17 @@ const MobileChatView = ({
   sendingMessage,
   handleSendMessage,
   inputRef,
+  menuOpen,
+  setMenuOpen,
+  dispatch,
+  bookingId,
+  setShowPayment,
+  showMenu,
 }) => {
   return (
-    <div className="flex flex-col bg-white h-full overflow-hidden">
+    // FIX: Added pt-16 so the chat header is not hidden behind the Sidebar mobile top bar
+    <div className="flex flex-col bg-white h-full overflow-hidden pt-16">
+      {/* FIX: Chat header now visible with Call + Video + three-dot icons */}
       <div className="flex items-center px-4 py-3 border-b border-gray-100 bg-white flex-shrink-0">
         <button
           className="mr-3 text-gray-600 hover:text-gray-800 text-xl"
@@ -261,8 +260,9 @@ const MobileChatView = ({
                   "Unknown User"}
               </span>
             </div>
+            {/* FIX: Call and Video icons added, followed by three-dot menu */}
             <div className="flex gap-3 items-center">
-              <button className="text-[#00A8E8] p-1" aria-label="Call">
+              <button className="text-[#0d99c9] p-1" aria-label="Call">
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"
@@ -271,7 +271,7 @@ const MobileChatView = ({
                   <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                 </svg>
               </button>
-              <button className="text-[#00A8E8] p-1" aria-label="Video call">
+              <button className="text-[#0d99c9] p-1" aria-label="Video call">
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"
@@ -280,6 +280,60 @@ const MobileChatView = ({
                   <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                 </svg>
               </button>
+              {/* Three-dot menu for mobile */}
+              {showMenu && currentConversation?.booking && (
+                <div className="relative">
+                  <button
+                    className="text-gray-400 hover:text-gray-600 p-1"
+                    onClick={() => setMenuOpen((v) => !v)}
+                    aria-label="More options"
+                    aria-expanded={menuOpen}
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle cx="12" cy="6" r="2" />
+                      <circle cx="12" cy="12" r="2" />
+                      <circle cx="12" cy="18" r="2" />
+                    </svg>
+                  </button>
+                  {menuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <button
+                        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm border-b border-gray-100"
+                        onClick={() => {
+                          try {
+                            if (bookingId)
+                              dispatch(startActivity(String(bookingId)));
+                          } catch (e) {
+                            console.error("Failed to start activity:", e);
+                          }
+                          setMenuOpen(false);
+                        }}
+                      >
+                        Start Activity
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
+                        onClick={async () => {
+                          setMenuOpen(false);
+                          try {
+                            await dispatch(endActivity(bookingId));
+                            setShowPayment(true);
+                          } catch {
+                            alert("Failed to end activity");
+                          }
+                        }}
+                      >
+                        End Activity
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}
@@ -308,63 +362,53 @@ const MobileChatView = ({
                 {displayMessages[0]?.date || ""}
               </span>
             </div>
-            {displayMessages.map((msg, i) => {
-              const showDateSeparator =
-                i > 0 &&
-                displayMessages[i].date !== displayMessages[i - 1].date;
-              return (
-                <div key={i}>
-                  {showDateSeparator && (
-                    <div className="flex justify-center my-6">
-                      <span className="text-xs text-gray-500 px-3 py-1">
-                        {msg.date}
+            {displayMessages.map((msg, i) => (
+              <div key={i} className="mb-4">
+                {msg.type === "received" && (
+                  <div className="flex flex-col items-start">
+                    <span className="text-xs text-gray-500 font-semibold mb-1">
+                      {msg.senderName ||
+                        currentConversation.other_participant?.full_name ||
+                        "Other User"}
+                    </span>
+                    {/* FIX: Use inline-block so bubble only expands to fit text content */}
+                    <div className="max-w-[75%] bg-gray-100 rounded-lg px-4 py-2.5 text-gray-800 text-sm">
+                      {msg.text}
+                    </div>
+                    <span className="text-xs text-gray-400 mt-1">
+                      {msg.time}
+                    </span>
+                  </div>
+                )}
+                {msg.type === "sent" && (
+                  <div className="flex flex-col items-end ml-auto">
+                    <span className="text-xs text-gray-500 font-semibold mb-1">
+                      You
+                    </span>
+                    {/* FIX: inline-block + max-w so bubble hugs content, no wide empty space */}
+                    <div className="max-w-[75%] bg-[#0d99c9] rounded-lg px-4 py-2.5 text-white text-sm inline-block">
+                      {msg.text}
+                    </div>
+                    <span className="text-xs text-gray-400 mt-1">
+                      {msg.time}
+                    </span>
+                  </div>
+                )}
+                {msg.type === "info" && (
+                  <div className="flex justify-end">
+                    <div className="bg-[#f5f5f5] rounded-2xl px-6 py-4 min-w-[220px] max-w-[320px] flex flex-col items-start shadow-sm">
+                      <span className="text-[#0d99c9] text-md font-medium mb-2">
+                        {msg.text}
+                      </span>
+                      <span className="text-[#0d99c9] text-sm font-normal ml-auto self-end">
+                        {msg.time}
                       </span>
                     </div>
-                  )}
-                  {msg.type === "received" && (
-                    <div className="mb-4 flex justify-start">
-                      <div className="max-w-[75%]">
-                        <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3">
-                          <p className="text-gray-900 text-sm">{msg.text}</p>
-                        </div>
-                        <span className="text-xs text-gray-400 mt-1 block pl-1">
-                          {msg.time}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {msg.type === "sent" && (
-                    <div className="mb-4 flex justify-end">
-                      <div className="max-w-[75%]">
-                        <div className="bg-[#00A8E8] rounded-2xl rounded-tr-sm px-4 py-3">
-                          <p className="text-white text-sm">{msg.text}</p>
-                        </div>
-                        <span className="text-xs text-gray-400 mt-1 block text-right pr-1">
-                          {msg.time}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {msg.type === "info" && (
-                    <div className="mb-4 flex justify-end">
-                      <div className="max-w-[75%]">
-                        <div className="bg-blue-50 rounded-2xl rounded-tr-sm px-4 py-3">
-                          <p className="text-[#00A8E8] text-sm font-medium">
-                            {msg.text}
-                          </p>
-                        </div>
-                        <span className="text-xs text-gray-400 mt-1 block text-right pr-1">
-                          {msg.time}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                  </div>
+                )}
+              </div>
+            ))}
             <div ref={chatEndRef} />
-            {/* ✅ Clean error display — never shows raw HTML */}
-            {/* After — only shows non-500 errors permanently; 500s vanish after refetch clears them */}
             {sendMessageError &&
               !sendMessageError.includes("may have been sent") && (
                 <div className="flex justify-center mt-2">
@@ -377,7 +421,7 @@ const MobileChatView = ({
         )}
       </div>
 
-      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-100 bg-white flex items-end gap-2 sm:gap-3 flex-shrink-0 safe-area-inset-bottom">
+      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-100 bg-white flex items-end gap-2 sm:gap-3 flex-shrink-0 z-60 safe-area-inset-bottom">
         <input
           ref={inputRef}
           type="text"
@@ -386,12 +430,12 @@ const MobileChatView = ({
           onKeyPress={handleKeyPress}
           placeholder="Write your message"
           disabled={!currentConversation || sendingMessage}
-          className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-full bg-gray-50 text-gray-700 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#00A8E8] focus:ring-opacity-50 disabled:opacity-50 transition"
+          className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-full bg-gray-50 text-gray-700 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-opacity-50 disabled:opacity-50 transition"
         />
         <button
           onClick={handleSendMessage}
           disabled={!currentConversation || sendingMessage || !input.trim()}
-          className="bg-[#00A8E8] rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center disabled:opacity-50 hover:bg-[#0091cc] transition-colors flex-shrink-0"
+          className="bg-[#0d99c9] rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center disabled:opacity-50 hover:bg-[#0c87b0] transition-colors flex-shrink-0 touch-target"
           aria-label="Send message"
         >
           {sendingMessage ? (
@@ -452,7 +496,9 @@ function Message() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const handleConversationSelect = (index) => setSelectedIndex(index);
+  const handleConversationSelect = (index) => {
+    setSelectedIndex(index);
+  };
 
   const currentConversation = conversations[selectedIndex] || null;
   const currentMessages = currentConversation
@@ -471,10 +517,12 @@ function Message() {
   );
 
   const RATE_PER_HOUR = currentConversation?.hourly_rate || 1;
+  const [perHourRate, setPerHourRate] = useState(RATE_PER_HOUR);
   const SERVICE_FEE = 7;
-  const calculatedTotal = RATE_PER_HOUR * totalHours + SERVICE_FEE;
+  const calculatedTotal = perHourRate * totalHours + SERVICE_FEE;
+
   const paymentDetails = {
-    rate: RATE_PER_HOUR,
+    rate: perHourRate,
     hours: totalHours,
     fee: SERVICE_FEE,
     total: calculatedTotal,
@@ -486,12 +534,14 @@ function Message() {
     currentConversation?.id ||
     12;
 
-  // ── Load conversations on mount ──────────────────────────────────────────
+  useEffect(() => {
+    setPerHourRate(currentConversation?.hourly_rate ?? RATE_PER_HOUR);
+  }, [currentConversation, RATE_PER_HOUR]);
+
   useEffect(() => {
     dispatch(fetchConversations());
   }, [dispatch]);
 
-  // ── Stripe return: find conversation by bookingId ────────────────────────
   const { lastBookingId } = useSelector((state) => state.startActivity);
   useEffect(() => {
     if (!lastBookingId) return;
@@ -508,7 +558,10 @@ function Message() {
       dispatch(setActiveConversation(String(conv.id)));
       dispatch(fetchMessages(String(conv.id)));
       dispatch(connectWebSocket(String(conv.id)));
-      setTimeout(() => inputRef.current?.focus(), 100);
+      setTimeout(() => {
+        if (inputRef.current && typeof inputRef.current.focus === "function")
+          inputRef.current.focus();
+      }, 100);
     } else if (conversations.length > 0) {
       (async () => {
         const convRes = await dispatch(fetchConversations());
@@ -525,13 +578,18 @@ function Message() {
           dispatch(setActiveConversation(String(conv.id)));
           dispatch(fetchMessages(String(conv.id)));
           dispatch(connectWebSocket(String(conv.id)));
-          setTimeout(() => inputRef.current?.focus(), 100);
+          setTimeout(() => {
+            if (
+              inputRef.current &&
+              typeof inputRef.current.focus === "function"
+            )
+              inputRef.current.focus();
+          }, 100);
         }
       })();
     }
   }, [lastBookingId, conversations, dispatch]);
 
-  // ── Cleanup on unmount ───────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       dispatch(disconnectWebSocket());
@@ -539,7 +597,6 @@ function Message() {
     };
   }, [dispatch]);
 
-  // ── Stripe checkout redirect ─────────────────────────────────────────────
   useEffect(() => {
     if (checkoutUrl) {
       try {
@@ -547,12 +604,16 @@ function Message() {
       } catch {
         window.location.href = checkoutUrl;
       }
-      setShowPayment(false);
+      try {
+        setShowPayment(false);
+      } catch {
+        // ignore
+      }
     }
   }, [checkoutUrl]);
 
-  // ── Send "Activity has started" system message ───────────────────────────
   const activityStartedSentForRef = useRef(null);
+
   useEffect(() => {
     if (!activityStarted || !currentConversation) return;
     const convId = String(currentConversation.id);
@@ -568,7 +629,6 @@ function Message() {
     dispatch(clearActivityStarted());
   }, [activityStarted, currentConversation, dispatch]);
 
-  // ── Send "Activity has ended" system message ─────────────────────────────
   const { activityEnded } = useSelector((state) => state.startActivity);
   useEffect(() => {
     if (activityEnded && currentConversation) {
@@ -578,11 +638,20 @@ function Message() {
           content: "Activity has ended",
         }),
       );
-      setTimeout(() => dispatch(clearActivityEnded()), 1000);
+      setTimeout(() => {
+        dispatch(clearActivityEnded());
+      }, 1000);
     }
   }, [activityEnded, currentConversation, dispatch]);
 
-  // ── Load messages + connect WS when conversation changes ─────────────────
+  useEffect(() => {
+    if (wsConnected || !currentConversation) return;
+    const pollInterval = setInterval(() => {
+      dispatch(fetchMessages(currentConversation.id));
+    }, 4000);
+    return () => clearInterval(pollInterval);
+  }, [wsConnected, currentConversation, dispatch]);
+
   useEffect(() => {
     if (currentConversation) {
       dispatch(fetchMessages(currentConversation.id));
@@ -592,23 +661,16 @@ function Message() {
         dispatch(markAsRead(currentConversation.id));
       }
     }
-    return () => dispatch(disconnectWebSocket());
+    return () => {
+      dispatch(disconnectWebSocket());
+    };
   }, [dispatch, currentConversation]);
 
-  // ✅ Polling fallback: when WebSocket is down, poll every 4s for near-real-time delivery
-  useEffect(() => {
-    if (wsConnected || !currentConversation) return;
-    const poll = setInterval(() => {
-      dispatch(fetchMessages(currentConversation.id));
-    }, 4000);
-    return () => clearInterval(poll);
-  }, [wsConnected, currentConversation, dispatch]);
-
-  // ── Message display processing ───────────────────────────────────────────
   const convertMessageToDisplay = (message) => {
     const currentUserId = getCurrentUserId();
-    const isSentByCurrentUser =
-      String(message.sender) === String(currentUserId);
+    const messageSenderId = String(message.sender);
+    const currentUserIdStr = String(currentUserId);
+    const isSentByCurrentUser = messageSenderId === currentUserIdStr;
     return {
       id: message.id || `${message.timestamp}_${message.sender}`,
       type: isSentByCurrentUser ? "sent" : "received",
@@ -619,9 +681,9 @@ function Message() {
       senderName: message.sender_name,
     };
   };
+
   const displayMessages = currentMessages.map(convertMessageToDisplay);
 
-  // ── Scroll refs ──────────────────────────────────────────────────────────
   const chatBodyRef = useRef(null);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -629,7 +691,7 @@ function Message() {
 
   const scrollToBottom = (opts = { behavior: "smooth" }) => {
     const end = chatEndRef.current;
-    if (end?.scrollIntoView) {
+    if (end && typeof end.scrollIntoView === "function") {
       try {
         end.scrollIntoView({ behavior: opts.behavior, block: "end" });
       } catch {
@@ -638,19 +700,19 @@ function Message() {
       return;
     }
     const el = chatBodyRef.current;
-    if (el)
+    if (el) {
       setTimeout(() => {
         el.scrollTop = el.scrollHeight;
       }, 50);
+    }
   };
 
-  // Scroll to bottom when conversation switches
   useEffect(() => {
     if (!currentConversation) return;
     prevLastMessageIdRef.current =
       displayMessages[displayMessages.length - 1]?.id ?? null;
     const end = chatEndRef.current;
-    if (end?.scrollIntoView) {
+    if (end && typeof end.scrollIntoView === "function") {
       requestAnimationFrame(() => {
         try {
           end.scrollIntoView({ behavior: "auto", block: "end" });
@@ -661,10 +723,11 @@ function Message() {
       return;
     }
     const el = chatBodyRef.current;
-    if (el)
+    if (el) {
       setTimeout(() => {
         el.scrollTop = el.scrollHeight;
       }, 50);
+    }
   }, [
     selectedIndex,
     currentConversation,
@@ -672,13 +735,14 @@ function Message() {
     displayMessages,
   ]);
 
-  // Scroll when new messages arrive
   useEffect(() => {
     const lastMessageId =
       displayMessages[displayMessages.length - 1]?.id ?? null;
-    if (lastMessageId && lastMessageId !== prevLastMessageIdRef.current) {
+    const isNewLastMessage =
+      lastMessageId && lastMessageId !== prevLastMessageIdRef.current;
+    if (isNewLastMessage) {
       const end = chatEndRef.current;
-      if (end?.scrollIntoView) {
+      if (end && typeof end.scrollIntoView === "function") {
         requestAnimationFrame(() => {
           try {
             end.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -688,23 +752,21 @@ function Message() {
         });
       } else {
         const el = chatBodyRef.current;
-        if (el)
+        if (el) {
           setTimeout(() => {
             el.scrollTop = el.scrollHeight;
           }, 50);
+        }
       }
     }
     prevLastMessageIdRef.current = lastMessageId;
   }, [displayMessages]);
 
-  // ── Send message ─────────────────────────────────────────────────────────
   const handleSendMessage = async () => {
     if (!input.trim() || !currentConversation || sendingMessage) return;
-
     const messageContent = input.trim();
     setInput("");
     scrollToBottom({ behavior: "auto" });
-
     try {
       const resultAction = await dispatch(
         sendMessage({
@@ -713,14 +775,10 @@ function Message() {
         }),
       );
       requestAnimationFrame(() => scrollToBottom({ behavior: "smooth" }));
-
-      // ✅ If backend returned 500, message was still saved.
-      // Refetch to confirm delivery, then silently clear the error.
       if (sendMessage.rejected.match(resultAction)) {
         dispatch(fetchMessages(currentConversation.id));
         setTimeout(() => dispatch(clearSendMessageError()), 2000);
       }
-
       return resultAction;
     } catch {
       requestAnimationFrame(() => scrollToBottom({ behavior: "smooth" }));
@@ -734,7 +792,6 @@ function Message() {
     }
   };
 
-  // ── Payment ──────────────────────────────────────────────────────────────
   const handleProceedToPayment = async () => {
     if (!currentConversation || totalHours < 1) {
       alert("Please enter valid hours");
@@ -758,42 +815,284 @@ function Message() {
     }
   };
 
-  // ── Close menu when clicking outside ────────────────────────────────────
-  const menuRef = useRef(null);
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuOpen]);
-
-  // ────────────────────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen bg-white overflow-hidden font-sfpro">
       <Sidebar active="Message" />
       <div className="flex-1 font-sfpro md:ml-64 flex h-screen min-h-0">
-        {/* ══════════════ MOBILE VIEW ══════════════ */}
-        {isMobile ? (
-          <>
-            {!showChatOnMobile ? (
-              <MobileConversationsList
-                conversations={conversations}
-                search={search}
-                setSearch={setSearch}
-                selectedIndex={selectedIndex}
-                handleConversationSelect={handleConversationSelect}
-                setShowChatOnMobile={setShowChatOnMobile}
-                conversationsLoading={conversationsLoading}
-                conversationsError={conversationsError}
-                navigate={navigate}
-                resolveImage={resolveImage}
-                formatTime={formatTime}
+        {/* ══════════════ DESKTOP VIEW ══════════════ */}
+        {!isMobile && (
+          <div className="w-[340px] border-r border-gray-100 bg-[#f3fafc] flex flex-col h-screen">
+            <div className="px-6 py-6 border-b border-gray-100">
+              <div className="flex text-left">
+                <button
+                  className="-mt-4 mr-4 text-gray-500 hover:text-[#0d99c9] text-xl"
+                  onClick={() => navigate(-1)}
+                >
+                  &#8592;
+                </button>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Messages
+                </h2>
+              </div>
+              <input
+                type="text"
+                placeholder="Search messages"
+                className="w-full px-4 py-2 rounded-md border border-gray-200 bg-white text-gray-700 text-sm focus:outline-none"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
-            ) : (
+            </div>
+            <div className="flex-1 overflow-y-auto px-2 pt-2 pb-2">
+              {conversationsLoading ? (
+                <div className="text-center text-gray-400 py-8">
+                  Loading conversations...
+                </div>
+              ) : conversationsError ? (
+                <div className="text-center text-red-400 py-8">
+                  Error loading conversations
+                </div>
+              ) : filteredConversations.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">
+                  No conversations found
+                </div>
+              ) : (
+                filteredConversations.map((conversation) => {
+                  const originalIndex = conversations.indexOf(conversation);
+                  return (
+                    <button
+                      key={conversation.id}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left mb-1 hover:bg-[#c5c7ca] focus:outline-none ${
+                        selectedIndex === originalIndex ? "bg-[#c5c7ca]" : ""
+                      }`}
+                      onClick={() => handleConversationSelect(originalIndex)}
+                    >
+                      <img
+                        src={resolveImage(
+                          conversation.other_participant?.profile_image_url,
+                        )}
+                        alt="avatar"
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-800 text-base">
+                          {conversation.other_participant?.full_name ||
+                            conversation.other_participant?.email ||
+                            "Unknown User"}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {conversation.last_message?.content ||
+                            "No messages yet"}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs text-gray-400">
+                          {conversation.last_message?.timestamp
+                            ? formatTime(conversation.last_message.timestamp)
+                            : ""}
+                        </span>
+                        {conversation.unread_count > 0 && (
+                          <span className="bg-[#0d99c9] text-white text-xs rounded-full px-2 py-1 mt-1">
+                            {conversation.unread_count}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Desktop: Chat Area */}
+        {!isMobile && (
+          <div className="flex-1 flex flex-col bg-white h-screen overflow-hidden">
+            <div className="flex items-center px-6 sm:px-8 py-4 sm:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0">
+              {currentConversation ? (
+                <>
+                  <div className="flex items-center flex-1 cursor-pointer hover:opacity-80 transition">
+                    <img
+                      src={resolveImage(
+                        currentConversation.other_participant
+                          ?.profile_image_url,
+                      )}
+                      alt="avatar"
+                      className="w-10 h-10 rounded-full mr-3 object-cover"
+                    />
+                    <div className="flex-1 flex items-center">
+                      <div className="font-semibold text-gray-800 text-lg">
+                        {currentConversation.other_participant?.full_name ||
+                          currentConversation.other_participant?.email ||
+                          "Unknown User"}
+                      </div>
+                      {wsConnected && (
+                        <span className="ml-2 text-xs text-green-500"></span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1">
+                  <div className="font-semibold text-gray-800 text-lg">
+                    Select a conversation
+                  </div>
+                </div>
+              )}
+              <div className="flex gap-4 items-center">
+                <button
+                  className="text-[#0d99c9] hover:text-[#007bb0]"
+                  aria-label="Call"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                  </svg>
+                </button>
+                <button
+                  className="text-[#0d99c9] hover:text-[#007bb0]"
+                  aria-label="Video call"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Chat Body */}
+            <div
+              ref={chatBodyRef}
+              className="flex-1 px-8 py-6 overflow-y-auto bg-white"
+            >
+              {!currentConversation ? (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  Select a conversation to start messaging
+                </div>
+              ) : messagesLoading[currentConversation.id] ? (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  Loading messages...
+                </div>
+              ) : messagesError[currentConversation.id] ? (
+                <div className="flex items-center justify-center h-full text-red-400">
+                  Error loading messages
+                </div>
+              ) : displayMessages.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  No messages yet. Start the conversation!
+                </div>
+              ) : (
+                <>
+                  {displayMessages.length > 0 && (
+                    <div className="flex justify-center mb-6">
+                      <span className="text-xs text-gray-400 bg-[#f5f5f5] px-4 py-1 rounded-full">
+                        {displayMessages[0]?.date || ""}
+                      </span>
+                    </div>
+                  )}
+                  {displayMessages.map((msg, i) => (
+                    <div key={i} className="mb-4">
+                      {msg.type === "received" && (
+                        <div className="flex flex-col items-start">
+                          <span className="text-xs text-gray-500 font-semibold mb-1">
+                            {msg.senderName ||
+                              currentConversation.other_participant
+                                ?.full_name ||
+                              "Other User"}
+                          </span>
+                          {/* FIX: max-w-[60%] but inline so it only grows to fit text */}
+                          <div className="max-w-[60%] bg-gray-100 rounded-lg px-4 py-2.5 text-gray-800 text-sm">
+                            {msg.text}
+                          </div>
+                          <span className="text-xs text-gray-400 mt-1">
+                            {msg.time}
+                          </span>
+                        </div>
+                      )}
+                      {msg.type === "sent" && (
+                        <div className="flex flex-col items-end ml-auto">
+                          <span className="text-xs text-gray-500 font-semibold mb-1">
+                            You
+                          </span>
+                          {/* FIX: max-w-[60%] + w-fit removes the wide empty background */}
+                          <div className="max-w-[60%] w-fit bg-[#0d99c9] rounded-lg px-4 py-2.5 text-white text-sm">
+                            {msg.text}
+                          </div>
+                          <span className="text-xs text-gray-400 mt-1">
+                            {msg.time}
+                          </span>
+                        </div>
+                      )}
+                      {msg.type === "info" && (
+                        <div className="flex justify-end">
+                          <div className="bg-[#f5f5f5] rounded-2xl px-6 py-4 min-w-[220px] max-w-[320px] flex flex-col items-start shadow-sm">
+                            <span className="text-[#0d99c9] text-md font-medium mb-2">
+                              {msg.text}
+                            </span>
+                            <span className="text-[#0d99c9] text-sm font-normal ml-auto self-end">
+                              {msg.time}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div ref={chatEndRef} />
+                  {sendMessageError && (
+                    <div className="flex justify-center">
+                      <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm">
+                        {cleanErrorMessage(sendMessageError)}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Chat Input */}
+            <div className="px-8 py-6 border-t border-gray-100 bg-white flex items-center flex-shrink-0">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={
+                  currentConversation
+                    ? "Start message"
+                    : "Select a conversation first"
+                }
+                disabled={!currentConversation || sendingMessage}
+                className="flex-1 px-4 py-3 rounded-md border border-gray-200 bg-[#f7fafd] text-gray-700 text-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={
+                  !currentConversation || sendingMessage || !input.trim()
+                }
+                className="ml-4 bg-[#0d99c9] hover:bg-[#007bb0] rounded-full w-10 h-10 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sendingMessage ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <svg width="22" height="22" fill="white" viewBox="0 0 24 24">
+                    <path d="M2 21l21-9-21-9v7l15 2-15 2z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════ MOBILE VIEW ══════════════ */}
+        {isMobile && (
+          <div className="flex-1 w-full min-w-0">
+            {showChatOnMobile ? (
               <MobileChatView
                 currentConversation={currentConversation}
                 setShowChatOnMobile={setShowChatOnMobile}
@@ -810,448 +1109,157 @@ function Message() {
                 sendingMessage={sendingMessage}
                 handleSendMessage={handleSendMessage}
                 inputRef={inputRef}
+                menuOpen={menuOpen}
+                setMenuOpen={setMenuOpen}
+                dispatch={dispatch}
+                bookingId={bookingId}
+                setShowPayment={setShowPayment}
+                showMenu={false}
+              />
+            ) : (
+              <MobileConversationsList
+                conversations={conversations}
+                search={search}
+                setSearch={setSearch}
+                selectedIndex={selectedIndex}
+                handleConversationSelect={handleConversationSelect}
+                setShowChatOnMobile={setShowChatOnMobile}
+                conversationsLoading={conversationsLoading}
+                conversationsError={conversationsError}
+                navigate={navigate}
+                resolveImage={resolveImage}
+                formatTime={formatTime}
               />
             )}
-          </>
-        ) : (
-          /* ══════════════ DESKTOP VIEW ══════════════ */
-          <>
-            {/* Left: Conversations list */}
-            <div className="w-[340px] border-r border-gray-100 bg-[#f3fafc] flex flex-col h-screen">
-              <div className="px-6 py-6 border-b border-gray-100">
-                <div className="flex text-left">
-                  <button
-                    className="-mt-4 mr-4 text-gray-500 hover:text-[#0d99c9] text-xl"
-                    onClick={() => navigate(-1)}
-                  >
-                    &#8592;
-                  </button>
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                    Messages
-                  </h2>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search messages"
-                  className="w-full px-4 py-2 rounded-md border border-gray-200 bg-white text-gray-700 text-sm focus:outline-none"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <div className="flex-1 overflow-y-auto px-2 pt-2 pb-2">
-                {conversationsLoading ? (
-                  <div className="text-center text-gray-400 py-8">
-                    Loading conversations...
-                  </div>
-                ) : conversationsError ? (
-                  <div className="text-center text-red-400 py-8">
-                    Error loading conversations
-                  </div>
-                ) : filteredConversations.length === 0 ? (
-                  <div className="text-center text-gray-400 py-8">
-                    No conversations found
-                  </div>
-                ) : (
-                  filteredConversations.map((conversation) => {
-                    const originalIndex = conversations.indexOf(conversation);
-                    return (
-                      <button
-                        key={conversation.id}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left mb-1 hover:bg-[#c5c7ca] focus:outline-none ${
-                          selectedIndex === originalIndex ? "bg-[#c5c7ca]" : ""
-                        }`}
-                        onClick={() => handleConversationSelect(originalIndex)}
-                      >
-                        <img
-                          src={resolveImage(
-                            conversation.other_participant?.profile_image_url,
-                          )}
-                          alt="avatar"
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-800 text-base">
-                            {conversation.other_participant?.full_name ||
-                              conversation.other_participant?.email ||
-                              "Unknown User"}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {conversation.last_message?.content ||
-                              "No messages yet"}
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-xs text-gray-400">
-                            {conversation.last_message?.timestamp
-                              ? formatTime(conversation.last_message.timestamp)
-                              : ""}
-                          </span>
-                          {conversation.unread_count > 0 && (
-                            <span className="bg-[#0d99c9] text-white text-xs rounded-full px-2 py-1 mt-1">
-                              {conversation.unread_count}
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </div>
+          </div>
+        )}
 
-            {/* Right: Chat area */}
-            <div className="flex-1 flex flex-col bg-white h-screen overflow-hidden">
-              {/* Chat Header */}
-              <div className="flex items-center px-6 sm:px-8 py-4 sm:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0">
-                {currentConversation ? (
-                  <>
-                    <img
-                      src={resolveImage(
-                        currentConversation.other_participant
-                          ?.profile_image_url,
-                      )}
-                      alt="avatar"
-                      className="w-10 h-10 rounded-full mr-3 object-cover"
-                    />
-                    <div className="flex-1 flex items-center">
-                      <div className="font-semibold text-gray-800 text-lg">
-                        {currentConversation.other_participant?.full_name ||
-                          currentConversation.other_participant?.email ||
-                          "Unknown User"}
-                      </div>
-                      {wsConnected && (
-                        <span
-                          className="ml-2 w-2 h-2 rounded-full bg-green-400 inline-block"
-                          title="Online"
-                        />
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex-1">
-                    <div className="font-semibold text-gray-800 text-lg">
-                      Select a conversation
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-4 items-center">
-                  <button
-                    className="text-[#0d99c9] hover:text-[#007bb0] text-xl"
-                    aria-label="Call"
-                  >
-                    <i className="fas fa-phone"></i>
-                  </button>
-                  <button
-                    className="text-[#0d99c9] hover:text-[#007bb0] text-xl"
-                    aria-label="Video call"
-                  >
-                    <i className="fas fa-video"></i>
-                  </button>
-                </div>
-
-                {/* ✅ FIX: Three-dot menu button was missing entirely — added here */}
-                {currentConversation?.booking ? (
-                  <div className="ml-4 relative" ref={menuRef}>
-                    <button
-                      className="text-gray-400 hover:text-gray-600 focus:outline-none p-1 rounded"
-                      onClick={() => setMenuOpen((v) => !v)}
-                      aria-label="Activity options"
-                      aria-expanded={menuOpen}
-                    >
-                      <svg
-                        width="22"
-                        height="22"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle cx="12" cy="6" r="2" />
-                        <circle cx="12" cy="12" r="2" />
-                        <circle cx="12" cy="18" r="2" />
-                      </svg>
-                    </button>
-                    {menuOpen && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                        {/* ✅ FIX: Start Activity — only starts activity, NO payment modal */}
-                        <button
-                          className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm border-b border-gray-100"
-                          onClick={() => {
-                            try {
-                              if (bookingId)
-                                dispatch(startActivity(String(bookingId)));
-                            } catch (e) {
-                              console.error("Failed to start activity:", e);
-                            }
-                            setMenuOpen(false);
-                            // ✅ REMOVED: setShowPayment(true) — Start Activity must NOT open payment
-                          }}
-                        >
-                          Start Activity
-                        </button>
-                        {/* ✅ FIX: End Activity — correctly opens payment modal */}
-                        <button
-                          className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
-                          onClick={async () => {
-                            setMenuOpen(false);
-                            try {
-                              await dispatch(endActivity(bookingId));
-                              setShowPayment(true);
-                            } catch {
-                              alert("Failed to end activity");
-                            }
-                          }}
-                        >
-                          End Activity
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Payment Modal — only shown via End Activity */}
-              {showPayment && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-                  <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-full p-8 relative">
-                    <button
-                      className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
-                      onClick={() => {
-                        setShowPayment(false);
-                        setPaymentSuccess(false);
-                        setTotalHours(1);
-                      }}
-                    >
-                      &times;
-                    </button>
-                    {!paymentSuccess ? (
-                      <>
-                        <h2 className="text-2xl font-semibold text-gray-800 text-center mb-2">
-                          Proceed to Payment
-                        </h2>
-                        <p className="text-center text-gray-500 mb-6">
-                          Enter total hours and confirm payment
-                        </p>
-                        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                          <div className="flex justify-between items-center mb-3">
-                            <span className="text-gray-500">Rate per hour</span>
-                            <span className="text-gray-800 font-semibold">
-                              ${paymentDetails.rate}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center mb-3">
-                            <span className="text-gray-500">Total hours</span>
-                            <input
-                              className="bg-white border border-gray-300 rounded w-20 px-2 py-1 text-gray-800 font-semibold text-right"
-                              type="number"
-                              min="1"
-                              value={totalHours}
-                              onChange={(e) =>
-                                setTotalHours(
-                                  Math.max(1, parseInt(e.target.value) || 1),
-                                )
-                              }
-                            />
-                          </div>
-                          <div className="flex justify-between items-center mb-3">
-                            <span className="text-gray-500">Service Fee</span>
-                            <span className="text-gray-800 font-semibold">
-                              ${paymentDetails.fee}
-                            </span>
-                          </div>
-                          <div className="border-t border-gray-200 my-3"></div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-700 font-medium">
-                              Total Amount
-                            </span>
-                            <span className="text-[#0d99c9] text-xl font-bold">
-                              ${paymentDetails.total.toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                        {paymentError && (
-                          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
-                            {paymentError}
-                          </div>
-                        )}
-                        <button
-                          className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                          onClick={handleProceedToPayment}
-                          disabled={initiatingPayment || totalHours < 1}
-                        >
-                          {initiatingPayment
-                            ? "Processing..."
-                            : "Proceed to Payment"}
-                        </button>
-                        <button
-                          className="w-full border border-[#0d99c9] text-[#0d99c9] py-3 rounded-md font-semibold bg-white hover:bg-[#f7fafd] transition"
-                          onClick={() => {
-                            setShowPayment(false);
-                            setPaymentSuccess(false);
-                            setTotalHours(1);
-                          }}
-                          disabled={initiatingPayment}
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-64">
-                        <svg
-                          width="48"
-                          height="48"
-                          fill="#0d99c9"
-                          viewBox="0 0 24 24"
-                          className="mb-4"
-                        >
-                          <path d="M20.285 6.709l-11.285 11.285-5.285-5.285 1.415-1.415 3.87 3.87 9.87-9.87z" />
-                        </svg>
-                        <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                          Payment Successful!
-                        </h3>
-                        <p className="text-gray-500 mb-4">
-                          Your payment has been processed.
-                        </p>
-                        <button
-                          className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition"
-                          onClick={() => {
-                            setShowPayment(false);
-                            setPaymentSuccess(false);
-                            setTotalHours(1);
-                          }}
-                        >
-                          Close
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Chat Body */}
-              <div
-                ref={chatBodyRef}
-                className="flex-1 px-8 py-6 overflow-y-auto bg-white"
+        {/* Payment Modal - Positioned outside ternary to display on all screens */}
+        {showPayment && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-[400px] p-6 sm:p-8 relative">
+              <button
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
+                onClick={() => {
+                  setShowPayment(false);
+                  setPaymentSuccess(false);
+                  setTotalHours(1);
+                }}
               >
-                {!currentConversation ? (
-                  <div className="flex items-center justify-center h-full text-gray-400">
-                    Select a conversation to start messaging
-                  </div>
-                ) : messagesLoading[currentConversation.id] ? (
-                  <div className="flex items-center justify-center h-full text-gray-400">
-                    Loading messages...
-                  </div>
-                ) : messagesError[currentConversation.id] ? (
-                  <div className="flex items-center justify-center h-full text-red-400">
-                    Error loading messages
-                  </div>
-                ) : displayMessages.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-gray-400">
-                    No messages yet. Start the conversation!
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex justify-center mb-6">
-                      <span className="text-xs text-gray-400 bg-[#f5f5f5] px-4 py-1 rounded-full">
-                        {displayMessages[0]?.date || ""}
+                &times;
+              </button>
+              {!paymentSuccess ? (
+                <>
+                  <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 text-center mb-2">
+                    Proceed to Payment
+                  </h2>
+                  <p className="text-center text-gray-500 mb-6 text-sm sm:text-base">
+                    Enter total hours and confirm payment
+                  </p>
+                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                    <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
+                      <span className="text-gray-500">Rate per hour</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        min="0"
+                        className="bg-white border border-gray-300 rounded w-20 px-2 py-1 text-gray-800 font-semibold text-right text-sm"
+                        value={perHourRate}
+                        onChange={(e) =>
+                          setPerHourRate(
+                            Math.max(0, parseFloat(e.target.value) || 0),
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
+                      <span className="text-gray-500">Total hours</span>
+                      <input
+                        className="bg-white border border-gray-300 rounded w-20 px-2 py-1 text-gray-800 font-semibold text-right text-sm"
+                        type="number"
+                        min="1"
+                        value={totalHours}
+                        onChange={(e) =>
+                          setTotalHours(
+                            Math.max(1, parseInt(e.target.value) || 1),
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
+                      <span className="text-gray-500">Service Fee</span>
+                      <span className="text-gray-800 font-semibold">
+                        ${paymentDetails.fee}
                       </span>
                     </div>
-                    {displayMessages.map((msg, i) => (
-                      <div key={i} className="mb-4">
-                        {msg.type === "received" && (
-                          <div className="flex flex-col max-w-[60%] items-start">
-                            <span className="text-xs text-gray-500 font-semibold mb-1">
-                              {msg.senderName ||
-                                currentConversation.other_participant
-                                  ?.full_name ||
-                                "Other User"}
-                            </span>
-                            <div className="bg-gray-100 rounded-lg px-5 py-3 text-gray-800 text-sm">
-                              {msg.text}
-                            </div>
-                            <span className="text-xs text-gray-400 mt-1">
-                              {msg.time}
-                            </span>
-                          </div>
-                        )}
-                        {msg.type === "sent" && (
-                          <div className="flex flex-col max-w-[60%] items-end ml-auto">
-                            <span className="text-xs text-gray-500 font-semibold mb-1">
-                              You
-                            </span>
-                            <div className="bg-[#0d99c9] rounded-lg px-5 py-3 text-white text-sm">
-                              {msg.text}
-                            </div>
-                            <span className="text-xs text-gray-400 mt-1">
-                              {msg.time}
-                            </span>
-                          </div>
-                        )}
-                        {msg.type === "info" && (
-                          <div className="flex justify-end">
-                            <div className="bg-[#f5f5f5] rounded-2xl px-6 py-4 min-w-[220px] max-w-[320px] flex flex-col items-start shadow-sm">
-                              <span className="text-[#0d99c9] text-md font-medium mb-2">
-                                {msg.text}
-                              </span>
-                              <span className="text-[#0d99c9] text-sm font-normal ml-auto self-end">
-                                {msg.time}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    <div ref={chatEndRef} />
-                    {/* ✅ Clean error display — never shows raw HTML */}
-                    {sendMessageError && (
-                      <div className="flex justify-center mt-2">
-                        <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm">
-                          {cleanErrorMessage(sendMessageError)}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Chat Input */}
-              <div className="px-8 py-6 border-t border-gray-100 bg-white flex items-center flex-shrink-0">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder={
-                    currentConversation
-                      ? "Start message"
-                      : "Select a conversation first"
-                  }
-                  disabled={!currentConversation || sendingMessage}
-                  className="flex-1 px-4 py-3 rounded-md border border-gray-200 bg-[#f7fafd] text-gray-700 text-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={
-                    !currentConversation || sendingMessage || !input.trim()
-                  }
-                  className="ml-4 bg-[#0d99c9] hover:bg-[#007bb0] rounded-full w-10 h-10 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {sendingMessage ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <svg
-                      width="22"
-                      height="22"
-                      fill="white"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M2 21l21-9-21-9v7l15 2-15 2z" />
-                    </svg>
+                    <div className="border-t border-gray-200 my-3"></div>
+                    <div className="flex justify-between items-center text-sm sm:text-base">
+                      <span className="text-gray-700 font-medium">
+                        Total Amount
+                      </span>
+                      <span className="text-[#0d99c9] text-lg sm:text-xl font-bold">
+                        ${paymentDetails.total.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                  {paymentError && (
+                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-xs sm:text-sm">
+                      {paymentError}
+                    </div>
                   )}
-                </button>
-              </div>
+                  <button
+                    className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition mb-3 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                    onClick={handleProceedToPayment}
+                    disabled={initiatingPayment || totalHours < 1}
+                  >
+                    {initiatingPayment
+                      ? "Processing..."
+                      : "Proceed to Payment for Activity"}
+                  </button>
+                  <button
+                    className="w-full border border-[#0d99c9] text-[#0d99c9] py-3 rounded-md font-semibold bg-white hover:bg-[#f7fafd] transition disabled:opacity-50 text-sm sm:text-base"
+                    onClick={() => {
+                      setShowPayment(false);
+                      setPaymentSuccess(false);
+                      setTotalHours(1);
+                    }}
+                    disabled={initiatingPayment}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 sm:py-16">
+                  <svg
+                    width="48"
+                    height="48"
+                    fill="#0d99c9"
+                    viewBox="0 0 24 24"
+                    className="mb-4"
+                  >
+                    <path d="M20.285 6.709l-11.285 11.285-5.285-5.285 1.415-1.415 3.87 3.87 9.87-9.87z" />
+                  </svg>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
+                    Payment Successful!
+                  </h3>
+                  <p className="text-gray-500 mb-4 text-center text-sm sm:text-base">
+                    Your payment has been processed.
+                  </p>
+                  <button
+                    className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition text-sm sm:text-base"
+                    onClick={() => {
+                      setShowPayment(false);
+                      setPaymentSuccess(false);
+                      setTotalHours(1);
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
