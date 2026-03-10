@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -37,14 +37,20 @@ function MessageDetails() {
   }, [dispatch]);
 
   // Find the relevant conversation — by URL param, or fall back to most recent
-  const currentConversation = conversationParamId
-    ? conversations.find(
-        (c) =>
-          String(c.id) === String(conversationParamId) ||
-          String(c.booking) === String(conversationParamId) ||
-          String(c.booking_id) === String(conversationParamId),
-      ) || conversations[0]
-    : conversations[0];
+  const currentConversation = useMemo(
+    () =>
+      conversationParamId
+        ? conversations.find(
+            (c) =>
+              String(c.id) === String(conversationParamId) ||
+              String(c.booking) === String(conversationParamId) ||
+              String(c.booking_id) === String(conversationParamId),
+          ) || conversations[0]
+        : conversations[0],
+    // ✅ Only recompute when the conversation list length changes or param ID changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [conversations.length, conversationParamId],
+  );
 
   // Pull real data from conversation where available, fall back to placeholders
   const seekerName =

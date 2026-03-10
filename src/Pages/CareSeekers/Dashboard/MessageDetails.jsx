@@ -133,11 +133,18 @@ function MessageDetails() {
   const activityStartedSentForRef = useRef(null);
 
   // Get current conversation (find by provider_id or other_participant id)
-  const currentConversation = conversations.find(
-    (c) =>
-      c.other_participant?.id === parseInt(providerId) ||
-      c.provider_id === parseInt(providerId) ||
-      c.other_user_id === parseInt(providerId),
+  const currentConversation = useMemo(
+    () =>
+      conversations.find(
+        (c) =>
+          c.other_participant?.id === parseInt(providerId) ||
+          c.provider_id === parseInt(providerId) ||
+          c.other_user_id === parseInt(providerId),
+      ),
+    // ✅ Only recompute when the conversation list length changes or providerId changes
+    // Using conversations.length + the actual IDs prevents new-reference churn
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [conversations.length, providerId],
   );
 
   const currentMessages = useMemo(
@@ -179,34 +186,38 @@ function MessageDetails() {
     };
   }, [dispatch, providerId]);
 
+  // ✅ Use the stable ID as dependency, not the whole object
+  const currentConversationId = currentConversation?.id;
+
   // Load/update messages when conversation changes
   useEffect(() => {
-    if (currentConversation) {
-      dispatch(fetchMessages(currentConversation.id));
-      dispatch(setActiveConversation(currentConversation.id));
-      dispatch(connectWebSocket(currentConversation.id));
-    }
+    if (!currentConversationId) return;
+    dispatch(fetchMessages(currentConversationId));
+    dispatch(setActiveConversation(currentConversationId));
+    dispatch(connectWebSocket(currentConversationId));
 
     return () => {
       dispatch(disconnectWebSocket());
     };
-  }, [dispatch, currentConversation]);
+  }, [dispatch, currentConversationId]);
 
   // ✅ Polling fallback: when WebSocket is unavailable, poll every 4s so messages arrive in near-real-time
+  // ✅ Depend on the ID, not the whole object
   useEffect(() => {
-    if (wsConnected || !currentConversation) return;
+    if (wsConnected || !currentConversationId) return;
 
     const pollInterval = setInterval(() => {
-      dispatch(fetchMessages(currentConversation.id));
+      dispatch(fetchMessages(currentConversationId));
     }, 4000);
 
     return () => clearInterval(pollInterval);
-  }, [wsConnected, currentConversation, dispatch]);
+  }, [wsConnected, currentConversationId, dispatch]);
 
   // Update message count when messages arrive
+  // ✅ Depend on length, not the array reference
   useEffect(() => {
     setMessageCount(currentMessages.length);
-  }, [currentMessages]);
+  }, [currentMessages.length]);
 
   // Redirect to Stripe checkout
   useEffect(() => {
@@ -257,21 +268,22 @@ function MessageDetails() {
   }, [activityEnded, currentConversation, dispatch]);
 
   // Message display processing
-  const displayMessages = currentMessages.map((message) => {
+  const displayMessages = useMemo(() => {
     const currentUserId = getCurrentUserId();
-    const messageSenderId = String(message.sender);
-    const type =
-      String(messageSenderId) === String(currentUserId) ? "sent" : "received";
-
-    return {
-      id: message.id,
-      text: message.content || message.message || "",
-      type,
-      time: formatTime(message.timestamp || message.created_at || new Date()),
-      date: formatDate(message.timestamp || message.created_at || new Date()),
-      senderName: message.sender_name,
-    };
-  });
+    return currentMessages.map((message) => {
+      const type =
+        String(message.sender) === String(currentUserId) ? "sent" : "received";
+      return {
+        id: message.id,
+        text: message.content || message.message || "",
+        type,
+        time: formatTime(message.timestamp || message.created_at || new Date()),
+        date: formatDate(message.timestamp || message.created_at || new Date()),
+        senderName: message.sender_name,
+      };
+    });
+    // ✅ Only recompute when the actual messages change, not on every render
+  }, [currentMessages]);
 
   const handleSendMessage = async () => {
     if (!currentConversation || !input.trim()) return;
