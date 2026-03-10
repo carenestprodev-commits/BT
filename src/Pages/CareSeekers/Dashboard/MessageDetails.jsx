@@ -10,6 +10,7 @@ import {
   setActiveConversation,
   connectWebSocket,
   disconnectWebSocket,
+  clearSendMessageError,
 } from "../../../Redux/Messenger";
 import {
   initiateActivityPayment,
@@ -52,6 +53,27 @@ const formatDate = (timestamp) => {
   });
 };
 
+/**
+ * Detects whether an error string is a raw HTML server error response (e.g. Django 500 page).
+ * These occur when the backend saves the message but the HTTP response serialisation fails.
+ */
+const isServerHtmlError = (err) =>
+  typeof err === "string" &&
+  (err.includes("<!doctype") ||
+    err.includes("<html") ||
+    err.includes("Server Error"));
+
+/**
+ * Returns a human-readable version of an error.
+ * Converts raw 500 HTML pages into a friendly message.
+ */
+const cleanErrorMessage = (err) => {
+  if (!err) return null;
+  if (isServerHtmlError(err))
+    return "Message delivery confirmation failed. The message may have been sent — please wait or refresh.";
+  return err;
+};
+
 const getCurrentUserId = () => {
   try {
     const token = localStorage.getItem("access");
@@ -78,6 +100,8 @@ function MessageDetails() {
     messagesByConversation,
     messagesLoading,
     sendingMessage,
+    wsConnected,
+    sendMessageError,
   } = useSelector((state) => state.messenger);
 
   const { details: providerDetails } = useSelector(
@@ -127,7 +151,7 @@ function MessageDetails() {
   // Service fee is 15% of total
   const perHourRate =
     currentConversation?.hourly_rate || providerDetails?.hourly_rate || 0;
-  const serviceFeePercentage = 15; // 15%
+  const serviceFeePercentage = 15;
   const subtotal = perHourRate * totalHours;
   const serviceFee = (subtotal * serviceFeePercentage) / 100;
   const calculatedTotal = subtotal + serviceFee;
@@ -168,6 +192,17 @@ function MessageDetails() {
     };
   }, [dispatch, currentConversation]);
 
+  // ✅ Polling fallback: when WebSocket is unavailable, poll every 4s so messages arrive in near-real-time
+  useEffect(() => {
+    if (wsConnected || !currentConversation) return;
+
+    const pollInterval = setInterval(() => {
+      dispatch(fetchMessages(currentConversation.id));
+    }, 4000);
+
+    return () => clearInterval(pollInterval);
+  }, [wsConnected, currentConversation, dispatch]);
+
   // Update message count when messages arrive
   useEffect(() => {
     setMessageCount(currentMessages.length);
@@ -185,7 +220,7 @@ function MessageDetails() {
     }
   }, [checkoutUrl]);
 
-  // Handle activity started
+  // Handle activity started — send system message, then clear flags
   useEffect(() => {
     if (!activityStarted || !currentConversation) return;
 
@@ -201,11 +236,12 @@ function MessageDetails() {
       }),
     );
 
+    // ✅ Clear payment + activity state so no payment modal leaks in from this effect
     dispatch(clearPaymentState());
     dispatch(clearActivityStarted());
   }, [activityStarted, currentConversation, dispatch]);
 
-  // Handle activity ended
+  // Handle activity ended — send system message (payment modal is shown by the handler, not here)
   useEffect(() => {
     if (activityEnded && currentConversation) {
       dispatch(
@@ -240,14 +276,12 @@ function MessageDetails() {
   const handleSendMessage = async () => {
     if (!currentConversation || !input.trim()) return;
 
-    // If first message, show activity modal
     if (messageCount === 0) {
       setShowActivityModal(true);
       return;
     }
 
-    // Send the message normally
-    dispatch(
+    const resultAction = await dispatch(
       sendMessage({
         conversationId: currentConversation.id,
         content: input.trim(),
@@ -256,15 +290,27 @@ function MessageDetails() {
 
     setInput("");
     setMessageCount(messageCount + 1);
-
     setTimeout(() => {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
-  };
 
+    // ✅ If backend returned 500, message was still saved.
+    // Refetch to confirm delivery, then silently clear the error.
+    if (sendMessage.rejected.match(resultAction)) {
+      dispatch(fetchMessages(currentConversation.id));
+      setTimeout(() => dispatch(clearSendMessageError()), 2000);
+    }
+  };
+  /**
+   * Called when the Careseeker picks an action from the "Initiate Activity" modal
+   * that appears on their very first message.
+   *
+   * ✅ "start" → send the message + call startActivity API. NO payment modal.
+   * ✅ "end"   → send the message + call endActivity API + show payment modal.
+   */
   const handleFirstMessageAction = (action) => {
     if (action === "start") {
-      // Send message first
+      // Send the queued message
       dispatch(
         sendMessage({
           conversationId: currentConversation.id,
@@ -274,7 +320,7 @@ function MessageDetails() {
       setInput("");
       setMessageCount(messageCount + 1);
 
-      // Then start activity
+      // Start the activity via API
       try {
         if (bookingId) {
           dispatch(startActivity(String(bookingId)));
@@ -283,9 +329,10 @@ function MessageDetails() {
         console.error("Failed to start activity:", e);
       }
 
+      // ✅ Close the modal — do NOT open the payment modal here
       setShowActivityModal(false);
     } else if (action === "end") {
-      // Send message first
+      // Send the queued message
       dispatch(
         sendMessage({
           conversationId: currentConversation.id,
@@ -295,7 +342,7 @@ function MessageDetails() {
       setInput("");
       setMessageCount(messageCount + 1);
 
-      // End the activity
+      // End the activity via API
       try {
         if (bookingId) {
           dispatch(endActivity(bookingId));
@@ -306,7 +353,7 @@ function MessageDetails() {
 
       setShowActivityModal(false);
 
-      // Show payment for ending activity
+      // ✅ Only "End Activity" opens the payment modal
       setShowPayment(true);
     }
   };
@@ -338,6 +385,12 @@ function MessageDetails() {
     }
   };
 
+  /**
+   * Called from the three-dot menu in the chat header.
+   *
+   * ✅ "start" → only dispatches startActivity, no payment modal.
+   * ✅ "end"   → dispatches endActivity, then opens payment modal.
+   */
   const handleMenuAction = async (action) => {
     if (action === "start") {
       try {
@@ -347,11 +400,13 @@ function MessageDetails() {
       } catch (e) {
         console.error("Failed to start activity:", e);
       }
+      // ✅ Close menu only — no payment modal for Start Activity
       setMenuOpen(false);
     } else if (action === "end") {
       setMenuOpen(false);
       try {
-        const res = await dispatch(endActivity(bookingId));
+        await dispatch(endActivity(bookingId));
+        // ✅ Only End Activity opens the payment modal
         setShowPayment(true);
       } catch {
         alert("Failed to end activity");
@@ -389,7 +444,7 @@ function MessageDetails() {
     <div className="flex min-h-screen bg-white font-sfpro">
       <Sidebar active="Message" />
       <div className="flex-1 font-sfpro md:ml-64 flex flex-col h-[calc(100vh-3.5rem)] md:h-screen mt-14 md:mt-0 overflow-hidden">
-        {/* Header - Sticky (z-50 on mobile to appear above Sidebar mobile header, z-40 on desktop) */}
+        {/* Header */}
         <div className="sticky top-0 z-20 md:z-40 flex items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0 gap-2 sm:gap-4">
           <button
             className="mr-4 text-gray-500 hover:text-gray-700 text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
@@ -445,7 +500,7 @@ function MessageDetails() {
             </button>
           </div>
 
-          {/* Three-dot menu - Sticky and always visible */}
+          {/* Three-dot menu */}
           {currentConversation?.booking && (
             <div className="relative">
               <button
@@ -474,6 +529,7 @@ function MessageDetails() {
                   role="menu"
                   aria-orientation="vertical"
                 >
+                  {/* ✅ Start Activity: only starts the activity, no payment modal */}
                   <button
                     className="w-full text-left px-4 py-3 text-gray-700 hover:bg-[#f7fafd] focus:bg-[#f7fafd] focus:outline-none text-sm font-medium transition border-b border-gray-100"
                     onClick={() => handleMenuAction("start")}
@@ -494,6 +550,7 @@ function MessageDetails() {
                       Start Activity
                     </span>
                   </button>
+                  {/* ✅ End Activity: ends the activity and opens payment modal */}
                   <button
                     className="w-full text-left px-4 py-3 text-gray-700 hover:bg-[#f7fafd] focus:bg-[#f7fafd] focus:outline-none text-sm font-medium transition"
                     onClick={() => handleMenuAction("end")}
@@ -578,6 +635,14 @@ function MessageDetails() {
                 </div>
               ))}
               <div ref={chatEndRef} />
+              {/* ✅ Show a clean error if message sending fails */}
+              {sendMessageError && (
+                <div className="flex justify-center mt-2">
+                  <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm max-w-[90%] text-center">
+                    {cleanErrorMessage(sendMessageError)}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -622,7 +687,12 @@ function MessageDetails() {
           </button>
         </div>
 
-        {/* First Message Activity Modal */}
+        {/**
+         * "Initiate Activity" modal — appears only on the first message send.
+         *
+         * ✅ "Start Activity" → starts conversation/activity, NO payment
+         * ✅ "End Activity"   → ends activity and opens payment modal
+         */}
         {showActivityModal && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4"
@@ -646,10 +716,11 @@ function MessageDetails() {
               </p>
 
               <div className="space-y-3">
+                {/* ✅ Start Activity — lets Careseeker begin the conversation/job. No payment. */}
                 <button
                   className="w-full bg-[#0d99c9] text-white py-3 sm:py-4 rounded-lg font-semibold hover:bg-[#007bb0] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition text-sm sm:text-base"
                   onClick={() => handleFirstMessageAction("start")}
-                  aria-label="Start activity - enable messaging and responses"
+                  aria-label="Start activity - begin conversation with care provider"
                 >
                   <span className="flex items-center justify-center">
                     <svg
@@ -665,10 +736,12 @@ function MessageDetails() {
                     Start Activity
                   </span>
                 </button>
+
+                {/* ✅ End Activity — ends the activity and proceeds to payment */}
                 <button
                   className="w-full border-2 border-[#0d99c9] text-[#0d99c9] py-3 sm:py-4 rounded-lg font-semibold bg-white hover:bg-[#f7fafd] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition text-sm sm:text-base"
                   onClick={() => handleFirstMessageAction("end")}
-                  aria-label="End activity - proceed to payment with 15% service fee"
+                  aria-label="End activity - proceed to payment"
                 >
                   <span className="flex items-center justify-center">
                     <svg
@@ -689,7 +762,7 @@ function MessageDetails() {
           </div>
         )}
 
-        {/* Payment Modal */}
+        {/* Payment Modal — only shown when End Activity is triggered */}
         {showPayment && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4"
@@ -817,16 +890,7 @@ function MessageDetails() {
                     >
                       {initiatingPayment ? (
                         <span className="flex items-center justify-center">
-                          <svg
-                            width="18"
-                            height="18"
-                            className="animate-spin mr-2"
-                            fill="white"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                          >
-                            <path d="M12 4V1m0 22v-3m7.07-7.07h3v3h-3m-14.14 0H1v3h3m18.8-6.07h3v-3h-3m-14.14 0H1v-3h3M20.485 3.515l2.121-2.121-2.121-2.121M3.394 20.606l2.121-2.121-2.121-2.121M20.485 20.485l2.121 2.121 2.121-2.121M3.394 3.394l2.121 2.121 2.121-2.121" />
-                          </svg>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                           Processing...
                         </span>
                       ) : (
