@@ -49,16 +49,35 @@ const formatDate = (timestamp) => {
   });
 };
 
+/**
+ * Detects whether an error string is a raw HTML server error (e.g. Django 500 page).
+ * These happen when the backend saves the message but the response serialisation fails.
+ */
+const isServerHtmlError = (err) =>
+  typeof err === "string" &&
+  (err.includes("<!doctype") ||
+    err.includes("<html") ||
+    err.includes("Server Error"));
+
+/**
+ * Returns a human-readable error string.
+ * Replaces raw HTML 500 responses with a friendly message.
+ */
+const cleanErrorMessage = (err) => {
+  if (!err) return null;
+  if (isServerHtmlError(err))
+    return "Message delivery confirmation failed. The message may have been sent — please wait or refresh.";
+  return err;
+};
+
 const getCurrentUserId = () => {
-  // You might want to store this in Redux auth state
-  // For now, we'll try to get it from token or localStorage
   try {
     const token = localStorage.getItem("access");
     if (token) {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      console.log("JWT payload:", payload); // Debug log
+      console.log("JWT payload:", payload);
       const userId = payload.user_id || payload.id || payload.sub;
-      console.log("Extracted user ID:", userId); // Debug log
+      console.log("Extracted user ID:", userId);
       return userId;
     }
   } catch (error) {
@@ -308,13 +327,15 @@ const MobileChatView = ({
               </div>
             ))}
             <div ref={chatEndRef} />
-            {sendMessageError && (
-              <div className="flex justify-center">
-                <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm">
-                  Failed to send: {sendMessageError}
+            {/* After — only shows non-500 errors permanently; 500s vanish after refetch clears them */}
+            {sendMessageError &&
+              !sendMessageError.includes("may have been sent") && (
+                <div className="flex justify-center mt-2">
+                  <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm">
+                    {cleanErrorMessage(sendMessageError)}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </>
         )}
       </div>
@@ -381,8 +402,6 @@ function Message() {
   const [showPayment, setShowPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [totalHours, setTotalHours] = useState(1);
-  // Mobile messenger toggle: when true on mobile we show the chat full-screen,
-  // otherwise show the conversations list. Also track whether viewport is mobile.
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
@@ -395,18 +414,15 @@ function Message() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Handle conversation selection
   const handleConversationSelect = (index) => {
     setSelectedIndex(index);
   };
 
-  // Get current conversation
   const currentConversation = conversations[selectedIndex] || null;
   const currentMessages = currentConversation
     ? messagesByConversation[currentConversation.id] || []
     : [];
 
-  // Filter conversations by search
   const filteredConversations = conversations.filter(
     (conv) =>
       (conv.other_participant?.full_name || conv.other_participant?.email || "")
@@ -418,11 +434,9 @@ function Message() {
       (conv.job_title || "").toLowerCase().includes(search.toLowerCase()),
   );
 
-  // Payment calculation (using current conversation's hourly rate or default)
-  const RATE_PER_HOUR = currentConversation?.hourly_rate || 1; // Default $13/hr
-  // Allow user to edit rate per hour (numeric only)
+  const RATE_PER_HOUR = currentConversation?.hourly_rate || 1;
   const [perHourRate, setPerHourRate] = useState(RATE_PER_HOUR);
-  const SERVICE_FEE = 7; // Fixed service fee
+  const SERVICE_FEE = 7;
   const calculatedTotal = perHourRate * totalHours + SERVICE_FEE;
 
   const paymentDetails = {
@@ -432,24 +446,20 @@ function Message() {
     total: calculatedTotal,
   };
 
-  // Booking ID - try to get from conversation.booking, then booking_id, then fallback
   const bookingId =
     currentConversation?.booking ||
     currentConversation?.booking_id ||
     currentConversation?.id ||
     12;
 
-  // Keep local perHourRate in sync when conversation changes
   useEffect(() => {
     setPerHourRate(currentConversation?.hourly_rate ?? RATE_PER_HOUR);
   }, [currentConversation, RATE_PER_HOUR]);
 
-  // Load conversations on component mount
   useEffect(() => {
     dispatch(fetchConversations());
   }, [dispatch]);
 
-  // When returning from Stripe, lastBookingId will be set in the store via setActivityStarted.
   const { lastBookingId } = useSelector((state) => state.startActivity);
   useEffect(() => {
     if (!lastBookingId) return;
@@ -498,7 +508,6 @@ function Message() {
     }
   }, [lastBookingId, conversations, dispatch]);
 
-  // Cleanup on component unmount
   useEffect(() => {
     return () => {
       dispatch(disconnectWebSocket());
@@ -509,60 +518,47 @@ function Message() {
   // Redirect to Stripe checkout when URL is received
   useEffect(() => {
     if (checkoutUrl) {
-      // Open Stripe checkout in a new tab/window to keep app open
       try {
         window.open(checkoutUrl, "_blank", "noopener,noreferrer");
       } catch {
-        // fallback to same-tab redirect
         window.location.href = checkoutUrl;
       }
-      // Close the payment modal since checkout opened in a new tab
       try {
         setShowPayment(false);
       } catch {
-        // ignore if state setter not available (shouldn't happen)
+        // ignore
       }
     }
   }, [checkoutUrl]);
 
-  // Stripe return handling is performed by the PaymentSuccessRedirect route component
-
-  // Send "Activity has started" message when activity is confirmed
   const activityStartedSentForRef = useRef(null);
 
   useEffect(() => {
     if (!activityStarted || !currentConversation) return;
 
     const convId = String(currentConversation.id);
-
-    // If we've already sent the activity-started message for this conversation, skip
     if (activityStartedSentForRef.current === convId) return;
 
     activityStartedSentForRef.current = convId;
 
-    // Send system message to chat exactly once per conversation/booking
-    const activityMessage = "Activity has started";
     dispatch(
       sendMessage({
         conversationId: currentConversation.id,
-        content: activityMessage,
+        content: "Activity has started",
       }),
     );
 
-    // Clear the activity started flag and payment state immediately to avoid re-trigger
     dispatch(clearPaymentState());
     dispatch(clearActivityStarted());
   }, [activityStarted, currentConversation, dispatch]);
 
-  // Watch for activityEnded flag and send system message
   const { activityEnded } = useSelector((state) => state.startActivity);
   useEffect(() => {
     if (activityEnded && currentConversation) {
-      const endMessage = "Activity has ended";
       dispatch(
         sendMessage({
           conversationId: currentConversation.id,
-          content: endMessage,
+          content: "Activity has ended",
         }),
       );
       setTimeout(() => {
@@ -571,32 +567,35 @@ function Message() {
     }
   }, [activityEnded, currentConversation, dispatch]);
 
-  // Handle conversation selection
+  // ✅ Polling fallback: when WebSocket is down, poll every 4s so messages still arrive in near-real-time
+  useEffect(() => {
+    if (wsConnected || !currentConversation) return;
+
+    const pollInterval = setInterval(() => {
+      dispatch(fetchMessages(currentConversation.id));
+    }, 4000);
+
+    return () => clearInterval(pollInterval);
+  }, [wsConnected, currentConversation, dispatch]);
+
   useEffect(() => {
     if (currentConversation) {
-      // Load messages for the selected conversation
       dispatch(fetchMessages(currentConversation.id));
       dispatch(setActiveConversation(currentConversation.id));
-
-      // Connect WebSocket for real-time messaging
       dispatch(connectWebSocket(currentConversation.id));
 
-      // Mark conversation as read
       if (currentConversation.unread_count > 0) {
         dispatch(markAsRead(currentConversation.id));
       }
     }
 
-    // Cleanup WebSocket on conversation change
     return () => {
       dispatch(disconnectWebSocket());
     };
   }, [dispatch, currentConversation]);
 
-  // Message display processing (moved up before useEffect hooks)
   const convertMessageToDisplay = (message) => {
     const currentUserId = getCurrentUserId();
-    // Handle both string and number comparison for sender IDs
     const messageSenderId = String(message.sender);
     const currentUserIdStr = String(currentUserId);
     const isSentByCurrentUser = messageSenderId === currentUserIdStr;
@@ -614,18 +613,14 @@ function Message() {
 
   const displayMessages = currentMessages.map(convertMessageToDisplay);
 
-  // Auto-scroll refs
   const chatBodyRef = useRef(null);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
-  // Track previous last message id to only scroll when the last message actually changes
   const prevLastMessageIdRef = useRef(null);
 
-  // When a conversation is selected, scroll to the bottom to show latest messages
   useEffect(() => {
     if (!currentConversation) return;
 
-    // Reset previous last message id when switching conversations
     prevLastMessageIdRef.current =
       displayMessages[displayMessages.length - 1]?.id ?? null;
 
@@ -653,8 +648,6 @@ function Message() {
     displayMessages,
   ]);
 
-  // Handle sending message
-  // Scroll helper
   const scrollToBottom = (opts = { behavior: "smooth" }) => {
     const end = chatEndRef.current;
     if (end && typeof end.scrollIntoView === "function") {
@@ -677,31 +670,30 @@ function Message() {
     if (!input.trim() || !currentConversation || sendingMessage) return;
 
     const messageContent = input.trim();
-    // Clear input immediately for optimistic UX
     setInput("");
-
-    // Optimistically scroll to show the user's new message
     scrollToBottom({ behavior: "auto" });
 
     try {
-      // Always use HTTP API for reliability, WebSocket will handle real-time updates
       const resultAction = await dispatch(
         sendMessage({
           conversationId: currentConversation.id,
           content: messageContent,
         }),
       );
-
-      // After the send completes, scroll to bottom again to ensure server-rendered message is visible
       requestAnimationFrame(() => scrollToBottom({ behavior: "smooth" }));
+
+      // ✅ If backend returned 500, message was still saved.
+      // Refetch to confirm delivery, then silently clear the error.
+      if (sendMessage.rejected.match(resultAction)) {
+        dispatch(fetchMessages(currentConversation.id));
+        setTimeout(() => dispatch(clearSendMessageError()), 2000);
+      }
+
       return resultAction;
     } catch {
-      // still try to ensure scroll in case of optimistic UI
       requestAnimationFrame(() => scrollToBottom({ behavior: "smooth" }));
     }
   };
-
-  // Handle Enter key press
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -709,7 +701,6 @@ function Message() {
     }
   };
 
-  // Handle payment initiation
   const handleProceedToPayment = async () => {
     if (!currentConversation || totalHours < 1) {
       alert("Please enter valid hours");
@@ -728,7 +719,6 @@ function Message() {
 
       if (initiateActivityPayment.fulfilled.match(result)) {
         // Checkout URL will trigger redirect via useEffect
-        // No need to do anything here
       } else {
         alert("Failed to initiate payment. Please try again.");
       }
@@ -738,14 +728,10 @@ function Message() {
     }
   };
 
-  // Variables are now declared above in the useEffect section
-
   useEffect(() => {
-    // Determine the id of the last message
     const lastMessageId =
       displayMessages[displayMessages.length - 1]?.id ?? null;
 
-    // Only scroll if the last message id changed
     const isNewLastMessage =
       lastMessageId && lastMessageId !== prevLastMessageIdRef.current;
 
@@ -769,7 +755,6 @@ function Message() {
       }
     }
 
-    // Update previous last message id
     prevLastMessageIdRef.current = lastMessageId;
   }, [displayMessages]);
 
@@ -777,7 +762,7 @@ function Message() {
     <div className="flex h-screen bg-white overflow-hidden font-sfpro">
       <Sidebar active="Message" />
       <div className="flex-1 font-sfpro md:ml-64 flex h-screen min-h-0">
-        {/* Desktop: Messages List (hidden on mobile) */}
+        {/* Desktop: Messages List */}
         {!isMobile && (
           <div className="w-[340px] border-r border-gray-100 bg-[#f3fafc] flex flex-col h-screen">
             <div className="px-6 py-6 border-b border-gray-100">
@@ -824,7 +809,6 @@ function Message() {
                       }`}
                       onClick={() => {
                         handleConversationSelect(originalIndex);
-                        // On mobile, open the chat pane after selecting a conversation
                         if (isMobile) setShowChatOnMobile(true);
                       }}
                     >
@@ -865,12 +849,12 @@ function Message() {
             </div>
           </div>
         )}
+
         {/* Desktop: Chat Area */}
         {!isMobile && (
           <div className="flex-1 flex flex-col bg-white h-screen overflow-hidden">
-            {/* Chat Header - Fixed at top */}
+            {/* Chat Header */}
             <div className="flex items-center px-6 sm:px-8 py-4 sm:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0">
-              {/* Back to list on mobile */}
               {isMobile && (
                 <button
                   className="-ml-2 mr-3 text-gray-600 hover:text-gray-800 text-xl"
@@ -887,7 +871,6 @@ function Message() {
                     onClick={() => {
                       const name =
                         currentConversation.other_participant?.full_name || "";
-                      // Do not navigate for support/admin system users
                       if (
                         typeof name === "string" &&
                         name.trim().toLowerCase() === "support admin"
@@ -920,9 +903,7 @@ function Message() {
                           "Unknown User"}
                       </div>
                       {wsConnected && (
-                        <span className="ml-2 text-xs text-green-500">
-                          {/* ● Online */}
-                        </span>
+                        <span className="ml-2 text-xs text-green-500"></span>
                       )}
                     </div>
                   </div>
@@ -961,10 +942,10 @@ function Message() {
                   </button>
                   {menuOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      {/* ✅ FIX: "Start Activity" only starts the activity — NO payment modal */}
                       <button
                         className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
                         onClick={() => {
-                          // Trigger start-activity API in background, then open payment modal
                           try {
                             if (bookingId)
                               dispatch(startActivity(String(bookingId)));
@@ -972,38 +953,33 @@ function Message() {
                             console.error("Failed to start activity:", e);
                           }
                           setMenuOpen(false);
-                          setShowPayment(true);
+                          // ✅ REMOVED: setShowPayment(true) — Start Activity must NOT open the payment modal
                         }}
                       >
-                        Start a new activity
+                        Start Activity
                       </button>
+                      {/* ✅ "End Activity" correctly shows the payment modal */}
                       <button
                         className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
                         onClick={async () => {
                           setMenuOpen(false);
                           try {
-                            const res = await dispatch(endActivity(bookingId));
-                            const payload = res.payload || res.error || null;
-                            alert(
-                              `End activity response:\n${JSON.stringify(
-                                payload,
-                                null,
-                                2,
-                              )}`,
-                            );
+                            await dispatch(endActivity(bookingId));
+                            setShowPayment(true);
                           } catch {
                             alert("Failed to end activity");
                           }
                         }}
                       >
-                        End activity
+                        End Activity
                       </button>
                     </div>
                   )}
                 </div>
               ) : null}
             </div>
-            {/* Payment Popup */}
+
+            {/* Payment Popup — only shown when End Activity is triggered */}
             {showPayment && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
                 <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-full p-8 relative">
@@ -1029,7 +1005,6 @@ function Message() {
                         <div className="flex justify-between items-center mb-3">
                           <span className="text-gray-500">Rate per hour</span>
                           <span className="text-gray-800 font-semibold">
-                            {/* ${paymentDetails.rate} */}
                             <input
                               type="number"
                               inputMode="decimal"
@@ -1133,6 +1108,7 @@ function Message() {
                 </div>
               </div>
             )}
+
             {/* Chat Body */}
             <div
               ref={chatBodyRef}
@@ -1156,7 +1132,6 @@ function Message() {
                 </div>
               ) : (
                 <>
-                  {/* Date */}
                   {displayMessages.length > 0 && (
                     <div className="flex justify-center mb-6">
                       <span className="text-xs text-gray-400 bg-[#f5f5f5] px-4 py-1 rounded-full">
@@ -1164,7 +1139,6 @@ function Message() {
                       </span>
                     </div>
                   )}
-                  {/* Messages */}
                   {displayMessages.map((msg, i) => (
                     <div key={i} className="mb-4">
                       {msg.type === "received" && (
@@ -1210,20 +1184,19 @@ function Message() {
                       )}
                     </div>
                   ))}
-                  {/* end marker for smooth scrolling */}
                   <div ref={chatEndRef} />
-                  {/* Show error if message sending failed */}
                   {sendMessageError && (
                     <div className="flex justify-center">
                       <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm">
-                        Failed to send message: {sendMessageError}
+                        {cleanErrorMessage(sendMessageError)}
                       </div>
                     </div>
                   )}
                 </>
               )}
             </div>
-            {/* Chat Input - Fixed at bottom */}
+
+            {/* Chat Input */}
             <div className="px-8 py-6 border-t border-gray-100 bg-white flex items-center flex-shrink-0">
               <input
                 type="text"

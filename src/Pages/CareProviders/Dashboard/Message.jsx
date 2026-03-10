@@ -22,6 +22,10 @@ import {
 import { endActivity, startActivity } from "../../../Redux/StartActivity";
 import { BASE_URL } from "../../../Redux/config";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
   return date.toLocaleTimeString("en-US", {
@@ -31,7 +35,6 @@ const formatTime = (timestamp) => {
   });
 };
 
-// Helper to resolve image URLs (absolute, relative or missing)
 const resolveImage = (url) => {
   if (!url)
     return "https://ui-avatars.com/api/?name=User&background=E5E7EB&color=374151&size=64";
@@ -49,16 +52,34 @@ const formatDate = (timestamp) => {
   });
 };
 
+/**
+ * Returns true when an error string is a raw HTML page (e.g. Django 500).
+ * These occur when the backend saves the message but crashes during serialisation.
+ */
+const isServerHtmlError = (err) =>
+  typeof err === "string" &&
+  (err.includes("<!doctype") ||
+    err.includes("<html") ||
+    err.includes("Server Error"));
+
+/**
+ * Converts a raw error string into a clean, user-facing message.
+ */
+const cleanErrorMessage = (err) => {
+  if (!err) return null;
+  if (isServerHtmlError(err))
+    return "Message delivery confirmation failed. The message may have been sent — please wait or refresh.";
+  return err;
+};
+
 const getCurrentUserId = () => {
-  // You might want to store this in Redux auth state
-  // For now, we'll try to get it from token or localStorage
   try {
     const token = localStorage.getItem("access");
     if (token) {
       const payload = JSON.parse(atob(token.split(".")[1]));
-      console.log("JWT payload:", payload); // Debug log
+      console.log("JWT payload:", payload);
       const userId = payload.user_id || payload.id || payload.sub;
-      console.log("Extracted user ID:", userId); // Debug log
+      console.log("Extracted user ID:", userId);
       return userId;
     }
   } catch (error) {
@@ -67,13 +88,9 @@ const getCurrentUserId = () => {
   return null;
 };
 
-// ============================================
-// ADD THESE TWO COMPONENTS RIGHT AFTER getCurrentUserId()
-// AND BEFORE function Message() {
-// Location: Around line 100
-// ============================================
-
-// Mobile Conversations List Component
+// ─────────────────────────────────────────────────────────────────────────────
+// Mobile Conversations List
+// ─────────────────────────────────────────────────────────────────────────────
 const MobileConversationsList = ({
   conversations,
   search,
@@ -173,17 +190,6 @@ const MobileConversationsList = ({
                         conversation.other_participant?.email ||
                         "Unknown User"}
                     </span>
-                    <svg
-                      className="w-4 h-4 text-blue-500 flex-shrink-0"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
                   </div>
                   <p className="text-xs text-gray-500 truncate">
                     {conversation.last_message?.content || "No messages yet"}
@@ -210,7 +216,9 @@ const MobileConversationsList = ({
   );
 };
 
-// Mobile Chat View Component
+// ─────────────────────────────────────────────────────────────────────────────
+// Mobile Chat View
+// ─────────────────────────────────────────────────────────────────────────────
 const MobileChatView = ({
   currentConversation,
   setShowChatOnMobile,
@@ -252,20 +260,9 @@ const MobileChatView = ({
                   currentConversation.other_participant?.email ||
                   "Unknown User"}
               </span>
-              <svg
-                className="w-4 h-4 text-blue-500"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
             </div>
             <div className="flex gap-3 items-center">
-              <button className="text-[#00A8E8] p-1">
+              <button className="text-[#00A8E8] p-1" aria-label="Call">
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"
@@ -274,24 +271,13 @@ const MobileChatView = ({
                   <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                 </svg>
               </button>
-              <button className="text-[#00A8E8] p-1">
+              <button className="text-[#00A8E8] p-1" aria-label="Video call">
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
                   <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                </svg>
-              </button>
-              <button className="text-gray-600 p-1">
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <circle cx="10" cy="4" r="1.5" />
-                  <circle cx="10" cy="10" r="1.5" />
-                  <circle cx="10" cy="16" r="1.5" />
                 </svg>
               </button>
             </div>
@@ -377,18 +363,21 @@ const MobileChatView = ({
               );
             })}
             <div ref={chatEndRef} />
-            {sendMessageError && (
-              <div className="flex justify-center">
-                <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm">
-                  Failed to send: {sendMessageError}
+            {/* ✅ Clean error display — never shows raw HTML */}
+            {/* After — only shows non-500 errors permanently; 500s vanish after refetch clears them */}
+            {sendMessageError &&
+              !sendMessageError.includes("may have been sent") && (
+                <div className="flex justify-center mt-2">
+                  <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm">
+                    {cleanErrorMessage(sendMessageError)}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </>
         )}
       </div>
 
-      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-100 bg-white flex items-end gap-2 sm:gap-3 flex-shrink-0 z-60 safe-area-inset-bottom">
+      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-100 bg-white flex items-end gap-2 sm:gap-3 flex-shrink-0 safe-area-inset-bottom">
         <input
           ref={inputRef}
           type="text"
@@ -402,7 +391,7 @@ const MobileChatView = ({
         <button
           onClick={handleSendMessage}
           disabled={!currentConversation || sendingMessage || !input.trim()}
-          className="bg-[#00A8E8] rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center disabled:opacity-50 hover:bg-[#0091cc] transition-colors flex-shrink-0 touch-target"
+          className="bg-[#00A8E8] rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center disabled:opacity-50 hover:bg-[#0091cc] transition-colors flex-shrink-0"
           aria-label="Send message"
         >
           {sendingMessage ? (
@@ -422,11 +411,13 @@ const MobileChatView = ({
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Message Component
+// ─────────────────────────────────────────────────────────────────────────────
 function Message() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Redux state
   const {
     conversations,
     conversationsLoading,
@@ -442,7 +433,6 @@ function Message() {
   const { initiatingPayment, paymentError, checkoutUrl, activityStarted } =
     useSelector((state) => state.startActivity);
 
-  // Local state
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -450,8 +440,6 @@ function Message() {
   const [showPayment, setShowPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [totalHours, setTotalHours] = useState(1);
-  // Mobile messenger toggle: when true on mobile we show the chat full-screen,
-  // otherwise show the conversations list. Also track whether viewport is mobile.
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
@@ -464,18 +452,13 @@ function Message() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Handle conversation selection
-  const handleConversationSelect = (index) => {
-    setSelectedIndex(index);
-  };
+  const handleConversationSelect = (index) => setSelectedIndex(index);
 
-  // Get current conversation
   const currentConversation = conversations[selectedIndex] || null;
   const currentMessages = currentConversation
     ? messagesByConversation[currentConversation.id] || []
     : [];
 
-  // Filter conversations by search
   const filteredConversations = conversations.filter(
     (conv) =>
       (conv.other_participant?.full_name || conv.other_participant?.email || "")
@@ -487,11 +470,9 @@ function Message() {
       (conv.job_title || "").toLowerCase().includes(search.toLowerCase()),
   );
 
-  // Payment calculation (using current conversation's hourly rate or default)
-  const RATE_PER_HOUR = currentConversation?.hourly_rate || 1; // Default $13/hr
-  const SERVICE_FEE = 7; // Fixed service fee
+  const RATE_PER_HOUR = currentConversation?.hourly_rate || 1;
+  const SERVICE_FEE = 7;
   const calculatedTotal = RATE_PER_HOUR * totalHours + SERVICE_FEE;
-
   const paymentDetails = {
     rate: RATE_PER_HOUR,
     hours: totalHours,
@@ -499,19 +480,18 @@ function Message() {
     total: calculatedTotal,
   };
 
-  // Booking ID - try to get from conversation.booking, then booking_id, then fallback
   const bookingId =
     currentConversation?.booking ||
     currentConversation?.booking_id ||
     currentConversation?.id ||
     12;
 
-  // Load conversations on component mount
+  // ── Load conversations on mount ──────────────────────────────────────────
   useEffect(() => {
     dispatch(fetchConversations());
   }, [dispatch]);
 
-  // When returning from Stripe, lastBookingId will be set in the store via setActivityStarted.
+  // ── Stripe return: find conversation by bookingId ────────────────────────
   const { lastBookingId } = useSelector((state) => state.startActivity);
   useEffect(() => {
     if (!lastBookingId) return;
@@ -528,10 +508,7 @@ function Message() {
       dispatch(setActiveConversation(String(conv.id)));
       dispatch(fetchMessages(String(conv.id)));
       dispatch(connectWebSocket(String(conv.id)));
-      setTimeout(() => {
-        if (inputRef.current && typeof inputRef.current.focus === "function")
-          inputRef.current.focus();
-      }, 100);
+      setTimeout(() => inputRef.current?.focus(), 100);
     } else if (conversations.length > 0) {
       (async () => {
         const convRes = await dispatch(fetchConversations());
@@ -548,19 +525,13 @@ function Message() {
           dispatch(setActiveConversation(String(conv.id)));
           dispatch(fetchMessages(String(conv.id)));
           dispatch(connectWebSocket(String(conv.id)));
-          setTimeout(() => {
-            if (
-              inputRef.current &&
-              typeof inputRef.current.focus === "function"
-            )
-              inputRef.current.focus();
-          }, 100);
+          setTimeout(() => inputRef.current?.focus(), 100);
         }
       })();
     }
   }, [lastBookingId, conversations, dispatch]);
 
-  // Cleanup on component unmount
+  // ── Cleanup on unmount ───────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       dispatch(disconnectWebSocket());
@@ -568,99 +539,76 @@ function Message() {
     };
   }, [dispatch]);
 
-  // Redirect to Stripe checkout when URL is received
+  // ── Stripe checkout redirect ─────────────────────────────────────────────
   useEffect(() => {
     if (checkoutUrl) {
-      // Open Stripe checkout in a new tab/window to keep app open
       try {
         window.open(checkoutUrl, "_blank", "noopener,noreferrer");
       } catch {
-        // fallback to same-tab redirect
         window.location.href = checkoutUrl;
       }
-      // Close the payment modal since checkout opened in a new tab
-      try {
-        setShowPayment(false);
-      } catch {
-        // ignore if state setter not available (shouldn't happen)
-      }
+      setShowPayment(false);
     }
   }, [checkoutUrl]);
 
-  // Stripe return handling is performed by the PaymentSuccessRedirect route component
-
-  // Send "Activity has started" message when activity is confirmed
+  // ── Send "Activity has started" system message ───────────────────────────
   const activityStartedSentForRef = useRef(null);
-
   useEffect(() => {
     if (!activityStarted || !currentConversation) return;
-
     const convId = String(currentConversation.id);
-
     if (activityStartedSentForRef.current === convId) return;
-
     activityStartedSentForRef.current = convId;
-
-    const activityMessage = "Activity has started";
     dispatch(
       sendMessage({
         conversationId: currentConversation.id,
-        content: activityMessage,
+        content: "Activity has started",
       }),
     );
-
-    // Clear flags immediately to avoid re-triggering
     dispatch(clearPaymentState());
     dispatch(clearActivityStarted());
   }, [activityStarted, currentConversation, dispatch]);
 
-  // Watch for activityEnded flag and send system message
+  // ── Send "Activity has ended" system message ─────────────────────────────
   const { activityEnded } = useSelector((state) => state.startActivity);
   useEffect(() => {
     if (activityEnded && currentConversation) {
-      const endMessage = "Activity has ended";
       dispatch(
         sendMessage({
           conversationId: currentConversation.id,
-          content: endMessage,
+          content: "Activity has ended",
         }),
       );
-      setTimeout(() => {
-        dispatch(clearActivityEnded());
-      }, 1000);
+      setTimeout(() => dispatch(clearActivityEnded()), 1000);
     }
   }, [activityEnded, currentConversation, dispatch]);
 
-  // Handle conversation selection
+  // ── Load messages + connect WS when conversation changes ─────────────────
   useEffect(() => {
     if (currentConversation) {
-      // Load messages for the selected conversation
       dispatch(fetchMessages(currentConversation.id));
       dispatch(setActiveConversation(currentConversation.id));
-
-      // Connect WebSocket for real-time messaging
       dispatch(connectWebSocket(currentConversation.id));
-
-      // Mark conversation as read
       if (currentConversation.unread_count > 0) {
         dispatch(markAsRead(currentConversation.id));
       }
     }
-
-    // Cleanup WebSocket on conversation change
-    return () => {
-      dispatch(disconnectWebSocket());
-    };
+    return () => dispatch(disconnectWebSocket());
   }, [dispatch, currentConversation]);
 
-  // Message display processing (moved up before useEffect hooks)
+  // ✅ Polling fallback: when WebSocket is down, poll every 4s for near-real-time delivery
+  useEffect(() => {
+    if (wsConnected || !currentConversation) return;
+    const poll = setInterval(() => {
+      dispatch(fetchMessages(currentConversation.id));
+    }, 4000);
+    return () => clearInterval(poll);
+  }, [wsConnected, currentConversation, dispatch]);
+
+  // ── Message display processing ───────────────────────────────────────────
   const convertMessageToDisplay = (message) => {
     const currentUserId = getCurrentUserId();
-    // Handle both string and number comparison for sender IDs
-    const messageSenderId = String(message.sender);
-    const currentUserIdStr = String(currentUserId);
-    const isSentByCurrentUser = messageSenderId === currentUserIdStr;
-
+    const isSentByCurrentUser =
+      String(message.sender) === String(currentUserId);
     return {
       id: message.id || `${message.timestamp}_${message.sender}`,
       type: isSentByCurrentUser ? "sent" : "received",
@@ -671,26 +619,38 @@ function Message() {
       senderName: message.sender_name,
     };
   };
-
   const displayMessages = currentMessages.map(convertMessageToDisplay);
 
-  // Auto-scroll refs
+  // ── Scroll refs ──────────────────────────────────────────────────────────
   const chatBodyRef = useRef(null);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
-  // Track previous last message id to only scroll when the last message actually changes
   const prevLastMessageIdRef = useRef(null);
 
-  // When a conversation is selected, scroll to the bottom to show latest messages
+  const scrollToBottom = (opts = { behavior: "smooth" }) => {
+    const end = chatEndRef.current;
+    if (end?.scrollIntoView) {
+      try {
+        end.scrollIntoView({ behavior: opts.behavior, block: "end" });
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    const el = chatBodyRef.current;
+    if (el)
+      setTimeout(() => {
+        el.scrollTop = el.scrollHeight;
+      }, 50);
+  };
+
+  // Scroll to bottom when conversation switches
   useEffect(() => {
     if (!currentConversation) return;
-
-    // Reset previous last message id when switching conversations
     prevLastMessageIdRef.current =
       displayMessages[displayMessages.length - 1]?.id ?? null;
-
     const end = chatEndRef.current;
-    if (end && typeof end.scrollIntoView === "function") {
+    if (end?.scrollIntoView) {
       requestAnimationFrame(() => {
         try {
           end.scrollIntoView({ behavior: "auto", block: "end" });
@@ -701,11 +661,10 @@ function Message() {
       return;
     }
     const el = chatBodyRef.current;
-    if (el) {
+    if (el)
       setTimeout(() => {
         el.scrollTop = el.scrollHeight;
       }, 50);
-    }
   }, [
     selectedIndex,
     currentConversation,
@@ -713,105 +672,13 @@ function Message() {
     displayMessages,
   ]);
 
-  // Handle sending message
-  // Scroll helper
-  const scrollToBottom = (opts = { behavior: "smooth" }) => {
-    const end = chatEndRef.current;
-    if (end && typeof end.scrollIntoView === "function") {
-      try {
-        end.scrollIntoView({ behavior: opts.behavior, block: "end" });
-      } catch {
-        /* ignore */
-      }
-      return;
-    }
-    const el = chatBodyRef.current;
-    if (el) {
-      setTimeout(() => {
-        el.scrollTop = el.scrollHeight;
-      }, 50);
-    }
-  };
-
-  const handleSendMessage = async () => {
-    if (!input.trim() || !currentConversation || sendingMessage) return;
-
-    const messageContent = input.trim();
-    // Clear input immediately for optimistic UX
-    setInput("");
-
-    // Optimistically scroll to show the user's new message
-    scrollToBottom({ behavior: "auto" });
-
-    try {
-      // Always use HTTP API for reliability, WebSocket will handle real-time updates
-      const resultAction = await dispatch(
-        sendMessage({
-          conversationId: currentConversation.id,
-          content: messageContent,
-        }),
-      );
-
-      // After the send completes, scroll to bottom again to ensure server-rendered message is visible
-      requestAnimationFrame(() => scrollToBottom({ behavior: "smooth" }));
-      return resultAction;
-    } catch {
-      // still try to ensure scroll in case of optimistic UI
-      requestAnimationFrame(() => scrollToBottom({ behavior: "smooth" }));
-    }
-  };
-
-  // Handle Enter key press
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  // Handle payment initiation
-  const handleProceedToPayment = async () => {
-    if (!currentConversation || totalHours < 1) {
-      alert("Please enter valid hours");
-      return;
-    }
-
-    try {
-      const result = await dispatch(
-        initiateActivityPayment({
-          bookingId,
-          totalHours,
-          paymentGateway: "stripe",
-          perHourRate: RATE_PER_HOUR,
-        }),
-      );
-
-      if (initiateActivityPayment.fulfilled.match(result)) {
-        // Checkout URL will trigger redirect via useEffect
-        // No need to do anything here
-      } else {
-        alert("Failed to initiate payment. Please try again.");
-      }
-    } catch (error) {
-      console.error("Payment error:", error);
-      alert("Failed to initiate payment. Please try again.");
-    }
-  };
-
-  // Variables are now declared above in the useEffect section
-
+  // Scroll when new messages arrive
   useEffect(() => {
-    // Determine the id of the last message
     const lastMessageId =
       displayMessages[displayMessages.length - 1]?.id ?? null;
-
-    // Only scroll if the last message id changed
-    const isNewLastMessage =
-      lastMessageId && lastMessageId !== prevLastMessageIdRef.current;
-
-    if (isNewLastMessage) {
+    if (lastMessageId && lastMessageId !== prevLastMessageIdRef.current) {
       const end = chatEndRef.current;
-      if (end && typeof end.scrollIntoView === "function") {
+      if (end?.scrollIntoView) {
         requestAnimationFrame(() => {
           try {
             end.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -821,27 +688,98 @@ function Message() {
         });
       } else {
         const el = chatBodyRef.current;
-        if (el) {
+        if (el)
           setTimeout(() => {
             el.scrollTop = el.scrollHeight;
           }, 50);
-        }
       }
     }
-
-    // Update previous last message id
     prevLastMessageIdRef.current = lastMessageId;
   }, [displayMessages]);
 
+  // ── Send message ─────────────────────────────────────────────────────────
+  const handleSendMessage = async () => {
+    if (!input.trim() || !currentConversation || sendingMessage) return;
+
+    const messageContent = input.trim();
+    setInput("");
+    scrollToBottom({ behavior: "auto" });
+
+    try {
+      const resultAction = await dispatch(
+        sendMessage({
+          conversationId: currentConversation.id,
+          content: messageContent,
+        }),
+      );
+      requestAnimationFrame(() => scrollToBottom({ behavior: "smooth" }));
+
+      // ✅ If backend returned 500, message was still saved.
+      // Refetch to confirm delivery, then silently clear the error.
+      if (sendMessage.rejected.match(resultAction)) {
+        dispatch(fetchMessages(currentConversation.id));
+        setTimeout(() => dispatch(clearSendMessageError()), 2000);
+      }
+
+      return resultAction;
+    } catch {
+      requestAnimationFrame(() => scrollToBottom({ behavior: "smooth" }));
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // ── Payment ──────────────────────────────────────────────────────────────
+  const handleProceedToPayment = async () => {
+    if (!currentConversation || totalHours < 1) {
+      alert("Please enter valid hours");
+      return;
+    }
+    try {
+      const result = await dispatch(
+        initiateActivityPayment({
+          bookingId,
+          totalHours,
+          paymentGateway: "stripe",
+          perHourRate: RATE_PER_HOUR,
+        }),
+      );
+      if (!initiateActivityPayment.fulfilled.match(result)) {
+        alert("Failed to initiate payment. Please try again.");
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      alert("Failed to initiate payment. Please try again.");
+    }
+  };
+
+  // ── Close menu when clicking outside ────────────────────────────────────
+  const menuRef = useRef(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
+  // ────────────────────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen bg-white overflow-hidden font-sfpro">
       <Sidebar active="Message" />
       <div className="flex-1 font-sfpro md:ml-64 flex h-screen min-h-0">
-        {/* ========== MOBILE VIEW (New Figma Design) ========== */}
+        {/* ══════════════ MOBILE VIEW ══════════════ */}
         {isMobile ? (
           <>
             {!showChatOnMobile ? (
-              // Mobile: Show Conversations List
               <MobileConversationsList
                 conversations={conversations}
                 search={search}
@@ -856,7 +794,6 @@ function Message() {
                 formatTime={formatTime}
               />
             ) : (
-              // Mobile: Show Chat View
               <MobileChatView
                 currentConversation={currentConversation}
                 setShowChatOnMobile={setShowChatOnMobile}
@@ -877,9 +814,9 @@ function Message() {
             )}
           </>
         ) : (
-          /* ========== DESKTOP/TABLET VIEW (Existing Design) ========== */
+          /* ══════════════ DESKTOP VIEW ══════════════ */
           <>
-            {/* Left: Messages List */}
+            {/* Left: Conversations list */}
             <div className="w-[340px] border-r border-gray-100 bg-[#f3fafc] flex flex-col h-screen">
               <div className="px-6 py-6 border-b border-gray-100">
                 <div className="flex text-left">
@@ -962,9 +899,9 @@ function Message() {
               </div>
             </div>
 
-            {/* Right: Chat Area */}
+            {/* Right: Chat area */}
             <div className="flex-1 flex flex-col bg-white h-screen overflow-hidden">
-              {/* Chat Header - Fixed at top */}
+              {/* Chat Header */}
               <div className="flex items-center px-6 sm:px-8 py-4 sm:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0">
                 {currentConversation ? (
                   <>
@@ -983,9 +920,10 @@ function Message() {
                           "Unknown User"}
                       </div>
                       {wsConnected && (
-                        <span className="ml-2 text-xs text-green-500">
-                          {/* ● Online */}
-                        </span>
+                        <span
+                          className="ml-2 w-2 h-2 rounded-full bg-green-400 inline-block"
+                          title="Online"
+                        />
                       )}
                     </div>
                   </>
@@ -996,20 +934,47 @@ function Message() {
                     </div>
                   </div>
                 )}
+
                 <div className="flex gap-4 items-center">
-                  <button className="text-[#0d99c9] hover:text-[#007bb0] text-xl">
+                  <button
+                    className="text-[#0d99c9] hover:text-[#007bb0] text-xl"
+                    aria-label="Call"
+                  >
                     <i className="fas fa-phone"></i>
                   </button>
-                  <button className="text-[#0d99c9] hover:text-[#007bb0] text-xl">
+                  <button
+                    className="text-[#0d99c9] hover:text-[#007bb0] text-xl"
+                    aria-label="Video call"
+                  >
                     <i className="fas fa-video"></i>
                   </button>
                 </div>
+
+                {/* ✅ FIX: Three-dot menu button was missing entirely — added here */}
                 {currentConversation?.booking ? (
-                  <div className="ml-4 relative">
+                  <div className="ml-4 relative" ref={menuRef}>
+                    <button
+                      className="text-gray-400 hover:text-gray-600 focus:outline-none p-1 rounded"
+                      onClick={() => setMenuOpen((v) => !v)}
+                      aria-label="Activity options"
+                      aria-expanded={menuOpen}
+                    >
+                      <svg
+                        width="22"
+                        height="22"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle cx="12" cy="6" r="2" />
+                        <circle cx="12" cy="12" r="2" />
+                        <circle cx="12" cy="18" r="2" />
+                      </svg>
+                    </button>
                     {menuOpen && (
                       <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                        {/* ✅ FIX: Start Activity — only starts activity, NO payment modal */}
                         <button
-                          className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
+                          className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm border-b border-gray-100"
                           onClick={() => {
                             try {
                               if (bookingId)
@@ -1018,33 +983,25 @@ function Message() {
                               console.error("Failed to start activity:", e);
                             }
                             setMenuOpen(false);
-                            setShowPayment(true);
+                            // ✅ REMOVED: setShowPayment(true) — Start Activity must NOT open payment
                           }}
                         >
-                          Start a new activity
+                          Start Activity
                         </button>
+                        {/* ✅ FIX: End Activity — correctly opens payment modal */}
                         <button
                           className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
                           onClick={async () => {
                             setMenuOpen(false);
                             try {
-                              const res = await dispatch(
-                                endActivity(bookingId),
-                              );
-                              const payload = res.payload || res.error || null;
-                              alert(
-                                `End activity response:\n${JSON.stringify(
-                                  payload,
-                                  null,
-                                  2,
-                                )}`,
-                              );
+                              await dispatch(endActivity(bookingId));
+                              setShowPayment(true);
                             } catch {
                               alert("Failed to end activity");
                             }
                           }}
                         >
-                          End activity
+                          End Activity
                         </button>
                       </div>
                     )}
@@ -1052,7 +1009,7 @@ function Message() {
                 ) : null}
               </div>
 
-              {/* Payment Popup */}
+              {/* Payment Modal — only shown via End Activity */}
               {showPayment && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
                   <div className="bg-white rounded-2xl shadow-xl w-[400px] max-w-full p-8 relative">
@@ -1078,13 +1035,7 @@ function Message() {
                           <div className="flex justify-between items-center mb-3">
                             <span className="text-gray-500">Rate per hour</span>
                             <span className="text-gray-800 font-semibold">
-                              <input
-                                type="number"
-                                className="bg-white border border-gray-300 rounded w-20 px-2 py-1 text-gray-800 font-semibold text-right"
-                                min="1"
-                                value={paymentDetails.rate}
-                                onChange={() => {}}
-                              />
+                              ${paymentDetails.rate}
                             </span>
                           </div>
                           <div className="flex justify-between items-center mb-3">
@@ -1199,13 +1150,11 @@ function Message() {
                   </div>
                 ) : (
                   <>
-                    {displayMessages.length > 0 && (
-                      <div className="flex justify-center mb-6">
-                        <span className="text-xs text-gray-400 bg-[#f5f5f5] px-4 py-1 rounded-full">
-                          {displayMessages[0]?.date || ""}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex justify-center mb-6">
+                      <span className="text-xs text-gray-400 bg-[#f5f5f5] px-4 py-1 rounded-full">
+                        {displayMessages[0]?.date || ""}
+                      </span>
+                    </div>
                     {displayMessages.map((msg, i) => (
                       <div key={i} className="mb-4">
                         {msg.type === "received" && (
@@ -1252,10 +1201,11 @@ function Message() {
                       </div>
                     ))}
                     <div ref={chatEndRef} />
+                    {/* ✅ Clean error display — never shows raw HTML */}
                     {sendMessageError && (
-                      <div className="flex justify-center">
+                      <div className="flex justify-center mt-2">
                         <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm">
-                          Failed to send message: {sendMessageError}
+                          {cleanErrorMessage(sendMessageError)}
                         </div>
                       </div>
                     )}
@@ -1263,9 +1213,10 @@ function Message() {
                 )}
               </div>
 
-              {/* Chat Input - Fixed at bottom */}
+              {/* Chat Input */}
               <div className="px-8 py-6 border-t border-gray-100 bg-white flex items-center flex-shrink-0">
                 <input
+                  ref={inputRef}
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
