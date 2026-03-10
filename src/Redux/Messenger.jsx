@@ -1,8 +1,47 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL, getAuthHeaders } from "./config";
-import {fetchWithAuth} from "../lib/fetchWithAuth.js";
+import { fetchWithAuth } from "../lib/fetchWithAuth.js";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns true when a response body is a raw HTML page (e.g. Django 500 error).
+ * These occur when the backend saves data successfully but crashes during serialisation.
+ */
+const isHtmlErrorPage = (text) =>
+  typeof text === "string" &&
+  (text.trimStart().startsWith("<!") ||
+    text.includes("<html") ||
+    text.includes("Server Error"));
+
+/**
+ * Converts a raw error body into a clean, user-facing string.
+ * HTML 500 pages are replaced with an actionable message.
+ */
+const cleanApiError = (text, statusCode) => {
+  if (isHtmlErrorPage(text)) {
+    return `Server error (${statusCode ?? 500}). Your message may have been sent — it will appear shortly.`;
+  }
+  // Try to extract a message from JSON error bodies
+  try {
+    const parsed = JSON.parse(text);
+    return (
+      parsed.detail ||
+      parsed.message ||
+      parsed.error ||
+      Object.values(parsed)[0] ||
+      text
+    );
+  } catch {
+    return text;
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 1. Fetch conversations list
+// ─────────────────────────────────────────────────────────────────────────────
 export const fetchConversations = createAsyncThunk(
   "messenger/fetchConversations",
   async (_, { rejectWithValue }) => {
@@ -11,41 +50,42 @@ export const fetchConversations = createAsyncThunk(
         headers: getAuthHeaders(),
       });
       if (!res.ok) {
-        const errorText = await res.text();
-        return rejectWithValue(errorText);
+        const text = await res.text();
+        return rejectWithValue(cleanApiError(text, res.status));
       }
-      const data = await res.json();
-      return data;
+      return await res.json();
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
 // 2. Fetch messages for a specific conversation
+// ─────────────────────────────────────────────────────────────────────────────
 export const fetchMessages = createAsyncThunk(
   "messenger/fetchMessages",
   async (conversationId, { rejectWithValue }) => {
     try {
       const res = await fetch(
         `${BASE_URL}/api/messages/?conversation_id=${conversationId}`,
-        {
-          headers: getAuthHeaders(),
-        }
+        { headers: getAuthHeaders() },
       );
       if (!res.ok) {
-        const errorText = await res.text();
-        return rejectWithValue(errorText);
+        const text = await res.text();
+        return rejectWithValue(cleanApiError(text, res.status));
       }
       const data = await res.json();
       return { conversationId, messages: data };
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
 // 3. Send a message
+// ─────────────────────────────────────────────────────────────────────────────
 export const sendMessage = createAsyncThunk(
   "messenger/sendMessage",
   async ({ conversationId, content }, { rejectWithValue }) => {
@@ -54,23 +94,34 @@ export const sendMessage = createAsyncThunk(
         `${BASE_URL}/api/messages/?conversation_id=${conversationId}`,
         {
           method: "POST",
-          headers: getAuthHeaders(),
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json", // ← THIS was missing, causing the 500
+          },
           body: JSON.stringify({ content }),
-        }
+        },
       );
       if (!res.ok) {
         const errorText = await res.text();
-        return rejectWithValue(errorText);
+        const isHtml =
+          errorText.trimStart().startsWith("<!") || errorText.includes("<html");
+        return rejectWithValue(
+          isHtml
+            ? `Server error (${res.status}). Your message may have been sent — it will appear shortly.`
+            : errorText,
+        );
       }
       const data = await res.json();
       return { conversationId, message: data };
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
 // 4. Mark conversation as read
+// ─────────────────────────────────────────────────────────────────────────────
 export const markAsRead = createAsyncThunk(
   "messenger/markAsRead",
   async (conversationId, { rejectWithValue }) => {
@@ -80,21 +131,23 @@ export const markAsRead = createAsyncThunk(
         {
           method: "POST",
           headers: getAuthHeaders(),
-        }
+        },
       );
       if (!res.ok) {
-        const errorText = await res.text();
-        return rejectWithValue(errorText);
+        const text = await res.text();
+        return rejectWithValue(cleanApiError(text, res.status));
       }
       const data = await res.json();
       return { conversationId, response: data };
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
-// Create a new conversation with another user
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Create a new conversation
+// ─────────────────────────────────────────────────────────────────────────────
 export const createConversation = createAsyncThunk(
   "messenger/createConversation",
   async (otherUserId, { rejectWithValue }) => {
@@ -109,17 +162,18 @@ export const createConversation = createAsyncThunk(
       });
       if (!res.ok) {
         const text = await res.text();
-        return rejectWithValue(text);
+        return rejectWithValue(cleanApiError(text, res.status));
       }
-      const data = await res.json();
-      return data;
+      return await res.json();
     } catch (err) {
       return rejectWithValue(err.message);
     }
-  }
+  },
 );
 
-// WebSocket connection management
+// ─────────────────────────────────────────────────────────────────────────────
+// WebSocket Manager with automatic reconnect + exponential backoff
+// ─────────────────────────────────────────────────────────────────────────────
 class WebSocketManager {
   constructor() {
     this.socket = null;
@@ -127,6 +181,14 @@ class WebSocketManager {
     this.token = null;
     this.onMessageCallback = null;
     this.onConnectionCallback = null;
+
+    // Reconnect state
+    this._reconnectTimer = null;
+    this._reconnectAttempts = 0;
+    this._maxReconnectAttempts = 8;
+    this._baseDelay = 1000; // 1 s
+    this._maxDelay = 30000; // 30 s
+    this._intentionalDisconnect = false;
   }
 
   connect(conversationId, token, onMessage, onConnection) {
@@ -134,16 +196,37 @@ class WebSocketManager {
     this.token = token;
     this.onMessageCallback = onMessage;
     this.onConnectionCallback = onConnection;
+    this._intentionalDisconnect = false;
 
+    this._clearReconnectTimer();
+    this._doConnect();
+  }
+
+  _doConnect() {
+    // Close any existing socket cleanly before opening a new one
     if (this.socket) {
-      this.disconnect();
+      this.socket.onclose = null; // prevent the close handler from scheduling a reconnect
+      this.socket.close();
+      this.socket = null;
     }
 
-    const wsUrl = `wss://backend.staging.bristones.com/ws/chat/${conversationId}/?token=${token}`;
-    this.socket = new WebSocket(wsUrl);
+    const wsUrl = `wss://backend.staging.bristones.com/ws/chat/${this.conversationId}/?token=${this.token}`;
+    console.log(
+      `🔌 WebSocket connecting (attempt ${this._reconnectAttempts + 1}):`,
+      wsUrl,
+    );
+
+    try {
+      this.socket = new WebSocket(wsUrl);
+    } catch (err) {
+      console.error("WebSocket constructor error:", err);
+      this._scheduleReconnect();
+      return;
+    }
 
     this.socket.onopen = () => {
-      console.log("WebSocket connected");
+      console.log("✅ WebSocket connected");
+      this._reconnectAttempts = 0; // reset backoff on successful connection
       if (this.onConnectionCallback) {
         this.onConnectionCallback({ type: "connected" });
       }
@@ -151,7 +234,6 @@ class WebSocketManager {
 
     this.socket.onmessage = (event) => {
       try {
-        // Log raw frame for debugging
         console.debug("WebSocket frame:", event.data);
         const data = JSON.parse(event.data);
         if (this.onMessageCallback) {
@@ -162,10 +244,14 @@ class WebSocketManager {
       }
     };
 
-    this.socket.onclose = () => {
-      console.log("WebSocket disconnected");
+    this.socket.onclose = (event) => {
+      console.log(`🔌 WebSocket closed (code ${event.code})`);
       if (this.onConnectionCallback) {
         this.onConnectionCallback({ type: "disconnected" });
+      }
+      // ✅ Auto-reconnect unless we deliberately disconnected
+      if (!this._intentionalDisconnect) {
+        this._scheduleReconnect();
       }
     };
 
@@ -174,7 +260,47 @@ class WebSocketManager {
       if (this.onConnectionCallback) {
         this.onConnectionCallback({ type: "error", error });
       }
+      // onclose will fire after onerror; reconnect is scheduled there
     };
+  }
+
+  /**
+   * Schedules a reconnect attempt using exponential backoff with jitter.
+   * Stops after _maxReconnectAttempts.
+   */
+  _scheduleReconnect() {
+    if (this._intentionalDisconnect) return;
+    if (this._reconnectAttempts >= this._maxReconnectAttempts) {
+      console.warn("⚠️ WebSocket max reconnect attempts reached. Giving up.");
+      return;
+    }
+
+    const delay = Math.min(
+      this._baseDelay * Math.pow(2, this._reconnectAttempts),
+      this._maxDelay,
+    );
+    // Add ±20% jitter to avoid thundering-herd
+    const jitter = delay * 0.2 * (Math.random() * 2 - 1);
+    const actualDelay = Math.max(500, Math.round(delay + jitter));
+
+    this._reconnectAttempts += 1;
+    console.log(
+      `⏱️ WebSocket reconnecting in ${actualDelay}ms (attempt ${this._reconnectAttempts}/${this._maxReconnectAttempts})`,
+    );
+
+    this._clearReconnectTimer();
+    this._reconnectTimer = setTimeout(() => {
+      if (!this._intentionalDisconnect) {
+        this._doConnect();
+      }
+    }, actualDelay);
+  }
+
+  _clearReconnectTimer() {
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
   }
 
   sendMessage(message) {
@@ -186,6 +312,9 @@ class WebSocketManager {
   }
 
   disconnect() {
+    this._intentionalDisconnect = true;
+    this._clearReconnectTimer();
+    this._reconnectAttempts = 0;
     if (this.socket) {
       this.socket.close();
       this.socket = null;
@@ -193,36 +322,34 @@ class WebSocketManager {
   }
 
   isConnected() {
-    return this.socket && this.socket.readyState === WebSocket.OPEN;
+    return this.socket?.readyState === WebSocket.OPEN;
   }
 }
 
-// Create WebSocket manager instance
+// Singleton WebSocket manager
 const wsManager = new WebSocketManager();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Slice
+// ─────────────────────────────────────────────────────────────────────────────
 const initialState = {
-  // Conversations
   conversations: [],
   conversationsLoading: false,
   conversationsError: null,
 
-  // Messages
-  messagesByConversation: {}, // { conversationId: [messages] }
+  messagesByConversation: {},
   messagesLoading: {},
   messagesError: {},
 
-  // Current conversation
   activeConversationId: null,
 
-  // WebSocket
   wsConnected: false,
   wsError: null,
-  // Conversation creation
+
   creatingConversation: false,
   createConversationError: null,
   lastCreatedConversationId: null,
 
-  // UI state
   sendingMessage: false,
   sendMessageError: null,
 };
@@ -231,12 +358,10 @@ const messengerSlice = createSlice({
   name: "messenger",
   initialState,
   reducers: {
-    // Set active conversation
     setActiveConversation: (state, action) => {
       state.activeConversationId = action.payload;
     },
 
-    // WebSocket actions
     setWebSocketConnected: (state, action) => {
       state.wsConnected = action.payload;
     },
@@ -245,64 +370,55 @@ const messengerSlice = createSlice({
       state.wsError = action.payload;
     },
 
-    // Add real-time message from WebSocket
     addRealtimeMessage: (state, action) => {
-      let { conversationId, message } = action.payload;
+      const { conversationId, message } = action.payload;
       const cid = String(conversationId);
       if (!state.messagesByConversation[cid]) {
         state.messagesByConversation[cid] = [];
       }
 
-      // Convert WebSocket message format to API message format
       const formattedMessage = {
-        id: `ws_${Date.now()}_${message.sender_id}`, // Unique ID for WebSocket messages
+        id: `ws_${Date.now()}_${message.sender_id}`,
         sender: message.sender_id,
         sender_name: message.sender_name,
         content: message.message,
         timestamp: message.timestamp,
       };
 
-      // Check if message already exists (prevent duplicates)
+      // Deduplicate: skip if same content + sender within 5 s
       const exists = state.messagesByConversation[cid].some(
         (msg) =>
           msg.content === formattedMessage.content &&
           String(msg.sender) === String(formattedMessage.sender) &&
           Math.abs(
-            new Date(msg.timestamp) - new Date(formattedMessage.timestamp)
-          ) < 5000 // Within 5 seconds
+            new Date(msg.timestamp) - new Date(formattedMessage.timestamp),
+          ) < 5000,
       );
 
       if (!exists) {
         state.messagesByConversation[cid].push(formattedMessage);
-        // Debug: log that reducer added a real-time message
         console.debug("addRealtimeMessage -> added", cid, formattedMessage);
 
-        // Update last message in conversations list and move to top
-        const conversationIndex = state.conversations.findIndex(
-          (c) => String(c.id) === cid
-        );
-        if (conversationIndex >= 0) {
-          const conversation = state.conversations[conversationIndex];
-          conversation.last_message = {
+        // Bubble conversation to top of list (WhatsApp-style)
+        const idx = state.conversations.findIndex((c) => String(c.id) === cid);
+        if (idx >= 0) {
+          const conv = state.conversations[idx];
+          conv.last_message = {
             content: message.message,
             timestamp: message.timestamp,
           };
-
-          // Move conversation to top of list for real-time sorting (like WhatsApp)
-          if (conversationIndex > 0) {
-            state.conversations.splice(conversationIndex, 1);
-            state.conversations.unshift(conversation);
+          if (idx > 0) {
+            state.conversations.splice(idx, 1);
+            state.conversations.unshift(conv);
           }
         }
       }
     },
 
-    // Clear created conversation ID
     clearCreatedConversationId: (state) => {
       state.lastCreatedConversationId = null;
     },
 
-    // Clear messages error
     clearMessagesError: (state, action) => {
       const conversationId = action.payload;
       if (state.messagesError[conversationId]) {
@@ -310,14 +426,14 @@ const messengerSlice = createSlice({
       }
     },
 
-    // Clear send message error
     clearSendMessageError: (state) => {
       state.sendMessageError = null;
     },
   },
+
   extraReducers: (builder) => {
     builder
-      // Fetch conversations
+      // ── fetchConversations ──────────────────────────────────────────────
       .addCase(fetchConversations.pending, (state) => {
         state.conversationsLoading = true;
         state.conversationsError = null;
@@ -325,54 +441,34 @@ const messengerSlice = createSlice({
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.conversationsLoading = false;
 
-        // Start with current conversations to preserve locally created ones
-        const existingConversations = [...state.conversations];
+        // Merge server list with any locally-created conversations
+        const existing = [...state.conversations];
+        const merged = action.payload.reduce((acc, conv) => {
+          const idx = acc.findIndex((c) => String(c.id) === String(conv.id));
+          if (idx >= 0) {
+            acc[idx] = conv;
+          } else {
+            acc.push(conv);
+          }
+          return acc;
+        }, existing);
 
-        // Ensure unique conversations based on ID, preserving local conversations
-        const uniqueConversations = action.payload.reduce(
-          (acc, conversation) => {
-            const existingIndex = acc.findIndex(
-              (c) => String(c.id) === String(conversation.id)
-            );
-            if (existingIndex >= 0) {
-              // Update existing conversation with latest data from server
-              acc[existingIndex] = conversation;
-            } else {
-              acc.push(conversation);
-            }
-            return acc;
-          },
-          existingConversations
+        // Remove any remaining duplicates
+        state.conversations = merged.filter(
+          (conv, index, self) =>
+            index === self.findIndex((c) => String(c.id) === String(conv.id)),
         );
-
-        // Remove duplicates that might have been created
-        const finalConversations = uniqueConversations.reduce(
-          (acc, conversation) => {
-            const exists = acc.some(
-              (c) => String(c.id) === String(conversation.id)
-            );
-            if (!exists) {
-              acc.push(conversation);
-            }
-            return acc;
-          },
-          []
-        );
-
-        state.conversations = finalConversations;
       })
       .addCase(fetchConversations.rejected, (state, action) => {
         state.conversationsLoading = false;
         state.conversationsError = action.payload;
       })
 
-      // Fetch messages
+      // ── fetchMessages ───────────────────────────────────────────────────
       .addCase(fetchMessages.pending, (state, action) => {
-        const conversationId = action.meta.arg;
-        state.messagesLoading[conversationId] = true;
-        if (state.messagesError[conversationId]) {
-          delete state.messagesError[conversationId];
-        }
+        const cid = action.meta.arg;
+        state.messagesLoading[cid] = true;
+        delete state.messagesError[cid];
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
         const { conversationId, messages } = action.payload;
@@ -381,12 +477,12 @@ const messengerSlice = createSlice({
         state.messagesByConversation[cid] = messages;
       })
       .addCase(fetchMessages.rejected, (state, action) => {
-        const conversationId = action.meta.arg;
-        state.messagesLoading[conversationId] = false;
-        state.messagesError[conversationId] = action.payload;
+        const cid = action.meta.arg;
+        state.messagesLoading[cid] = false;
+        state.messagesError[cid] = action.payload;
       })
 
-      // Send message
+      // ── sendMessage ─────────────────────────────────────────────────────
       .addCase(sendMessage.pending, (state) => {
         state.sendingMessage = true;
         state.sendMessageError = null;
@@ -394,61 +490,55 @@ const messengerSlice = createSlice({
       .addCase(sendMessage.fulfilled, (state, action) => {
         state.sendingMessage = false;
         const { conversationId, message } = action.payload;
-
         const cid = String(conversationId);
-        // Add message to conversation only if not already added via WebSocket
+
         if (!state.messagesByConversation[cid]) {
           state.messagesByConversation[cid] = [];
         }
 
-        // Check if message already exists (could have been added via WebSocket)
+        // Deduplicate against WebSocket-delivered copy
         const exists = state.messagesByConversation[cid].some(
           (msg) =>
             msg.content === message.content &&
             String(msg.sender) === String(message.sender) &&
             Math.abs(new Date(msg.timestamp) - new Date(message.timestamp)) <
-              5000
+              5000,
         );
 
         if (!exists) {
           state.messagesByConversation[cid].push(message);
 
-          // Update last message in conversations list and move to top
-          const conversationIndex = state.conversations.findIndex(
-            (c) => String(c.id) === cid
+          // Bubble conversation to top
+          const idx = state.conversations.findIndex(
+            (c) => String(c.id) === cid,
           );
-          if (conversationIndex >= 0) {
-            const conversation = state.conversations[conversationIndex];
-            conversation.last_message = {
+          if (idx >= 0) {
+            const conv = state.conversations[idx];
+            conv.last_message = {
               content: message.content,
               timestamp: message.timestamp,
             };
-
-            // Move conversation to top of list when you send a message
-            if (conversationIndex > 0) {
-              state.conversations.splice(conversationIndex, 1);
-              state.conversations.unshift(conversation);
+            if (idx > 0) {
+              state.conversations.splice(idx, 1);
+              state.conversations.unshift(conv);
             }
           }
         }
       })
       .addCase(sendMessage.rejected, (state, action) => {
         state.sendingMessage = false;
-        state.sendMessageError = action.payload;
+        // ✅ action.payload is already a clean string (sanitised in the thunk)
+        state.sendMessageError = action.payload ?? "Failed to send message.";
       })
 
-      // Mark as read
+      // ── markAsRead ──────────────────────────────────────────────────────
       .addCase(markAsRead.fulfilled, (state, action) => {
         const { conversationId } = action.payload;
-        // Update unread count in conversations list
-        const conversation = state.conversations.find(
-          (c) => c.id === conversationId
-        );
-        if (conversation) {
-          conversation.unread_count = 0;
-        }
+        const conv = state.conversations.find((c) => c.id === conversationId);
+        if (conv) conv.unread_count = 0;
       })
-      // Create conversation
+
+      // ── createConversation ──────────────────────────────────────────────
       .addCase(createConversation.pending, (state) => {
         state.creatingConversation = true;
         state.createConversationError = null;
@@ -456,32 +546,29 @@ const messengerSlice = createSlice({
       })
       .addCase(createConversation.fulfilled, (state, action) => {
         state.creatingConversation = false;
-        // API returns full conversation object
         const conversation = action.payload;
-        if (conversation && conversation.id) {
+        if (conversation?.id) {
           state.lastCreatedConversationId = String(conversation.id);
-
-          // Add the new conversation to the conversations array if not already present
-          const existingIndex = state.conversations.findIndex(
-            (c) => String(c.id) === String(conversation.id)
+          const idx = state.conversations.findIndex(
+            (c) => String(c.id) === String(conversation.id),
           );
-          if (existingIndex === -1) {
-            // Add to the beginning of the list (most recent)
+          if (idx === -1) {
             state.conversations.unshift(conversation);
           } else {
-            // Update existing conversation
-            state.conversations[existingIndex] = conversation;
+            state.conversations[idx] = conversation;
           }
         }
       })
       .addCase(createConversation.rejected, (state, action) => {
         state.creatingConversation = false;
-        state.createConversationError = action.payload || action.error?.message;
+        state.createConversationError = action.payload ?? action.error?.message;
       });
   },
 });
 
-// Export actions
+// ─────────────────────────────────────────────────────────────────────────────
+// Action exports
+// ─────────────────────────────────────────────────────────────────────────────
 export const {
   setActiveConversation,
   setWebSocketConnected,
@@ -492,7 +579,9 @@ export const {
   clearSendMessageError,
 } = messengerSlice.actions;
 
-// WebSocket action creators
+// ─────────────────────────────────────────────────────────────────────────────
+// WebSocket thunks
+// ─────────────────────────────────────────────────────────────────────────────
 export const connectWebSocket = (conversationId) => (dispatch) => {
   const token = localStorage.getItem("access");
   if (!token) {
@@ -501,10 +590,9 @@ export const connectWebSocket = (conversationId) => (dispatch) => {
   }
 
   const onMessage = (data) => {
-    // Normalize and handle received message for different server payload shapes
     try {
+      // Normalise different server payload shapes
       let payload = data;
-      // Some servers wrap actual payload under 'data' or 'payload'
       if (data && typeof data === "object" && (data.data || data.payload)) {
         payload = data.data || data.payload;
       }
@@ -513,7 +601,6 @@ export const connectWebSocket = (conversationId) => (dispatch) => {
       const senderId =
         payload.sender_id ?? payload.sender ?? payload.from ?? payload.user_id;
       const senderName =
-        payload.sender_name ??
         payload.sender_name ??
         payload.username ??
         payload.user_name ??
@@ -534,11 +621,11 @@ export const connectWebSocket = (conversationId) => (dispatch) => {
               sender_name: senderName,
               timestamp,
             },
-          })
+          }),
         );
       }
     } catch (err) {
-      console.error("Error normalizing websocket message:", err);
+      console.error("Error normalising WebSocket message:", err);
     }
   };
 
@@ -566,13 +653,12 @@ export const sendWebSocketMessage = (message) => (dispatch) => {
   const sent = wsManager.sendMessage(message);
   if (!sent) {
     dispatch(
-      setWebSocketError("Failed to send message - WebSocket not connected")
+      setWebSocketError("Failed to send message — WebSocket not connected"),
     );
   }
   return sent;
 };
 
-// Export WebSocket manager for direct access if needed
 export { wsManager };
 
 export default messengerSlice.reducer;

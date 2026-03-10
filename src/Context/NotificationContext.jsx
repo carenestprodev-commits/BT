@@ -59,6 +59,7 @@ export const NotificationProvider = ({ children }) => {
     const token = getAccessToken();
     if (!token) {
       console.warn("⚠️ No access token found for notifications");
+      setIsDegraded(true);
       return;
     }
 
@@ -66,7 +67,7 @@ export const NotificationProvider = ({ children }) => {
     const wsUrl = `${wsHost}/ws/notifications/?token=${token}`;
 
     try {
-      console.log("🔌 Attempting WebSocket connection...");
+      console.log("🔌 Attempting WebSocket connection to:", wsUrl);
       const ws = new WebSocket(wsUrl);
       socketRef.current = ws;
 
@@ -107,7 +108,7 @@ export const NotificationProvider = ({ children }) => {
       };
 
       ws.onclose = (event) => {
-        console.log("🔌 WebSocket closed:", event.code);
+        console.log("🔌 WebSocket closed:", event.code, event.reason);
         setIsConnected(false);
 
         // Don't reconnect if token is invalid (4001, 4003)
@@ -115,6 +116,28 @@ export const NotificationProvider = ({ children }) => {
           console.warn(
             "🔐 Token invalid/expired, stopping reconnection attempts",
           );
+          setIsDegraded(true);
+          return;
+        }
+
+        // Don't reconnect if WebSocket server not available (1006, 1011)
+        if ([1006, 1011].includes(event.code)) {
+          console.warn(
+            "⚠️ WebSocket server unavailable, activating degraded mode",
+          );
+          setIsDegraded(true);
+          // Still attempt reconnection but less aggressively
+          if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+            const backoff = calculateBackoff();
+            console.log(
+              `⏱️ Retrying in ${backoff}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`,
+            );
+            reconnectAttemptsRef.current += 1;
+
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connectWebSocket();
+            }, backoff);
+          }
           return;
         }
 
@@ -134,9 +157,14 @@ export const NotificationProvider = ({ children }) => {
 
       ws.onerror = (err) => {
         console.error("❌ WebSocket error:", err);
+        console.warn(
+          "⚠️ WebSocket connection failed, falling back to degraded mode",
+        );
+        setIsDegraded(true);
       };
     } catch (err) {
       console.error("❌ Failed to create WebSocket:", err);
+      setIsDegraded(true);
     }
   }, [getAccessToken, getWSHost, calculateBackoff]);
 

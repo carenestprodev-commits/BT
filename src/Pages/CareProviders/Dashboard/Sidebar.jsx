@@ -68,17 +68,34 @@ function Sidebar({ active = "Home", onNav }) {
   React.useEffect(() => {
     const fetchProfileCompletion = async () => {
       try {
-        const response = await fetchWithAuth("/api/profile/completion");
+        const baseUrl = import.meta.env.VITE_API_BASE_URL;
+        // Use the correct endpoint path with provider context
+        const response = await fetchWithAuth(
+          `${baseUrl}/api/provider/profile/completion/`,
+        );
 
         if (!response.ok) {
           throw new Error(`API returned status ${response.status}`);
         }
 
+        // Check if we got HTML instead of JSON (this means endpoint doesn't exist)
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          console.warn(
+            "Endpoint returned non-JSON response, profile completion unavailable",
+          );
+          setProfileCompletion(null);
+          return;
+        }
+
         const data = await response.json();
-        setProfileCompletion(data.percentage);
+        if (data.percentage !== undefined) {
+          setProfileCompletion(data.percentage);
+        }
       } catch (error) {
         console.error("Failed to fetch profile completion", error);
         // Silently fail – UI should not break
+        setProfileCompletion(null);
       }
     };
 
