@@ -14,6 +14,7 @@ import {
   clearSendMessageError,
 } from "../../../Redux/Messenger";
 import {
+  fetchActivityPaymentPreview,
   initiateActivityPayment,
   clearPaymentState,
   clearActivityStarted,
@@ -21,6 +22,7 @@ import {
 } from "../../../Redux/StartActivity";
 import { endActivity, startActivity } from "../../../Redux/StartActivity";
 import { BASE_URL } from "../../../Redux/config";
+import { formatCurrencyAmount } from "../../../utils/countryHelper";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -487,8 +489,23 @@ function Message() {
     sendMessageError,
   } = useSelector((state) => state.messenger);
 
-  const { initiatingPayment, paymentError, checkoutUrl, activityStarted } =
-    useSelector((state) => state.startActivity);
+  const {
+    loadingPaymentPreview,
+    paymentPreviewError,
+    initiatingPayment,
+    paymentError,
+    checkoutUrl,
+    activityStarted,
+    currencyCode,
+    currencySymbol,
+    countryUsed,
+    localizedPerHourRate,
+    localizedTotalHours,
+    localizedSubtotal,
+    localizedServiceFee,
+    localizedTotalAmount,
+    isFallbackPrice,
+  } = useSelector((state) => state.startActivity);
 
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
@@ -536,12 +553,22 @@ function Message() {
 
   const RATE_PER_HOUR = currentConversation?.hourly_rate || 1;
   const SERVICE_FEE = 7;
-  const calculatedTotal = RATE_PER_HOUR * totalHours + SERVICE_FEE;
+  const displayHours = Number(localizedTotalHours ?? totalHours);
+  const calculatedSubtotal = RATE_PER_HOUR * displayHours;
+  const calculatedTotal = calculatedSubtotal + SERVICE_FEE;
+  const uiCurrencyCode = currencyCode || "USD";
+  const uiCurrencySymbol = currencySymbol || "$";
+  const displayPerHourRate = localizedPerHourRate ?? RATE_PER_HOUR;
+  const displaySubtotal =
+    localizedSubtotal ?? displayPerHourRate * displayHours;
+  const displayServiceFee = localizedServiceFee ?? SERVICE_FEE;
+  const displayTotal = localizedTotalAmount ?? calculatedTotal;
   const paymentDetails = {
-    rate: RATE_PER_HOUR,
-    hours: totalHours,
-    fee: SERVICE_FEE,
-    total: calculatedTotal,
+    rate: displayPerHourRate,
+    hours: displayHours,
+    subtotal: displaySubtotal,
+    fee: displayServiceFee,
+    total: displayTotal,
   };
 
   const bookingId =
@@ -601,6 +628,23 @@ function Message() {
   }, [dispatch]);
 
   useEffect(() => {
+    if (!showPayment || !bookingId) return;
+    const timeout = setTimeout(() => {
+      dispatch(fetchActivityPaymentPreview({ bookingId, totalHours }));
+    }, 250);
+    return () => clearTimeout(timeout);
+  }, [showPayment, bookingId, totalHours, dispatch]);
+
+  useEffect(() => {
+    if (localizedTotalHours != null) {
+      const parsed = Number(localizedTotalHours);
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        setTotalHours(parsed);
+      }
+    }
+  }, [localizedTotalHours]);
+
+  useEffect(() => {
     if (checkoutUrl) {
       try {
         window.open(checkoutUrl, "_blank", "noopener,noreferrer");
@@ -608,8 +652,9 @@ function Message() {
         window.location.href = checkoutUrl;
       }
       setShowPayment(false);
+      dispatch(clearPaymentState());
     }
-  }, [checkoutUrl]);
+  }, [checkoutUrl, dispatch]);
 
   const activityStartedSentForRef = useRef(null);
   useEffect(() => {
@@ -787,8 +832,8 @@ function Message() {
   };
 
   const handleProceedToPayment = async () => {
-    if (!currentConversation || totalHours < 1) {
-      alert("Please enter valid hours");
+    if (!currentConversation) {
+      alert("No active conversation selected");
       return;
     }
     try {
@@ -797,7 +842,6 @@ function Message() {
           bookingId,
           totalHours,
           paymentGateway: "stripe",
-          perHourRate: RATE_PER_HOUR,
         }),
       );
       if (!initiateActivityPayment.fulfilled.match(result)) {
@@ -1205,6 +1249,7 @@ function Message() {
               <button
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
                 onClick={() => {
+                  dispatch(clearPaymentState());
                   setShowPayment(false);
                   setPaymentSuccess(false);
                   setTotalHours(1);
@@ -1224,27 +1269,47 @@ function Message() {
                     <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
                       <span className="text-gray-500">Rate per hour</span>
                       <span className="text-gray-800 font-semibold">
-                        ${paymentDetails.rate}
+                        {formatCurrencyAmount(
+                          paymentDetails.rate,
+                          uiCurrencyCode,
+                          uiCurrencySymbol,
+                        )}
                       </span>
                     </div>
                     <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
                       <span className="text-gray-500">Total hours</span>
                       <input
                         className="bg-white border border-gray-300 rounded w-20 px-2 py-1 text-gray-800 font-semibold text-right text-sm"
-                        type="number"
-                        min="1"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={totalHours}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) =>
                           setTotalHours(
-                            Math.max(1, parseInt(e.target.value) || 1),
+                            Math.max(1, parseInt(e.target.value, 10) || 1),
                           )
                         }
                       />
                     </div>
                     <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
+                      <span className="text-gray-500">Subtotal</span>
+                      <span className="text-gray-800 font-semibold">
+                        {formatCurrencyAmount(
+                          paymentDetails.subtotal,
+                          uiCurrencyCode,
+                          uiCurrencySymbol,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
                       <span className="text-gray-500">Service Fee</span>
                       <span className="text-gray-800 font-semibold">
-                        ${paymentDetails.fee}
+                        {formatCurrencyAmount(
+                          paymentDetails.fee,
+                          uiCurrencyCode,
+                          uiCurrencySymbol,
+                        )}
                       </span>
                     </div>
                     <div className="border-t border-gray-200 my-3"></div>
@@ -1253,10 +1318,36 @@ function Message() {
                         Total Amount
                       </span>
                       <span className="text-[#0d99c9] text-lg sm:text-xl font-bold">
-                        ${paymentDetails.total.toFixed(2)}
+                        {formatCurrencyAmount(
+                          paymentDetails.total,
+                          uiCurrencyCode,
+                          uiCurrencySymbol,
+                        )}
                       </span>
                     </div>
                   </div>
+                  {countryUsed && (
+                    <p className="text-xs text-gray-500 mb-4">
+                      Localized for {countryUsed}
+                      {isFallbackPrice ? " (fallback pricing)" : ""}
+                    </p>
+                  )}
+                  {!countryUsed && (
+                    <p className="text-xs text-gray-500 mb-4">
+                      Calculated from completed activity logs
+                    </p>
+                  )}
+                  {loadingPaymentPreview && (
+                    <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded text-blue-700 text-xs sm:text-sm">
+                      Loading payment breakdown...
+                    </div>
+                  )}
+                  {paymentPreviewError && (
+                    <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded text-amber-700 text-xs sm:text-sm">
+                      Could not load server preview. Final charge will still use
+                      server-calculated totals.
+                    </div>
+                  )}
                   {paymentError && (
                     <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-xs sm:text-sm">
                       {paymentError}
@@ -1265,13 +1356,14 @@ function Message() {
                   <button
                     className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition mb-3 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                     onClick={handleProceedToPayment}
-                    disabled={initiatingPayment || totalHours < 1}
+                    disabled={initiatingPayment || loadingPaymentPreview}
                   >
                     {initiatingPayment ? "Processing..." : "Proceed to Payment"}
                   </button>
                   <button
                     className="w-full border border-[#0d99c9] text-[#0d99c9] py-3 rounded-md font-semibold bg-white hover:bg-[#f7fafd] transition disabled:opacity-50 text-sm sm:text-base"
                     onClick={() => {
+                      dispatch(clearPaymentState());
                       setShowPayment(false);
                       setPaymentSuccess(false);
                       setTotalHours(1);
@@ -1301,6 +1393,7 @@ function Message() {
                   <button
                     className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition text-sm sm:text-base"
                     onClick={() => {
+                      dispatch(clearPaymentState());
                       setShowPayment(false);
                       setPaymentSuccess(false);
                       setTotalHours(1);

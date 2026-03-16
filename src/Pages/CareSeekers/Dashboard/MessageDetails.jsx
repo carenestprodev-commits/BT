@@ -13,6 +13,7 @@ import {
   clearSendMessageError,
 } from "../../../Redux/Messenger";
 import {
+  fetchActivityPaymentPreview,
   initiateActivityPayment,
   startActivity,
   endActivity,
@@ -25,6 +26,7 @@ import {
   clearProviderDetails,
 } from "../../../Redux/ProvidersDetails";
 import { BASE_URL } from "../../../Redux/config";
+import { formatCurrencyAmount } from "../../../utils/countryHelper";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 
 const resolveImage = (url) => {
@@ -109,11 +111,22 @@ function MessageDetails() {
   );
 
   const {
+    loadingPaymentPreview,
+    paymentPreviewError,
     initiatingPayment,
     paymentError,
     checkoutUrl,
     activityStarted,
     activityEnded,
+    currencyCode,
+    currencySymbol,
+    countryUsed,
+    localizedPerHourRate,
+    localizedTotalHours,
+    localizedSubtotal,
+    localizedServiceFee,
+    localizedTotalAmount,
+    isFallbackPrice,
   } = useSelector((state) => state.startActivity);
 
   // Local state
@@ -158,15 +171,39 @@ function MessageDetails() {
   // Service fee is 15% of total
   const perHourRate =
     currentConversation?.hourly_rate || providerDetails?.hourly_rate || 0;
-  const serviceFeePercentage = 15;
-  const subtotal = perHourRate * totalHours;
-  const serviceFee = (subtotal * serviceFeePercentage) / 100;
+  const serviceFeeFlat = 7;
+  const displayHours = Number(localizedTotalHours ?? totalHours);
+  const subtotal = perHourRate * displayHours;
+  const serviceFee = serviceFeeFlat;
   const calculatedTotal = subtotal + serviceFee;
+  const uiCurrencyCode = currencyCode || "USD";
+  const uiCurrencySymbol = currencySymbol || "$";
+  const displayPerHourRate = localizedPerHourRate ?? perHourRate;
+  const displaySubtotal = localizedSubtotal ?? subtotal;
+  const displayServiceFee = localizedServiceFee ?? serviceFee;
+  const displayTotal = localizedTotalAmount ?? calculatedTotal;
 
   const bookingId =
     currentConversation?.booking ||
     currentConversation?.booking_id ||
     currentConversation?.id;
+
+  useEffect(() => {
+    if (!showPayment || !bookingId) return;
+    const timeout = setTimeout(() => {
+      dispatch(fetchActivityPaymentPreview({ bookingId, totalHours }));
+    }, 250);
+    return () => clearTimeout(timeout);
+  }, [showPayment, bookingId, totalHours, dispatch]);
+
+  useEffect(() => {
+    if (localizedTotalHours != null) {
+      const parsed = Number(localizedTotalHours);
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        setTotalHours(parsed);
+      }
+    }
+  }, [localizedTotalHours]);
 
   // Initialize user and load data
   useEffect(() => {
@@ -228,8 +265,9 @@ function MessageDetails() {
         window.location.href = checkoutUrl;
       }
       setShowPayment(false);
+      dispatch(clearPaymentState());
     }
-  }, [checkoutUrl]);
+  }, [checkoutUrl, dispatch]);
 
   // Handle activity started — send system message, then clear flags
   useEffect(() => {
@@ -371,8 +409,8 @@ function MessageDetails() {
   };
 
   const handleProceedToPayment = async () => {
-    if (!currentConversation || totalHours < 1) {
-      alert("Please enter valid hours");
+    if (!currentConversation) {
+      alert("No active conversation selected");
       return;
     }
 
@@ -382,7 +420,6 @@ function MessageDetails() {
           bookingId,
           totalHours,
           paymentGateway: "stripe",
-          perHourRate: perHourRate,
         }),
       );
 
@@ -786,6 +823,7 @@ function MessageDetails() {
               <button
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0d99c9] rounded p-1 transition"
                 onClick={() => {
+                  dispatch(clearPaymentState());
                   setShowPayment(false);
                   setPaymentSuccess(false);
                   setTotalHours(1);
@@ -820,7 +858,11 @@ function MessageDetails() {
                           Rate per hour
                         </span>
                         <span className="text-gray-800 font-semibold text-lg">
-                          ₦{perHourRate.toLocaleString()}
+                          {formatCurrencyAmount(
+                            displayPerHourRate,
+                            uiCurrencyCode,
+                            uiCurrencySymbol,
+                          )}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -833,12 +875,14 @@ function MessageDetails() {
                         <input
                           id="total-hours"
                           className="bg-white border-2 border-gray-300 rounded-lg w-20 px-3 py-2 text-gray-800 font-semibold text-right text-sm focus:outline-none focus:border-[#0d99c9] focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition"
-                          type="number"
-                          min="1"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={totalHours}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) =>
                             setTotalHours(
-                              Math.max(1, parseInt(e.target.value) || 1),
+                              Math.max(1, parseInt(e.target.value, 10) || 1),
                             )
                           }
                           aria-label="Total hours for service"
@@ -850,23 +894,23 @@ function MessageDetails() {
                           Subtotal
                         </span>
                         <span className="text-gray-800 font-semibold">
-                          ₦
-                          {subtotal.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatCurrencyAmount(
+                            displaySubtotal,
+                            uiCurrencyCode,
+                            uiCurrencySymbol,
+                          )}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600 text-sm font-medium">
-                          Service Fee (15%)
+                          Service Fee
                         </span>
                         <span className="text-[#0d99c9] font-semibold">
-                          ₦
-                          {serviceFee.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatCurrencyAmount(
+                            displayServiceFee,
+                            uiCurrencyCode,
+                            uiCurrencySymbol,
+                          )}
                         </span>
                       </div>
                       <div className="border-t-2 border-gray-300 my-3"></div>
@@ -875,15 +919,43 @@ function MessageDetails() {
                           Total Amount
                         </span>
                         <span className="text-[#0d99c9] text-2xl font-bold">
-                          ₦
-                          {calculatedTotal.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatCurrencyAmount(
+                            displayTotal,
+                            uiCurrencyCode,
+                            uiCurrencySymbol,
+                          )}
                         </span>
                       </div>
                     </div>
                   </div>
+                  {countryUsed && (
+                    <p className="text-xs text-gray-500 mb-4">
+                      Localized for {countryUsed}
+                      {isFallbackPrice ? " (fallback pricing)" : ""}
+                    </p>
+                  )}
+                  {!countryUsed && (
+                    <p className="text-xs text-gray-500 mb-4">
+                      Calculated from completed activity logs
+                    </p>
+                  )}
+                  {loadingPaymentPreview && (
+                    <div
+                      className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-blue-700 text-sm"
+                      role="status"
+                    >
+                      Loading payment breakdown...
+                    </div>
+                  )}
+                  {paymentPreviewError && (
+                    <div
+                      className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded text-amber-700 text-sm"
+                      role="alert"
+                    >
+                      Could not load server preview. Final charge will still use
+                      server-calculated totals.
+                    </div>
+                  )}
                   {paymentError && (
                     <div
                       className="mb-4 p-4 bg-red-50 border-l-4 border-red-400 rounded text-red-700 text-sm"
@@ -897,7 +969,7 @@ function MessageDetails() {
                     <button
                       className="w-full bg-[#0d99c9] text-white py-3 sm:py-4 rounded-lg font-semibold hover:bg-[#007bb0] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                       onClick={handleProceedToPayment}
-                      disabled={initiatingPayment || totalHours < 1}
+                      disabled={initiatingPayment || loadingPaymentPreview}
                       aria-label="Proceed to payment"
                     >
                       {initiatingPayment ? (
@@ -912,6 +984,7 @@ function MessageDetails() {
                     <button
                       className="w-full border-2 border-[#0d99c9] text-[#0d99c9] py-3 sm:py-4 rounded-lg font-semibold bg-white hover:bg-[#f7fafd] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                       onClick={() => {
+                        dispatch(clearPaymentState());
                         setShowPayment(false);
                         setPaymentSuccess(false);
                         setTotalHours(1);
@@ -942,17 +1015,18 @@ function MessageDetails() {
                   <p className="text-gray-600 text-sm sm:text-base mb-6">
                     Your payment of{" "}
                     <span className="font-semibold">
-                      ₦
-                      {calculatedTotal.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                      {formatCurrencyAmount(
+                        displayTotal,
+                        uiCurrencyCode,
+                        uiCurrencySymbol,
+                      )}
                     </span>{" "}
                     has been processed.
                   </p>
                   <button
                     className="w-full bg-[#0d99c9] text-white py-3 sm:py-4 rounded-lg font-semibold hover:bg-[#007bb0] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition text-sm sm:text-base"
                     onClick={() => {
+                      dispatch(clearPaymentState());
                       setShowPayment(false);
                       setPaymentSuccess(false);
                       setTotalHours(1);

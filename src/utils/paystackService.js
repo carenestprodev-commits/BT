@@ -6,7 +6,12 @@
 
 import tokenService from "./tokenService";
 import { fetchWithAuth } from "../lib/fetchWithAuth";
-import { getUserCountry, detectUserCountry } from "./countryHelper";
+import {
+  getUserCountry,
+  detectUserCountry,
+  resolveCountryIso2,
+  getIso2FromCountryName,
+} from "./countryHelper";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -65,15 +70,17 @@ export const paystackService = {
       throw new Error("Invalid subscription plan selected");
     }
 
-    // Detect user's country for localized pricing
-    let country = getUserCountry();
-    if (!country) {
-      try {
-        country = await detectUserCountry();
-      } catch (error) {
-        console.warn("Country detection failed, using default:", error);
-        country = "NG"; // Default to Nigeria
-      }
+    // Prioritize registered country and normalize to ISO2 where possible
+    let country = "NG";
+    try {
+      const registeredCountry = getUserCountry();
+      country =
+        resolveCountryIso2(registeredCountry) ||
+        (await getIso2FromCountryName(registeredCountry)) ||
+        (await detectUserCountry()) ||
+        "NG";
+    } catch (error) {
+      console.warn("Country detection failed, using default:", error);
     }
 
     const response = await authRequest(
@@ -151,26 +158,28 @@ export const paystackService = {
     console.log(amount);
     console.log(bookingDetails);
 
-    if (amount == null) {
+    if (amount == null && bookingDetails?.plan_id == null) {
       throw new Error("Invalid checkout details");
     }
 
-    // Detect user's country for localized pricing
-    let country = getUserCountry();
-    if (!country) {
-      try {
-        country = await detectUserCountry();
-      } catch (error) {
-        console.warn("Country detection failed, using default:", error);
-        country = "NG"; // Default to Nigeria
-      }
+    // Prioritize registered country and normalize to ISO2 where possible
+    let country = "NG";
+    try {
+      const registeredCountry = getUserCountry();
+      country =
+        resolveCountryIso2(registeredCountry) ||
+        (await getIso2FromCountryName(registeredCountry)) ||
+        (await detectUserCountry()) ||
+        "NG";
+    } catch (error) {
+      console.warn("Country detection failed, using default:", error);
     }
 
     const response = await authRequest(`${BASE_URL}/api/payments/checkout/`, {
       method: "POST",
       body: JSON.stringify({
         booking_id: bookingId,
-        amount,
+        ...(amount != null ? { amount } : {}),
         payment_method: "paystack",
         country: country, // ✅ Include country for localized pricing
         ...bookingDetails,
