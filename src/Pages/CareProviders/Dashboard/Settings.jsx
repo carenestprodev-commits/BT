@@ -11,6 +11,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
 import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
 import {
+  getUserCountry,
+  resolveCountryIso2,
+  getIso2FromCountryName,
+  detectUserCountry,
+  formatCurrencyAmount,
+} from "../../../utils/countryHelper";
+import {
   COUNTRY_OPTIONS,
   STATE_OPTIONS,
   LANGUAGE_OPTIONS,
@@ -340,9 +347,16 @@ function Settings() {
       try {
         setLoading(true);
 
-        const res = await fetchWithAuth(
-          API_URL + "/api/payments/subscription-plans/",
-        );
+        const registeredCountry = getUserCountry();
+        const countryCode =
+          resolveCountryIso2(registeredCountry) ||
+          (await getIso2FromCountryName(registeredCountry)) ||
+          (await detectUserCountry()) ||
+          "NG";
+        const plansUrl = new URL(API_URL + "/api/payments/subscription-plans/");
+        plansUrl.searchParams.set("country", countryCode);
+
+        const res = await fetchWithAuth(plansUrl.toString());
         if (!res.ok) throw new Error("Failed to fetch plans");
 
         const data = await res.json();
@@ -480,7 +494,11 @@ function Settings() {
               >
                 <h3 className="font-semibold">{plan.name}</h3>
                 <p className="text-[#0093d1] font-bold">
-                  ₦{plan.price.toLocaleString()}
+                  {formatCurrencyAmount(
+                    plan.localized_price ?? plan.localizedPrice ?? plan.price,
+                    plan.currency_code ?? plan.currencyCode ?? "NGN",
+                    plan.currency_symbol ?? plan.currencySymbol ?? "₦",
+                  )}
                 </p>
               </div>
             ))}
@@ -1684,7 +1702,7 @@ function Settings() {
         <PaymentModal
           isOpen={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
-          plan={selectedPlan} // ✅ Pass selected plan
+          selectedPlan={selectedPlan}
         />
       )}
     </div>

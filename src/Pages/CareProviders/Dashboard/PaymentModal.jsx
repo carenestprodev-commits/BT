@@ -5,9 +5,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { initiateProviderSubscription } from "../../../Redux/ProviderPayment";
 import { formatCurrencyAmount } from "../../../utils/countryHelper";
 
-const PaymentModal = ({ isOpen, onClose, plan }) => {
+const PaymentModal = ({ isOpen, onClose, selectedPlan, plan }) => {
   const dispatch = useDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
+  const activePlan = selectedPlan || plan;
 
   // Redux slice for payment
   const {
@@ -49,10 +50,11 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
     };
   }, [isOpen, isProcessing, initiating, onClose]);
 
-  if (!isOpen || !plan) return null;
+  if (!isOpen || !activePlan) return null;
 
   // Use localized price if available, otherwise use plan price
-  const displayPrice = localizedPrice !== null ? localizedPrice : plan.price;
+  const displayPrice =
+    localizedPrice !== null ? localizedPrice : activePlan.price;
   const displayCurrency = currencyCode || "NGN";
   const displaySymbol = currencySymbol || "₦";
 
@@ -67,17 +69,17 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
     try {
       setIsProcessing(true);
 
-      console.log(plan);
-
       const result = await dispatch(
-        initiateProviderSubscription({ planType: plan.id, amount: plan.price }),
+        initiateProviderSubscription({ planType: activePlan.id }),
       ).unwrap();
 
-      console.log(result);
-      // ✅ Redirect immediately
-      // window.location.href = result.authorizationUrl;
+      if (result?.authorizationUrl) {
+        window.location.href = result.authorizationUrl;
+        return;
+      }
 
-      // No need to do anything else; useEffect handles redirect
+      setIsProcessing(false);
+      alert("Payment initiation failed. No checkout URL returned");
     } catch (err) {
       alert(err.message || "Payment initiation failed");
       setIsProcessing(false);
