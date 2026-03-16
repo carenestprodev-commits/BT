@@ -3,6 +3,25 @@
  * Handles user country detection and localization
  */
 
+const FALLBACK_COUNTRY_ALIASES = {
+  nigeria: "NG",
+  "united states": "US",
+  usa: "US",
+  "united kingdom": "GB",
+  uk: "GB",
+  ghana: "GH",
+  kenya: "KE",
+  "south africa": "ZA",
+  canada: "CA",
+  australia: "AU",
+  india: "IN",
+};
+
+let countryNameToIsoCache = null;
+
+const normalizeCountryInput = (value) =>
+  (value || "").toString().trim().toLowerCase().replace(/\s+/g, " ");
+
 /**
  * Get user's country from profile
  * Supports multiple country field names for flexibility
@@ -24,6 +43,73 @@ export const getUserCountry = () => {
     console.warn("Failed to get user country from profile:", error);
     return null;
   }
+};
+
+/**
+ * Resolve ISO2 code from an input string.
+ * Supports direct ISO2 values and locale formats like en_US / en-US.
+ * @param {string|null|undefined} input
+ * @returns {string|null}
+ */
+export const resolveCountryIso2 = (input) => {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  if (/^[a-z]{2}$/i.test(trimmed)) {
+    return trimmed.toUpperCase();
+  }
+
+  const localeMatch = trimmed.match(/[_-]([a-z]{2})$/i);
+  if (localeMatch?.[1]) {
+    return localeMatch[1].toUpperCase();
+  }
+
+  return null;
+};
+
+const buildCountryNameCache = () => {
+  if (countryNameToIsoCache) return countryNameToIsoCache;
+  countryNameToIsoCache = new Map();
+
+  const add = (name, code) => {
+    const key = normalizeCountryInput(name);
+    if (key && code) countryNameToIsoCache.set(key, code.toUpperCase());
+  };
+
+  Object.entries(FALLBACK_COUNTRY_ALIASES).forEach(([name, code]) =>
+    add(name, code),
+  );
+
+  try {
+    if (
+      typeof Intl !== "undefined" &&
+      typeof Intl.DisplayNames === "function" &&
+      typeof Intl.supportedValuesOf === "function"
+    ) {
+      const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
+      Intl.supportedValuesOf("region").forEach((code) => {
+        add(regionNames.of(code), code);
+      });
+    }
+  } catch (error) {
+    console.warn("Failed to initialize country ISO cache:", error);
+  }
+
+  return countryNameToIsoCache;
+};
+
+/**
+ * Convert country name to ISO2 when possible.
+ * @param {string|null|undefined} countryName
+ * @returns {Promise<string|null>}
+ */
+export const getIso2FromCountryName = async (countryName) => {
+  const normalized = normalizeCountryInput(countryName);
+  if (!normalized) return null;
+
+  const cache = buildCountryNameCache();
+  return cache.get(normalized) || null;
 };
 
 /**
@@ -58,16 +144,19 @@ export const getCountryFromIP = async () => {
  * @returns {Promise<string>} ISO2 country code (guaranteed non-null)
  */
 export const detectUserCountry = async () => {
-  // Try user profile first (no async needed)
+  // Try user profile first
   const profileCountry = getUserCountry();
-  if (profileCountry) {
-    return profileCountry;
+  const profileIso2 =
+    resolveCountryIso2(profileCountry) ||
+    (await getIso2FromCountryName(profileCountry));
+  if (profileIso2) {
+    return profileIso2;
   }
 
   // Fallback to IP detection
   const ipCountry = await getCountryFromIP();
-  if (ipCountry) {
-    return ipCountry;
+  if (ipCountry && /^[A-Za-z]{2}$/.test(ipCountry)) {
+    return ipCountry.toUpperCase();
   }
 
   // Default fallback
@@ -146,6 +235,8 @@ export const isGatewayAvailabilityError = (error) => {
 
 export default {
   getUserCountry,
+  resolveCountryIso2,
+  getIso2FromCountryName,
   getCountryFromIP,
   detectUserCountry,
   formatCurrencyAmount,

@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { initiateSeekerCheckout } from "../../../Redux/SeekerPayment";
-import { nairaToKobo } from "../../../utils/paystackService";
 import { fetchWithAuth } from "../../../lib/fetchWithAuth";
+import {
+  getUserCountry,
+  resolveCountryIso2,
+  getIso2FromCountryName,
+  detectUserCountry,
+  formatCurrencyAmount,
+} from "../../../utils/countryHelper";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -22,9 +28,16 @@ function SubscriptionModal({ onClose, imageSrc }) {
   useEffect(() => {
     const loadPlans = async () => {
       try {
-        const res = await fetchWithAuth(
-            API_URL + "/api/payments/user-subscription-plans/"
-        );
+        const registeredCountry = getUserCountry();
+        const countryCode =
+          resolveCountryIso2(registeredCountry) ||
+          (await getIso2FromCountryName(registeredCountry)) ||
+          (await detectUserCountry()) ||
+          "NG";
+        const plansUrl = new URL(API_URL + "/api/payments/user-subscription-plans/");
+        plansUrl.searchParams.set("country", countryCode);
+
+        const res = await fetchWithAuth(plansUrl.toString());
 
         if (!res.ok) throw new Error("Failed to fetch plans");
 
@@ -64,7 +77,6 @@ function SubscriptionModal({ onClose, imageSrc }) {
       const result = await dispatch(
           initiateSeekerCheckout({
             bookingId: 0,
-            amount: nairaToKobo(plan.price),
             bookingDetails: {
               plan_id: plan.id,
               payment_gateway: "paystack",
@@ -74,8 +86,8 @@ function SubscriptionModal({ onClose, imageSrc }) {
 
       console.log(result);
 
-      if (result.checkout_url) {
-        window.location.href = result.checkout_url;
+      if (result.authorizationUrl) {
+        window.location.href = result.authorizationUrl;
       }
     } catch (err) {
       console.error("Checkout failed", err);
@@ -129,7 +141,11 @@ function SubscriptionModal({ onClose, imageSrc }) {
                           <h3 className="font-medium mb-2">{plan.name}</h3>
 
                           <div className="text-3xl font-bold mb-1">
-                            ₦{plan.price.toLocaleString()}
+                            {formatCurrencyAmount(
+                                plan.localized_price ?? plan.localizedPrice ?? plan.price,
+                                plan.currency_code ?? plan.currencyCode ?? "NGN",
+                                plan.currency_symbol ?? plan.currencySymbol ?? "₦"
+                            )}
                           </div>
 
                           <p

@@ -1,6 +1,40 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL, getAuthHeaders } from "./config";
 
+// Fetch server-calculated payment preview for an activity booking
+export const fetchActivityPaymentPreview = createAsyncThunk(
+  "startActivity/fetchPaymentPreview",
+  async ({ bookingId, totalHours }, { rejectWithValue }) => {
+    try {
+      const previewUrl = new URL(
+        `${BASE_URL}/api/bookings/${bookingId}/initiate-payment/`,
+      );
+      if (totalHours !== undefined && totalHours !== null && totalHours !== "") {
+        previewUrl.searchParams.set("total_hours", String(totalHours));
+      }
+
+      const res = await fetch(
+        previewUrl.toString(),
+        {
+          method: "GET",
+          headers: {
+            ...getAuthHeaders(),
+          },
+        },
+      );
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        return rejectWithValue(errorText);
+      }
+
+      return await res.json();
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
 // Initiate payment for starting an activity
 export const initiateActivityPayment = createAsyncThunk(
   "startActivity/initiatePayment",
@@ -18,8 +52,8 @@ export const initiateActivityPayment = createAsyncThunk(
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            per_hour_rate: perHourRate !== null ? perHourRate : undefined,
-            total_hours: totalHours,
+            ...(perHourRate !== null ? { per_hour_rate: perHourRate } : {}),
+            ...(totalHours !== undefined ? { total_hours: totalHours } : {}),
             payment_gateway: paymentGateway,
           }),
         }
@@ -92,9 +126,20 @@ export const endActivity = createAsyncThunk(
 
 const initialState = {
   // Payment initiation
+  loadingPaymentPreview: false,
+  paymentPreviewError: null,
   initiatingPayment: false,
   paymentError: null,
   checkoutUrl: null,
+  currencyCode: "USD",
+  currencySymbol: "$",
+  countryUsed: null,
+  localizedPerHourRate: null,
+  localizedTotalHours: null,
+  localizedSubtotal: null,
+  localizedServiceFee: null,
+  localizedTotalAmount: null,
+  isFallbackPrice: false,
   // Ending activity
   endingActivity: false,
   endActivityError: null,
@@ -117,9 +162,20 @@ const startActivitySlice = createSlice({
   reducers: {
     // Reset payment state
     clearPaymentState: (state) => {
+      state.loadingPaymentPreview = false;
+      state.paymentPreviewError = null;
       state.initiatingPayment = false;
       state.paymentError = null;
       state.checkoutUrl = null;
+      state.currencyCode = "USD";
+      state.currencySymbol = "$";
+      state.countryUsed = null;
+      state.localizedPerHourRate = null;
+      state.localizedTotalHours = null;
+      state.localizedSubtotal = null;
+      state.localizedServiceFee = null;
+      state.localizedTotalAmount = null;
+      state.isFallbackPrice = false;
     },
 
     // Mark activity as started (called when returning from Stripe)
@@ -146,15 +202,64 @@ const startActivitySlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Fetch payment preview
+      .addCase(fetchActivityPaymentPreview.pending, (state) => {
+        state.loadingPaymentPreview = true;
+        state.paymentPreviewError = null;
+        state.paymentError = null;
+      })
+      .addCase(fetchActivityPaymentPreview.fulfilled, (state, action) => {
+        state.loadingPaymentPreview = false;
+        const payload = action.payload || {};
+        // Backend returns system-calculated values from activity logs
+        state.localizedPerHourRate = payload.per_hour_rate ?? null;
+        state.localizedTotalHours = payload.total_hours ?? null;
+        state.localizedSubtotal = payload.subtotal ?? null;
+        state.localizedServiceFee = payload.service_fee ?? null;
+        state.localizedTotalAmount = payload.total_amount ?? null;
+      })
+      .addCase(fetchActivityPaymentPreview.rejected, (state, action) => {
+        state.loadingPaymentPreview = false;
+        state.paymentPreviewError =
+          action.payload || "Failed to load payment preview";
+      })
       // Initiate payment
       .addCase(initiateActivityPayment.pending, (state) => {
         state.initiatingPayment = true;
         state.paymentError = null;
         state.checkoutUrl = null;
+        state.currencyCode = "USD";
+        state.currencySymbol = "$";
+        state.countryUsed = null;
+        state.isFallbackPrice = false;
       })
       .addCase(initiateActivityPayment.fulfilled, (state, action) => {
         state.initiatingPayment = false;
-        state.checkoutUrl = action.payload?.checkout_url || null;
+        const payload = action.payload || {};
+        state.checkoutUrl =
+          payload.checkout_url ||
+          payload.authorization_url ||
+          payload.payment_url ||
+          payload.url ||
+          null;
+        state.currencyCode = payload.currency_code || state.currencyCode;
+        state.currencySymbol = payload.currency_symbol || state.currencySymbol;
+        state.countryUsed = payload.country_used || null;
+        state.localizedPerHourRate =
+          payload.localized_per_hour_rate ?? payload.per_hour_rate ?? null;
+        state.localizedSubtotal =
+          payload.localized_subtotal ?? payload.subtotal ?? null;
+        state.localizedServiceFee =
+          payload.localized_service_fee ??
+          payload.service_fee ??
+          payload.fee ??
+          null;
+        state.localizedTotalAmount =
+          payload.localized_total_amount ??
+          payload.total_amount ??
+          payload.amount ??
+          null;
+        state.isFallbackPrice = payload.is_fallback_price || false;
       })
       .addCase(initiateActivityPayment.rejected, (state, action) => {
         state.initiatingPayment = false;
