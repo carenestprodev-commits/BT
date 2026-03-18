@@ -122,7 +122,6 @@ function MessageDetails() {
     currencySymbol,
     countryUsed,
     localizedPerHourRate,
-    localizedTotalHours,
     localizedSubtotal,
     localizedServiceFee,
     localizedTotalAmount,
@@ -135,7 +134,7 @@ function MessageDetails() {
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [totalHours, setTotalHours] = useState(1);
+  const [totalHours, setTotalHours] = useState("1");
   const [messageCount, setMessageCount] = useState(0);
   const [showVerification, setShowVerification] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -172,7 +171,7 @@ function MessageDetails() {
   const perHourRate =
     currentConversation?.hourly_rate || providerDetails?.hourly_rate || 0;
   const serviceFeeFlat = 7;
-  const displayHours = Number(localizedTotalHours ?? totalHours);
+  const displayHours = totalHours === "" ? 0 : Number(totalHours);
   const subtotal = perHourRate * displayHours;
   const serviceFee = serviceFeeFlat;
   const calculatedTotal = subtotal + serviceFee;
@@ -190,20 +189,15 @@ function MessageDetails() {
 
   useEffect(() => {
     if (!showPayment || !bookingId) return;
+    const parsedHours = Number.parseInt(totalHours, 10);
+    if (!Number.isFinite(parsedHours) || parsedHours < 1) return;
     const timeout = setTimeout(() => {
-      dispatch(fetchActivityPaymentPreview({ bookingId, totalHours }));
+      dispatch(
+        fetchActivityPaymentPreview({ bookingId, totalHours: parsedHours }),
+      );
     }, 250);
     return () => clearTimeout(timeout);
   }, [showPayment, bookingId, totalHours, dispatch]);
-
-  useEffect(() => {
-    if (localizedTotalHours != null) {
-      const parsed = Number(localizedTotalHours);
-      if (!Number.isNaN(parsed) && parsed > 0) {
-        setTotalHours(parsed);
-      }
-    }
-  }, [localizedTotalHours]);
 
   // Initialize user and load data
   useEffect(() => {
@@ -413,12 +407,17 @@ function MessageDetails() {
       alert("No active conversation selected");
       return;
     }
+    const parsedHours = Number.parseInt(totalHours, 10);
+    if (!Number.isFinite(parsedHours) || parsedHours < 1) {
+      alert("Total hours must be at least 1.");
+      return;
+    }
 
     try {
       const result = await dispatch(
         initiateActivityPayment({
           bookingId,
-          totalHours,
+          totalHours: parsedHours,
           paymentGateway: "stripe",
         }),
       );
@@ -826,7 +825,7 @@ function MessageDetails() {
                   dispatch(clearPaymentState());
                   setShowPayment(false);
                   setPaymentSuccess(false);
-                  setTotalHours(1);
+                  setTotalHours("1");
                 }}
                 aria-label="Close payment modal"
               >
@@ -881,9 +880,7 @@ function MessageDetails() {
                           value={totalHours}
                           onFocus={(e) => e.target.select()}
                           onChange={(e) =>
-                            setTotalHours(
-                              Math.max(1, parseInt(e.target.value, 10) || 1),
-                            )
+                            setTotalHours(e.target.value.replace(/\D/g, ""))
                           }
                           aria-label="Total hours for service"
                         />
@@ -987,7 +984,7 @@ function MessageDetails() {
                         dispatch(clearPaymentState());
                         setShowPayment(false);
                         setPaymentSuccess(false);
-                        setTotalHours(1);
+                        setTotalHours("1");
                       }}
                       disabled={initiatingPayment}
                       aria-label="Cancel payment"
@@ -1029,7 +1026,7 @@ function MessageDetails() {
                       dispatch(clearPaymentState());
                       setShowPayment(false);
                       setPaymentSuccess(false);
-                      setTotalHours(1);
+                      setTotalHours("1");
                     }}
                     aria-label="Close payment success modal"
                   >
