@@ -500,7 +500,6 @@ function Message() {
     currencySymbol,
     countryUsed,
     localizedPerHourRate,
-    localizedTotalHours,
     localizedSubtotal,
     localizedServiceFee,
     localizedTotalAmount,
@@ -513,7 +512,7 @@ function Message() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [totalHours, setTotalHours] = useState(1);
+  const [totalHours, setTotalHours] = useState("1");
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
@@ -553,7 +552,7 @@ function Message() {
 
   const RATE_PER_HOUR = currentConversation?.hourly_rate || 1;
   const SERVICE_FEE = 7;
-  const displayHours = Number(localizedTotalHours ?? totalHours);
+  const displayHours = totalHours === "" ? 0 : Number(totalHours);
   const calculatedSubtotal = RATE_PER_HOUR * displayHours;
   const calculatedTotal = calculatedSubtotal + SERVICE_FEE;
   const uiCurrencyCode = currencyCode || "USD";
@@ -629,20 +628,15 @@ function Message() {
 
   useEffect(() => {
     if (!showPayment || !bookingId) return;
+    const parsedHours = Number.parseInt(totalHours, 10);
+    if (!Number.isFinite(parsedHours) || parsedHours < 1) return;
     const timeout = setTimeout(() => {
-      dispatch(fetchActivityPaymentPreview({ bookingId, totalHours }));
+      dispatch(
+        fetchActivityPaymentPreview({ bookingId, totalHours: parsedHours }),
+      );
     }, 250);
     return () => clearTimeout(timeout);
   }, [showPayment, bookingId, totalHours, dispatch]);
-
-  useEffect(() => {
-    if (localizedTotalHours != null) {
-      const parsed = Number(localizedTotalHours);
-      if (!Number.isNaN(parsed) && parsed > 0) {
-        setTotalHours(parsed);
-      }
-    }
-  }, [localizedTotalHours]);
 
   useEffect(() => {
     if (checkoutUrl) {
@@ -836,11 +830,16 @@ function Message() {
       alert("No active conversation selected");
       return;
     }
+    const parsedHours = Number.parseInt(totalHours, 10);
+    if (!Number.isFinite(parsedHours) || parsedHours < 1) {
+      alert("Total hours must be at least 1.");
+      return;
+    }
     try {
       const result = await dispatch(
         initiateActivityPayment({
           bookingId,
-          totalHours,
+          totalHours: parsedHours,
           paymentGateway: "stripe",
         }),
       );
@@ -1252,7 +1251,7 @@ function Message() {
                   dispatch(clearPaymentState());
                   setShowPayment(false);
                   setPaymentSuccess(false);
-                  setTotalHours(1);
+                  setTotalHours("1");
                 }}
               >
                 &times;
@@ -1286,9 +1285,7 @@ function Message() {
                         value={totalHours}
                         onFocus={(e) => e.target.select()}
                         onChange={(e) =>
-                          setTotalHours(
-                            Math.max(1, parseInt(e.target.value, 10) || 1),
-                          )
+                          setTotalHours(e.target.value.replace(/\D/g, ""))
                         }
                       />
                     </div>
@@ -1366,7 +1363,7 @@ function Message() {
                       dispatch(clearPaymentState());
                       setShowPayment(false);
                       setPaymentSuccess(false);
-                      setTotalHours(1);
+                      setTotalHours("1");
                     }}
                     disabled={initiatingPayment}
                   >
@@ -1396,7 +1393,7 @@ function Message() {
                       dispatch(clearPaymentState());
                       setShowPayment(false);
                       setPaymentSuccess(false);
-                      setTotalHours(1);
+                      setTotalHours("1");
                     }}
                   >
                     Close

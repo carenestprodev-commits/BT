@@ -1,5 +1,63 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL, getAuthHeaders } from "./config";
+import { getCurrencySymbol } from "../utils/countryHelper";
+
+const COUNTRY_NAME_TO_ISO2 = {
+  nigeria: "NG",
+  "united states": "US",
+  usa: "US",
+  "united kingdom": "GB",
+  uk: "GB",
+  ghana: "GH",
+  kenya: "KE",
+  "south africa": "ZA",
+  canada: "CA",
+  australia: "AU",
+  india: "IN",
+};
+
+const COUNTRY_TO_CURRENCY = {
+  NG: "NGN",
+  US: "USD",
+  GB: "GBP",
+  GH: "GHS",
+  KE: "KES",
+  ZA: "ZAR",
+  CA: "CAD",
+  AU: "AUD",
+  IN: "INR",
+};
+
+const getProfileCountryIso2 = () => {
+  try {
+    if (typeof localStorage === "undefined") return null;
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const raw =
+      user?.country_code ||
+      user?.country ||
+      user?.location?.country ||
+      user?.profile?.country ||
+      null;
+    if (!raw) return null;
+    const normalized = String(raw).trim();
+    if (/^[A-Za-z]{2}$/.test(normalized)) {
+      return normalized.toUpperCase();
+    }
+    return COUNTRY_NAME_TO_ISO2[normalized.toLowerCase()] || null;
+  } catch {
+    return null;
+  }
+};
+
+const getPaymentDefaults = () => {
+  const countryIso2 = getProfileCountryIso2();
+  const currencyCode = COUNTRY_TO_CURRENCY[countryIso2] || "USD";
+  return {
+    currencyCode,
+    currencySymbol: getCurrencySymbol(currencyCode),
+    countryUsed: countryIso2,
+  };
+};
 
 // Fetch server-calculated payment preview for an activity booking
 export const fetchActivityPaymentPreview = createAsyncThunk(
@@ -11,6 +69,10 @@ export const fetchActivityPaymentPreview = createAsyncThunk(
       );
       if (totalHours !== undefined && totalHours !== null && totalHours !== "") {
         previewUrl.searchParams.set("total_hours", String(totalHours));
+      }
+      const country = getProfileCountryIso2();
+      if (country) {
+        previewUrl.searchParams.set("country", country);
       }
 
       const res = await fetch(
@@ -43,6 +105,7 @@ export const initiateActivityPayment = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
+      const country = getProfileCountryIso2();
       const res = await fetch(
         `${BASE_URL}/api/bookings/${bookingId}/initiate-payment/`,
         {
@@ -54,6 +117,7 @@ export const initiateActivityPayment = createAsyncThunk(
           body: JSON.stringify({
             ...(perHourRate !== null ? { per_hour_rate: perHourRate } : {}),
             ...(totalHours !== undefined ? { total_hours: totalHours } : {}),
+            ...(country ? { country } : {}),
             payment_gateway: paymentGateway,
           }),
         }
@@ -131,9 +195,7 @@ const initialState = {
   initiatingPayment: false,
   paymentError: null,
   checkoutUrl: null,
-  currencyCode: "USD",
-  currencySymbol: "$",
-  countryUsed: null,
+  ...getPaymentDefaults(),
   localizedPerHourRate: null,
   localizedTotalHours: null,
   localizedSubtotal: null,
@@ -162,14 +224,15 @@ const startActivitySlice = createSlice({
   reducers: {
     // Reset payment state
     clearPaymentState: (state) => {
+      const defaults = getPaymentDefaults();
       state.loadingPaymentPreview = false;
       state.paymentPreviewError = null;
       state.initiatingPayment = false;
       state.paymentError = null;
       state.checkoutUrl = null;
-      state.currencyCode = "USD";
-      state.currencySymbol = "$";
-      state.countryUsed = null;
+      state.currencyCode = defaults.currencyCode;
+      state.currencySymbol = defaults.currencySymbol;
+      state.countryUsed = defaults.countryUsed;
       state.localizedPerHourRate = null;
       state.localizedTotalHours = null;
       state.localizedSubtotal = null;
@@ -211,12 +274,17 @@ const startActivitySlice = createSlice({
       .addCase(fetchActivityPaymentPreview.fulfilled, (state, action) => {
         state.loadingPaymentPreview = false;
         const payload = action.payload || {};
+        state.currencyCode = payload.currency_code || state.currencyCode;
+        state.currencySymbol = payload.currency_symbol || state.currencySymbol;
+        state.countryUsed =
+          payload.country_used || payload.country || state.countryUsed;
         // Backend returns system-calculated values from activity logs
         state.localizedPerHourRate = payload.per_hour_rate ?? null;
         state.localizedTotalHours = payload.total_hours ?? null;
         state.localizedSubtotal = payload.subtotal ?? null;
         state.localizedServiceFee = payload.service_fee ?? null;
         state.localizedTotalAmount = payload.total_amount ?? null;
+        state.isFallbackPrice = payload.is_fallback_price || false;
       })
       .addCase(fetchActivityPaymentPreview.rejected, (state, action) => {
         state.loadingPaymentPreview = false;
@@ -225,12 +293,13 @@ const startActivitySlice = createSlice({
       })
       // Initiate payment
       .addCase(initiateActivityPayment.pending, (state) => {
+        const defaults = getPaymentDefaults();
         state.initiatingPayment = true;
         state.paymentError = null;
         state.checkoutUrl = null;
-        state.currencyCode = "USD";
-        state.currencySymbol = "$";
-        state.countryUsed = null;
+        state.currencyCode = defaults.currencyCode;
+        state.currencySymbol = defaults.currencySymbol;
+        state.countryUsed = defaults.countryUsed;
         state.isFallbackPrice = false;
       })
       .addCase(initiateActivityPayment.fulfilled, (state, action) => {
@@ -244,7 +313,8 @@ const startActivitySlice = createSlice({
           null;
         state.currencyCode = payload.currency_code || state.currencyCode;
         state.currencySymbol = payload.currency_symbol || state.currencySymbol;
-        state.countryUsed = payload.country_used || null;
+        state.countryUsed =
+          payload.country_used || payload.country || state.countryUsed;
         state.localizedPerHourRate =
           payload.localized_per_hour_rate ?? payload.per_hour_rate ?? null;
         state.localizedSubtotal =
