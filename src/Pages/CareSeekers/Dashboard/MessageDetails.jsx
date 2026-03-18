@@ -90,6 +90,28 @@ const getCurrentUserId = () => {
 };
 
 function MessageDetails() {
+  const extractErrorMessage = (value, fallback = "Request failed.") => {
+    if (!value) return fallback;
+    if (typeof value === "string") {
+      try {
+        const parsed = JSON.parse(value);
+        if (parsed?.error) return parsed.error;
+        if (parsed?.detail) return parsed.detail;
+        if (parsed?.message) return parsed.message;
+        const first = Object.values(parsed).find((entry) =>
+          Array.isArray(entry) ? typeof entry[0] === "string" : typeof entry === "string",
+        );
+        if (Array.isArray(first)) return first[0] || fallback;
+        return first || value;
+      } catch {
+        return value;
+      }
+    }
+    if (typeof value === "object") {
+      return value.error || value.detail || value.message || fallback;
+    }
+    return fallback;
+  };
   const navigate = useNavigate();
   const params = useParams();
   const dispatch = useDispatch();
@@ -352,7 +374,7 @@ function MessageDetails() {
    * ✅ "start" → send the message + call startActivity API. NO payment modal.
    * ✅ "end"   → send the message + call endActivity API + show payment modal.
    */
-  const handleFirstMessageAction = (action) => {
+  const handleFirstMessageAction = async (action) => {
     if (action === "start") {
       // Send the queued message
       dispatch(
@@ -387,18 +409,23 @@ function MessageDetails() {
       setMessageCount(messageCount + 1);
 
       // End the activity via API
-      try {
-        if (bookingId) {
-          dispatch(endActivity(bookingId));
-        }
-      } catch (e) {
-        console.error("Failed to end activity:", e);
+      let endResult = null;
+      if (bookingId) {
+        endResult = await dispatch(endActivity(bookingId));
       }
 
       setShowActivityModal(false);
 
-      // ✅ Only "End Activity" opens the payment modal
-      setShowPayment(true);
+      if (endResult && endActivity.fulfilled.match(endResult)) {
+        // ✅ Only successful End Activity opens the payment modal
+        setShowPayment(true);
+      } else {
+        const message = extractErrorMessage(
+          endResult?.payload || endResult?.error?.message,
+          "Failed to end activity.",
+        );
+        alert(message);
+      }
     }
   };
 
@@ -452,12 +479,15 @@ function MessageDetails() {
       setMenuOpen(false);
     } else if (action === "end") {
       setMenuOpen(false);
-      try {
-        await dispatch(endActivity(bookingId));
-        // ✅ Only End Activity opens the payment modal
+      const result = await dispatch(endActivity(bookingId));
+      if (endActivity.fulfilled.match(result)) {
         setShowPayment(true);
-      } catch {
-        alert("Failed to end activity");
+      } else {
+        const message = extractErrorMessage(
+          result?.payload || result?.error?.message,
+          "Failed to end activity.",
+        );
+        alert(message);
       }
     }
   };
@@ -951,6 +981,7 @@ function MessageDetails() {
                     >
                       Could not load server preview. Final charge will still use
                       server-calculated totals.
+                      <div className="mt-1">{paymentPreviewError}</div>
                     </div>
                   )}
                   {paymentError && (

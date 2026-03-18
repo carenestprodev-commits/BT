@@ -67,6 +67,29 @@ const cleanErrorMessage = (err) => {
   return err;
 };
 
+const extractErrorMessage = (value, fallback = "Request failed.") => {
+  if (!value) return fallback;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed?.error) return parsed.error;
+      if (parsed?.detail) return parsed.detail;
+      if (parsed?.message) return parsed.message;
+      const first = Object.values(parsed).find((entry) =>
+        Array.isArray(entry) ? typeof entry[0] === "string" : typeof entry === "string",
+      );
+      if (Array.isArray(first)) return first[0] || fallback;
+      return first || value;
+    } catch {
+      return value;
+    }
+  }
+  if (typeof value === "object") {
+    return value.error || value.detail || value.message || fallback;
+  }
+  return fallback;
+};
+
 const getCurrentUserId = () => {
   try {
     const token = localStorage.getItem("access");
@@ -325,11 +348,15 @@ const MobileChatView = ({
                         className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
                         onClick={async () => {
                           setMenuOpen(false);
-                          try {
-                            await dispatch(endActivity(bookingId));
+                          const result = await dispatch(endActivity(bookingId));
+                          if (endActivity.fulfilled.match(result)) {
                             setShowPayment(true);
-                          } catch {
-                            alert("Failed to end activity");
+                          } else {
+                            const message = extractErrorMessage(
+                              result?.payload || result?.error?.message,
+                              "Failed to end activity.",
+                            );
+                            alert(message);
                           }
                         }}
                       >
@@ -1099,11 +1126,15 @@ function Message() {
                           className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
                           onClick={async () => {
                             setMenuOpen(false);
-                            try {
-                              await dispatch(endActivity(bookingId));
+                            const result = await dispatch(endActivity(bookingId));
+                            if (endActivity.fulfilled.match(result)) {
                               setShowPayment(true);
-                            } catch {
-                              alert("Failed to end activity");
+                            } else {
+                              const message = extractErrorMessage(
+                                result?.payload || result?.error?.message,
+                                "Failed to end activity.",
+                              );
+                              alert(message);
                             }
                           }}
                         >
@@ -1343,6 +1374,7 @@ function Message() {
                     <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded text-amber-700 text-xs sm:text-sm">
                       Could not load server preview. Final charge will still use
                       server-calculated totals.
+                      <div className="mt-1">{paymentPreviewError}</div>
                     </div>
                   )}
                   {paymentError && (
