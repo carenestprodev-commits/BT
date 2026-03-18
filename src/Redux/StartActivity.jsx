@@ -40,10 +40,15 @@ const getProfileCountryIso2 = () => {
       null;
     if (!raw) return null;
     const normalized = String(raw).trim();
+    const normalizedLower = normalized.toLowerCase();
+    const aliasMatch = COUNTRY_NAME_TO_ISO2[normalizedLower];
+    if (aliasMatch) {
+      return aliasMatch;
+    }
     if (/^[A-Za-z]{2}$/.test(normalized)) {
       return normalized.toUpperCase();
     }
-    return COUNTRY_NAME_TO_ISO2[normalized.toLowerCase()] || null;
+    return null;
   } catch {
     return null;
   }
