@@ -8,6 +8,10 @@ import {
   buildRegisterAndPublishPayload,
 } from "../../../Redux/CareSeekerAuth";
 import { useAuth } from "../../../Context/AuthContext";
+import {
+  isValidProfilePhoto,
+  uploadProfilePhoto,
+} from "./uploadProfilePhoto";
 
 function CareProvidersNearYou() {
   const [showSubscribePopup, setShowSubscribePopup] = React.useState(false);
@@ -23,6 +27,10 @@ function CareProvidersNearYou() {
     password: "",
     confirmPassword: "",
   });
+  const [profilePhoto, setProfilePhoto] = React.useState(null);
+  const [isSigningUp, setIsSigningUp] = React.useState(false);
+  const [signupComplete, setSignupComplete] = React.useState(false);
+  const [uploadError, setUploadError] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
@@ -88,6 +96,13 @@ function CareProvidersNearYou() {
   };
 
   const handleRegister = async () => {
+    let registered = signupComplete;
+
+    if (!profilePhoto || !isValidProfilePhoto(profilePhoto)) {
+      alert("Please upload a JPG/JPEG/PNG photo. HEIC is not supported.");
+      return;
+    }
+
     if (
       !signupForm.email ||
       !signupForm.password ||
@@ -102,8 +117,25 @@ function CareProvidersNearYou() {
       return;
     }
 
-    const onboarding = readOnboarding();
+    setIsSigningUp(true);
+    setUploadError("");
 
+    if (registered) {
+      try {
+        await uploadProfilePhoto(profilePhoto);
+        setShowPaymentPopup(false);
+        setShowSubscribePopup(false);
+        setShowSignupPopup(false);
+        navigate("/careseekers/dashboard/careproviders");
+      } catch (e) {
+        setUploadError(e.message || "Photo upload failed");
+      } finally {
+        setIsSigningUp(false);
+      }
+      return;
+    }
+
+    const onboarding = readOnboarding();
     const userCredentials = {
       firstName: signupForm.firstName,
       lastName: signupForm.lastName,
@@ -111,7 +143,6 @@ function CareProvidersNearYou() {
       email: signupForm.email,
       password: signupForm.password,
     };
-
     const payload = buildRegisterAndPublishPayload(
       onboarding.steps,
       userCredentials,
@@ -124,51 +155,49 @@ function CareProvidersNearYou() {
           "Registration failed: " +
             (resAction.payload || resAction.error.message),
         );
-      } else {
-        // Save registration result and redirect to login
-        dispatch(saveStep({ stepName: "registered", data: resAction.payload }));
-
-        // Store tokens for subsequent API calls
-        if (resAction.payload?.access) {
-          localStorage.setItem("accessToken", resAction.payload.access);
-          localStorage.setItem("access", resAction.payload.access);
-        }
-        if (resAction.payload?.refresh) {
-          localStorage.setItem("refreshToken", resAction.payload.refresh);
-          localStorage.setItem("refresh", resAction.payload.refresh);
-        }
-
-        // Store the care category in localStorage for later use
-        const careCategory = onboarding.steps?.careCategory || "";
-        if (careCategory) {
-          localStorage.setItem("seeker_care_category", careCategory);
-        }
-
-        // Set user in AuthContext and localStorage with proper user_type
-        const userData = {
-          ...resAction.payload.user,
-          user_type: "seeker",
-          email: signupForm.email,
-          care_category: careCategory,
-        };
-
-        // Store to localStorage so AuthContext can read it
-        localStorage.setItem("user", JSON.stringify(userData));
-
-        // Also update AuthContext
-        setUser(userData);
-
-        setShowPaymentPopup(false);
-        setShowSubscribePopup(false);
-        setShowSignupPopup(false);
-
-        // Navigate to CareProvidersNearYou page after a short delay to ensure state updates
-        setTimeout(() => {
-          navigate("/careseekers/dashboard/careproviders");
-        }, 100);
+        return;
       }
+
+      dispatch(saveStep({ stepName: "registered", data: resAction.payload }));
+
+      if (resAction.payload?.access) {
+        localStorage.setItem("accessToken", resAction.payload.access);
+        localStorage.setItem("access", resAction.payload.access);
+      }
+      if (resAction.payload?.refresh) {
+        localStorage.setItem("refreshToken", resAction.payload.refresh);
+        localStorage.setItem("refresh", resAction.payload.refresh);
+      }
+
+      const careCategory = onboarding.steps?.careCategory || "";
+      if (careCategory) {
+        localStorage.setItem("seeker_care_category", careCategory);
+      }
+
+      const userData = {
+        ...resAction.payload.user,
+        user_type: "seeker",
+        email: signupForm.email,
+        care_category: careCategory,
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
+      registered = true;
+      setSignupComplete(true);
+
+      await uploadProfilePhoto(profilePhoto);
+      setShowPaymentPopup(false);
+      setShowSubscribePopup(false);
+      setShowSignupPopup(false);
+      navigate("/careseekers/dashboard/careproviders");
     } catch (e) {
-      alert("Unexpected error: " + e.message);
+      if (registered) {
+        setUploadError(e.message || "Photo upload failed");
+      } else {
+        alert("Unexpected error: " + e.message);
+      }
+    } finally {
+      setIsSigningUp(false);
     }
   };
 
@@ -195,6 +224,29 @@ function CareProvidersNearYou() {
             <p className="text-sm text-gray-500 text-center mb-6">
               {getCategoryInfo().description}
             </p>
+            <div className="mb-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Profile photo
+              </label>
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                onChange={(e) => {
+                  setProfilePhoto(e.target.files?.[0] || null);
+                  setUploadError("");
+                }}
+                className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-[#0093d1] file:px-4 file:py-2 file:text-white hover:file:bg-[#007bb0]"
+              />
+              <p className="mt-2 text-xs text-gray-500">JPG or PNG only.</p>
+              {profilePhoto && (
+                <p className="mt-2 text-sm text-gray-700 truncate">
+                  Selected: {profilePhoto.name}
+                </p>
+              )}
+              {uploadError && (
+                <p className="mt-2 text-sm text-red-500">{uploadError}</p>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <input
                 type="text"
@@ -365,14 +417,26 @@ function CareProvidersNearYou() {
               className="w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition disabled:opacity-60"
               onClick={handleRegister}
               disabled={
-                !signupForm.firstName ||
-                !signupForm.lastName ||
-                !isValidEmail(signupForm.email) ||
-                !isStrongPassword(signupForm.password) ||
-                signupForm.password !== signupForm.confirmPassword
+                isSigningUp ||
+                (!signupComplete &&
+                  (!signupForm.firstName ||
+                    !signupForm.lastName ||
+                    !isValidEmail(signupForm.email) ||
+                    !isStrongPassword(signupForm.password) ||
+                    signupForm.password !== signupForm.confirmPassword ||
+                    !profilePhoto ||
+                    !isValidProfilePhoto(profilePhoto))) ||
+                (signupComplete &&
+                  (!profilePhoto || !isValidProfilePhoto(profilePhoto)))
               }
             >
-              Sign Up
+              {isSigningUp
+                ? signupComplete
+                  ? "Uploading Photo..."
+                  : "Signing Up..."
+                : signupComplete
+                  ? "Retry Photo Upload"
+                  : "Sign Up"}
             </button>
             {!isValidEmail(signupForm.email) && signupForm.email && (
               <p className="text-sm text-red-500 mt-2">

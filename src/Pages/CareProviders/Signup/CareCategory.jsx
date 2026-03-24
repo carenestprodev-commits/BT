@@ -10,6 +10,10 @@ import {
 import { useAuth } from "../../../Context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import CareNestPro_Later from "../../../../public//CareNestPro_Later.jpeg";
+import {
+  isValidProfilePhoto,
+  uploadProfilePhoto,
+} from "../../CareSeekers/Signup/uploadProfilePhoto";
 
 // --- Sub-component: The "I'll do this later" Modal ---
 const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
@@ -25,6 +29,9 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [signupComplete, setSignupComplete] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -41,6 +48,28 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
   // Handle registration
   const handleRegister = async (e) => {
     e.preventDefault();
+    let registered = signupComplete;
+
+    if (!profilePhoto || !isValidProfilePhoto(profilePhoto)) {
+      alert("Please upload a JPG/JPEG/PNG photo. HEIC is not supported.");
+      return;
+    }
+
+    if (registered) {
+      setIsLoading(true);
+      setUploadError("");
+      try {
+        await uploadProfilePhoto(profilePhoto);
+        onClose();
+        navigate("/careproviders/dashboard");
+      } catch (err) {
+        setUploadError(err.message || "Photo upload failed");
+      }
+      finally {
+        setIsLoading(false);
+      }
+      return;
+    }
 
     // Validation
     if (
@@ -72,6 +101,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
     }
 
     setIsLoading(true);
+    setUploadError("");
 
     try {
       // Read provider onboarding steps from Redux and fall back to localStorage
@@ -297,12 +327,9 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
               resultAction.error.message ||
               JSON.stringify(resultAction.error)),
         );
-        setIsLoading(false);
+        return;
       } else {
         const res = resultAction.payload;
-        alert(res.message || "Account created successfully!");
-
-        // Set user in AuthContext
         if (res?.user) {
           setUser({
             ...res.user,
@@ -311,12 +338,20 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
           });
         }
 
-        // Close modal and navigate
+        registered = true;
+        setSignupComplete(true);
+        await uploadProfilePhoto(profilePhoto);
+        alert(res.message || "Account created successfully!");
         onClose();
         navigate("/careproviders/dashboard");
       }
     } catch (err) {
-      alert("Registration failed: " + err.message);
+      if (registered) {
+        setUploadError(err.message || "Photo upload failed");
+      } else {
+        alert("Registration failed: " + err.message);
+      }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -328,7 +363,9 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
     isValidEmail(signupForm.email) &&
     isStrongPassword(signupForm.password) &&
     signupForm.password === signupForm.confirmPassword &&
-    acceptedTerms;
+    acceptedTerms &&
+    profilePhoto &&
+    isValidProfilePhoto(profilePhoto);
 
   if (!isOpen) return null;
 
@@ -365,6 +402,30 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
             Kindly enter your details below to create your care provider
             account.
           </p>
+        </div>
+
+        <div className="mb-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Profile photo
+          </label>
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+            onChange={(e) => {
+              setProfilePhoto(e.target.files?.[0] || null);
+              setUploadError("");
+            }}
+            className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-[#0093d1] file:px-4 file:py-2 file:text-white hover:file:bg-[#007bb0]"
+          />
+          <p className="mt-2 text-xs text-gray-500">JPG or PNG only.</p>
+          {profilePhoto && (
+            <p className="mt-2 text-sm text-gray-700 truncate">
+              Selected: {profilePhoto.name}
+            </p>
+          )}
+          {uploadError && (
+            <p className="mt-2 text-sm text-red-500">{uploadError}</p>
+          )}
         </div>
 
         {/* Form */}
@@ -619,10 +680,16 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
             className={`w-full font-semibold py-3 rounded-lg mt-4 transition shadow-md ${
               isFormValid && !isLoading
                 ? "bg-[#0093d1] hover:bg-[#007bb0] text-white"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
           >
-            {isLoading ? "Signing Up..." : "Sign Up"}
+            {isLoading
+              ? signupComplete
+                ? "Uploading Photo..."
+                : "Signing Up..."
+              : signupComplete
+                ? "Retry Photo Upload"
+                : "Sign Up"}
           </button>
         </form>
 
