@@ -1,8 +1,9 @@
-# React + Vite
+# CareNestPro Web Docs
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The main web documentation now lives in `docs/README.md`.
 
-Currently, two official plugins are available:
+Quick pointers:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- App API base URL comes from `VITE_API_BASE_URL`
+- RealtimeKit calls are launched from the booking chat
+- Recording cards always point to the backend access route

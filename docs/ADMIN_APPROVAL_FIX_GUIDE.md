@@ -344,9 +344,9 @@ The fix maintains all security:
 
 | Component                                                | Impact                   | Notes                   |
 | -------------------------------------------------------- | ------------------------ | ----------------------- |
-| [src/Pages/Admin/Users.jsx](src/Pages/Admin/Users.jsx)   | ✅ Works better          | Error handling improved |
-| [src/Redux/AdminUsers.jsx](src/Redux/AdminUsers.jsx)     | ✅ **Fixed**             | Added fallback path     |
-| [src/Redux/Verification.jsx](src/Redux/Verification.jsx) | ✅ No change             | Not affected            |
+| [src/Pages/Admin/Users.jsx](../src/Pages/Admin/Users.jsx)   | ✅ Works better          | Error handling improved |
+| [src/Redux/AdminUsers.jsx](../src/Redux/AdminUsers.jsx)     | ✅ **Fixed**             | Added fallback path     |
+| [src/Redux/Verification.jsx](../src/Redux/Verification.jsx) | ✅ No change             | Not affected            |
 | Redux auth slice                                         | ✅ Updated               | User marked as verified |
 | HomePage                                                 | ✅ Shows badge           | After refresh/login     |
 | JobDetails                                               | ✅ Applies without modal | After refresh/login     |

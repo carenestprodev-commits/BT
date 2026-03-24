@@ -26,6 +26,8 @@ import {
   clearProviderDetails,
 } from "../../../Redux/ProvidersDetails";
 import { BASE_URL } from "../../../Redux/config";
+import ChatMessageItem from "../../../Components/Chat/ChatMessageItem";
+import { toDisplayMessage } from "../../../lib/chatMessages";
 import { formatCurrencyAmount } from "../../../utils/countryHelper";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 
@@ -180,6 +182,10 @@ function MessageDetails() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [conversations.length, providerId],
   );
+  const currentBookingId =
+    currentConversation?.booking ||
+    currentConversation?.booking_id ||
+    currentConversation?.id;
 
   const currentMessages = useMemo(
     () =>
@@ -324,18 +330,9 @@ function MessageDetails() {
   // Message display processing
   const displayMessages = useMemo(() => {
     const currentUserId = getCurrentUserId();
-    return currentMessages.map((message) => {
-      const type =
-        String(message.sender) === String(currentUserId) ? "sent" : "received";
-      return {
-        id: message.id,
-        text: message.content || message.message || "",
-        type,
-        time: formatTime(message.timestamp || message.created_at || new Date()),
-        date: formatDate(message.timestamp || message.created_at || new Date()),
-        senderName: message.sender_name,
-      };
-    });
+    return currentMessages.map((message) =>
+      toDisplayMessage(message, currentUserId),
+    );
     // ✅ Only recompute when the actual messages change, not on every render
   }, [currentMessages]);
 
@@ -566,6 +563,12 @@ function MessageDetails() {
               className="text-[#0d99c9] hover:text-[#007bb0] text-lg sm:text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
               aria-label="Call provider"
               title="Call provider"
+              onClick={() =>
+                currentConversation &&
+                navigate(
+                  `/careseekers/dashboard/message/${currentBookingId}/call?mode=audio`,
+                )
+              }
             >
               <i className="fas fa-phone"></i>
             </button>
@@ -573,6 +576,12 @@ function MessageDetails() {
               className="text-[#0d99c9] hover:text-[#007bb0] text-lg sm:text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
               aria-label="Video call with provider"
               title="Video call with provider"
+              onClick={() =>
+                currentConversation &&
+                navigate(
+                  `/careseekers/dashboard/message/${currentBookingId}/call?mode=video`,
+                )
+              }
             >
               <i className="fas fa-video"></i>
             </button>
@@ -681,36 +690,12 @@ function MessageDetails() {
                   </span>
                 </div>
               )}
-              {displayMessages.map((msg, i) => (
-                <div key={i} className="mb-3 sm:mb-4">
-                  {msg.type === "received" && (
-                    <div className="flex flex-col max-w-[85%] sm:max-w-[70%] md:max-w-[60%] items-start">
-                      <span className="text-xs text-gray-500 font-semibold mb-1">
-                        {currentConversation.other_participant?.full_name ||
-                          "Other User"}
-                      </span>
-                      <div className="bg-gray-100 rounded-lg px-3 sm:px-4 md:px-5 py-2 sm:py-3 text-gray-800 text-xs sm:text-sm break-words">
-                        {msg.text}
-                      </div>
-                      <span className="text-xs text-gray-400 mt-1">
-                        {msg.time}
-                      </span>
-                    </div>
-                  )}
-                  {msg.type === "sent" && (
-                    <div className="flex flex-col max-w-[85%] sm:max-w-[70%] md:max-w-[60%] items-end ml-auto">
-                      <span className="text-xs text-gray-500 font-semibold mb-1">
-                        You
-                      </span>
-                      <div className="bg-[#0d99c9] rounded-lg px-3 sm:px-4 md:px-5 py-2 sm:py-3 text-white text-xs sm:text-sm break-words">
-                        {msg.text}
-                      </div>
-                      <span className="text-xs text-gray-400 mt-1">
-                        {msg.time}
-                      </span>
-                    </div>
-                  )}
-                </div>
+              {displayMessages.map((msg) => (
+                <ChatMessageItem
+                  key={msg.id}
+                  message={msg}
+                  currentConversation={currentConversation}
+                />
               ))}
               <div ref={chatEndRef} />
               {/* ✅ Show a clean error if message sending fails */}

@@ -22,6 +22,11 @@ import {
 } from "../../../Redux/StartActivity";
 import { endActivity, startActivity } from "../../../Redux/StartActivity";
 import { BASE_URL } from "../../../Redux/config";
+import ChatMessageItem from "../../../Components/Chat/ChatMessageItem";
+import {
+  getConversationPreviewText,
+  toDisplayMessage,
+} from "../../../lib/chatMessages";
 import { formatCurrencyAmount } from "../../../utils/countryHelper";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,7 +132,7 @@ const MobileConversationsList = ({
       (conv.other_participant?.full_name || conv.other_participant?.email || "")
         .toLowerCase()
         .includes(search.toLowerCase()) ||
-      (conv.last_message?.content || "")
+      getConversationPreviewText(conv.last_message || {})
         .toLowerCase()
         .includes(search.toLowerCase()) ||
       (conv.job_title || "").toLowerCase().includes(search.toLowerCase()),
@@ -211,7 +216,7 @@ const MobileConversationsList = ({
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 truncate">
-                    {conversation.last_message?.content || "No messages yet"}
+                    {getConversationPreviewText(conversation.last_message || {})}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
@@ -257,6 +262,7 @@ const MobileChatView = ({
   menuOpen,
   setMenuOpen,
   dispatch,
+  navigate,
   bookingId,
   setShowPayment,
   showMenu,
@@ -290,7 +296,16 @@ const MobileChatView = ({
             </div>
             {/* FIX: Call and Video icons added before three-dot menu */}
             <div className="flex gap-3 items-center">
-              <button className="text-[#00A8E8] p-1" aria-label="Call">
+              <button
+                className="text-[#00A8E8] p-1"
+                aria-label="Call"
+                onClick={() =>
+                  bookingId &&
+                  navigate(
+                    `/careseekers/dashboard/message/${bookingId}/call?mode=audio`,
+                  )
+                }
+              >
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"
@@ -299,7 +314,16 @@ const MobileChatView = ({
                   <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                 </svg>
               </button>
-              <button className="text-[#00A8E8] p-1" aria-label="Video call">
+              <button
+                className="text-[#00A8E8] p-1"
+                aria-label="Video call"
+                onClick={() =>
+                  bookingId &&
+                  navigate(
+                    `/careseekers/dashboard/message/${bookingId}/call?mode=video`,
+                  )
+                }
+              >
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"
@@ -408,45 +432,10 @@ const MobileChatView = ({
                       </span>
                     </div>
                   )}
-                  {msg.type === "received" && (
-                    <div className="mb-4 flex justify-start">
-                      <div className="max-w-[75%]">
-                        <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3">
-                          <p className="text-gray-900 text-sm">{msg.text}</p>
-                        </div>
-                        <span className="text-xs text-gray-400 mt-1 block pl-1">
-                          {msg.time}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {msg.type === "sent" && (
-                    <div className="mb-4 flex justify-end">
-                      {/* FIX: max-w-[75%] keeps bubble tight to content, no excess padding */}
-                      <div className="max-w-[75%]">
-                        <div className="bg-[#00A8E8] rounded-2xl rounded-tr-sm px-4 py-3">
-                          <p className="text-white text-sm">{msg.text}</p>
-                        </div>
-                        <span className="text-xs text-gray-400 mt-1 block text-right pr-1">
-                          {msg.time}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {msg.type === "info" && (
-                    <div className="mb-4 flex justify-end">
-                      <div className="max-w-[75%]">
-                        <div className="bg-blue-50 rounded-2xl rounded-tr-sm px-4 py-3">
-                          <p className="text-[#00A8E8] text-sm font-medium">
-                            {msg.text}
-                          </p>
-                        </div>
-                        <span className="text-xs text-gray-400 mt-1 block text-right pr-1">
-                          {msg.time}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                  <ChatMessageItem
+                    message={msg}
+                    currentConversation={currentConversation}
+                  />
                 </div>
               );
             })}
@@ -565,13 +554,17 @@ function Message() {
         : [],
     [currentConversation, messagesByConversation],
   );
+  const currentBookingId =
+    currentConversation?.booking ||
+    currentConversation?.booking_id ||
+    currentConversation?.id;
 
   const filteredConversations = conversations.filter(
     (conv) =>
       (conv.other_participant?.full_name || conv.other_participant?.email || "")
         .toLowerCase()
         .includes(search.toLowerCase()) ||
-      (conv.last_message?.content || "")
+      getConversationPreviewText(conv.last_message || {})
         .toLowerCase()
         .includes(search.toLowerCase()) ||
       (conv.job_title || "").toLowerCase().includes(search.toLowerCase()),
@@ -597,11 +590,7 @@ function Message() {
     total: displayTotal,
   };
 
-  const bookingId =
-    currentConversation?.booking ||
-    currentConversation?.booking_id ||
-    currentConversation?.id ||
-    12;
+  const bookingId = currentBookingId;
 
   useEffect(() => {
     dispatch(fetchConversations());
@@ -726,22 +715,11 @@ function Message() {
     return () => clearInterval(poll);
   }, [wsConnected, currentConversation, dispatch]);
 
-  const convertMessageToDisplay = (message) => {
-    const currentUserId = getCurrentUserId();
-    const isSentByCurrentUser =
-      String(message.sender) === String(currentUserId);
-    return {
-      id: message.id || `${message.timestamp}_${message.sender}`,
-      type: isSentByCurrentUser ? "sent" : "received",
-      text: message.content,
-      timestamp: message.timestamp,
-      time: formatTime(message.timestamp),
-      date: formatDate(message.timestamp),
-      senderName: message.sender_name,
-    };
-  };
   const displayMessages = useMemo(
-    () => currentMessages.map(convertMessageToDisplay),
+    () =>
+      currentMessages.map((message) =>
+        toDisplayMessage(message, getCurrentUserId()),
+      ),
     [currentMessages],
   );
 
@@ -932,6 +910,7 @@ function Message() {
                 menuOpen={menuOpen}
                 setMenuOpen={setMenuOpen}
                 dispatch={dispatch}
+                navigate={navigate}
                 bookingId={bookingId}
                 setShowPayment={setShowPayment}
                 showMenu={true}
@@ -1001,8 +980,9 @@ function Message() {
                               "Unknown User"}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {conversation.last_message?.content ||
-                              "No messages yet"}
+                            {getConversationPreviewText(
+                              conversation.last_message || {},
+                            )}
                           </div>
                         </div>
                         <div className="flex flex-col items-end">
@@ -1064,6 +1044,12 @@ function Message() {
                   <button
                     className="text-[#0d99c9] hover:text-[#007bb0]"
                     aria-label="Call"
+                    onClick={() =>
+                      currentConversation &&
+                      navigate(
+                        `/careseekers/dashboard/message/${currentBookingId}/call?mode=audio`,
+                      )
+                    }
                   >
                     <svg
                       className="w-5 h-5"
@@ -1076,6 +1062,12 @@ function Message() {
                   <button
                     className="text-[#0d99c9] hover:text-[#007bb0]"
                     aria-label="Video call"
+                    onClick={() =>
+                      currentConversation &&
+                      navigate(
+                        `/careseekers/dashboard/message/${currentBookingId}/call?mode=video`,
+                      )
+                    }
                   >
                     <svg
                       className="w-5 h-5"
@@ -1176,47 +1168,10 @@ function Message() {
                     </div>
                     {displayMessages.map((msg, i) => (
                       <div key={i} className="mb-4">
-                        {msg.type === "received" && (
-                          <div className="flex flex-col max-w-[60%] items-start">
-                            <span className="text-xs text-gray-500 font-semibold mb-1">
-                              {msg.senderName ||
-                                currentConversation.other_participant
-                                  ?.full_name ||
-                                "Other User"}
-                            </span>
-                            <div className="bg-gray-100 rounded-lg px-5 py-3 text-gray-800 text-sm">
-                              {msg.text}
-                            </div>
-                            <span className="text-xs text-gray-400 mt-1">
-                              {msg.time}
-                            </span>
-                          </div>
-                        )}
-                        {msg.type === "sent" && (
-                          <div className="flex flex-col max-w-[60%] items-end ml-auto">
-                            <span className="text-xs text-gray-500 font-semibold mb-1">
-                              You
-                            </span>
-                            <div className="bg-[#0d99c9] rounded-lg px-5 py-3 text-white text-sm">
-                              {msg.text}
-                            </div>
-                            <span className="text-xs text-gray-400 mt-1">
-                              {msg.time}
-                            </span>
-                          </div>
-                        )}
-                        {msg.type === "info" && (
-                          <div className="flex justify-end">
-                            <div className="bg-[#f5f5f5] rounded-2xl px-6 py-4 min-w-[220px] max-w-[320px] flex flex-col items-start shadow-sm">
-                              <span className="text-[#0d99c9] text-md font-medium mb-2">
-                                {msg.text}
-                              </span>
-                              <span className="text-[#0d99c9] text-sm font-normal ml-auto self-end">
-                                {msg.time}
-                              </span>
-                            </div>
-                          </div>
-                        )}
+                      <ChatMessageItem
+                        message={msg}
+                        currentConversation={currentConversation}
+                      />
                       </div>
                     ))}
                     <div ref={chatEndRef} />
