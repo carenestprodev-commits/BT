@@ -542,7 +542,7 @@ function Message() {
     localizedTotalAmount,
     isFallbackPrice,
   } = useSelector((state) => state.startActivity);
-  const { notifications } = useNotifications();
+  const { notifications, isDegraded } = useNotifications();
 
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
