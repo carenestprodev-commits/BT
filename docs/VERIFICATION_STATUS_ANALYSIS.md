@@ -24,12 +24,12 @@
 
 **Where it fails:**
 
-- In [Auth.js](src/Redux/Auth.js#L6-L45), the `fetchUserProfile` thunk fetches fresh user data from the backend
+- In [Auth.js](../src/Redux/Auth.js#L6-L45), the `fetchUserProfile` thunk fetches fresh user data from the backend
 - The response should include `"is_verified": true`
 - The Redux reducer stores this in `state.user`
 - **BUT you're checking different places:**
-  - [HomePage.jsx](src/Pages/CareProviders/Dashboard/HomePage.jsx#L129) checks: `authUser?.is_verified`
-  - [JobDetails.jsx](src/Pages/CareProviders/Dashboard/JobDetails.jsx#L45) checks: `currentUser?.is_verified`
+  - [HomePage.jsx](../src/Pages/CareProviders/Dashboard/HomePage.jsx#L129) checks: `authUser?.is_verified`
+  - [JobDetails.jsx](../src/Pages/CareProviders/Dashboard/JobDetails.jsx#L45) checks: `currentUser?.is_verified`
   - Both pull from Redux: `useSelector((s) => s.auth?.user)`
   - **The Redux state IS being updated, but something is preventing the display refresh**
 
@@ -37,7 +37,7 @@
 
 ### **Issue #2: Verification Status Listener Has a Timing Problem**
 
-**Location:** [VerificationStatusListener.jsx](src/Components/VerificationStatusListener.jsx#L26-L65)
+**Location:** [VerificationStatusListener.jsx](../src/Components/VerificationStatusListener.jsx#L26-L65)
 
 **The problem:**
 
@@ -63,7 +63,7 @@ The listener is in **Main.jsx** which wraps all routes, BUT if you're already on
 
 ### **Issue #3: Badge Display Logic Is Correct, But Data Isn't Flowing**
 
-**In [HomePage.jsx](src/Pages/CareProviders/Dashboard/HomePage.jsx#L129):**
+**In [HomePage.jsx](../src/Pages/CareProviders/Dashboard/HomePage.jsx#L129):**
 
 ```jsx
 {
@@ -84,7 +84,7 @@ The listener is in **Main.jsx** which wraps all routes, BUT if you're already on
 
 ### **Issue #4: JobDetails Has a Broken fetchUserProfile Dependency**
 
-**Location:** [JobDetails.jsx](src/Pages/CareProviders/Dashboard/JobDetails.jsx#L48-L52)
+**Location:** [JobDetails.jsx](../src/Pages/CareProviders/Dashboard/JobDetails.jsx#L48-L52)
 
 ```jsx
 useEffect(() => {

@@ -21,6 +21,7 @@ import PersonalInformation from "../Pages/CareSeekers/Dashboard/PersonalInformat
 import Password from "../Pages/CareSeekers/Dashboard/Password";
 import MessageDetails from "../Pages/CareSeekers/Dashboard/MessageDetails";
 import MessageDetailsProvider from "../Pages/CareProviders/Dashboard/MessageDetails";
+import RealtimeKitCallRoom from "../Pages/RealtimeKitCallRoom";
 import RequestDetails from "../Pages/CareSeekers/Dashboard/RequestDetails";
 import PersonalInformationProvider from "../Pages/CareProviders/Dashboard/PersonalInformation";
 import DashboardHome from "../Pages/CareSeekers/Dashboard/Home";
@@ -233,6 +234,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/careseekers/dashboard/message/:id/call",
+    element: (
+      <RoleProtectedRoute allowedRole="seeker">
+        <RealtimeKitCallRoom />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
     path: "/careseekers/dashboard/notifications",
     element: (
       <RoleProtectedRoute allowedRole="seeker">
@@ -346,6 +355,14 @@ export const router = createBrowserRouter([
     element: (
       <RoleProtectedRoute allowedRole="provider">
         <MessageDetailsProvider />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
+    path: "/careproviders/dashboard/message/:id/call",
+    element: (
+      <RoleProtectedRoute allowedRole="provider">
+        <RealtimeKitCallRoom />
       </RoleProtectedRoute>
     ),
   },

@@ -235,8 +235,8 @@ Shows ✅ "User verified successfully! Their verification badge should appear im
 
 | File                                                   | Change                       | Impact                        |
 | ------------------------------------------------------ | ---------------------------- | ----------------------------- |
-| [src/Redux/AdminUsers.jsx](src/Redux/AdminUsers.jsx)   | Added fallback approval path | ✅ Fixes approval issue       |
-| [src/Pages/Admin/Users.jsx](src/Pages/Admin/Users.jsx) | No changes needed            | ✅ Works better automatically |
+| [src/Redux/AdminUsers.jsx](../src/Redux/AdminUsers.jsx)   | Added fallback approval path | ✅ Fixes approval issue       |
+| [src/Pages/Admin/Users.jsx](../src/Pages/Admin/Users.jsx) | No changes needed            | ✅ Works better automatically |
 
 ---
 

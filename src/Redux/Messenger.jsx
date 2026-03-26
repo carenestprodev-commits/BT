@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL, getAuthHeaders } from "./config";
 import { fetchWithAuth } from "../lib/fetchWithAuth.js";
+import { normalizeRealtimeMessage } from "../lib/chatMessages";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -377,40 +378,36 @@ const messengerSlice = createSlice({
         state.messagesByConversation[cid] = [];
       }
 
-      const formattedMessage = {
-        id: `ws_${Date.now()}_${message.sender_id}`,
+      const formattedMessage = normalizeRealtimeMessage({
+        ...message,
         sender: message.sender_id,
         sender_name: message.sender_name,
         content: message.message,
-        timestamp: message.timestamp,
-      };
+      });
 
-      // Deduplicate: skip if same content + sender within 5 s
       const exists = state.messagesByConversation[cid].some(
-        (msg) =>
-          msg.content === formattedMessage.content &&
-          String(msg.sender) === String(formattedMessage.sender) &&
-          Math.abs(
-            new Date(msg.timestamp) - new Date(formattedMessage.timestamp),
-          ) < 5000,
+        (entry) => String(entry.id) === String(formattedMessage.id),
       );
+      if (exists) {
+        return;
+      }
 
-      if (!exists) {
-        state.messagesByConversation[cid].push(formattedMessage);
-        console.debug("addRealtimeMessage -> added", cid, formattedMessage);
+      state.messagesByConversation[cid].push(formattedMessage);
+      console.debug("addRealtimeMessage -> added", cid, formattedMessage);
 
-        // Bubble conversation to top of list (WhatsApp-style)
-        const idx = state.conversations.findIndex((c) => String(c.id) === cid);
-        if (idx >= 0) {
-          const conv = state.conversations[idx];
-          conv.last_message = {
-            content: message.message,
-            timestamp: message.timestamp,
-          };
-          if (idx > 0) {
-            state.conversations.splice(idx, 1);
-            state.conversations.unshift(conv);
-          }
+      // Bubble conversation to top of list (WhatsApp-style)
+      const idx = state.conversations.findIndex((c) => String(c.id) === cid);
+      if (idx >= 0) {
+        const conv = state.conversations[idx];
+        conv.last_message = {
+          content: formattedMessage.content,
+          kind: formattedMessage.kind,
+          payload: formattedMessage.payload,
+          timestamp: formattedMessage.timestamp,
+        };
+        if (idx > 0) {
+          state.conversations.splice(idx, 1);
+          state.conversations.unshift(conv);
         }
       }
     },
@@ -496,13 +493,8 @@ const messengerSlice = createSlice({
           state.messagesByConversation[cid] = [];
         }
 
-        // Deduplicate against WebSocket-delivered copy
         const exists = state.messagesByConversation[cid].some(
-          (msg) =>
-            msg.content === message.content &&
-            String(msg.sender) === String(message.sender) &&
-            Math.abs(new Date(msg.timestamp) - new Date(message.timestamp)) <
-              5000,
+          (msg) => String(msg.id) === String(message.id),
         );
 
         if (!exists) {
@@ -516,6 +508,8 @@ const messengerSlice = createSlice({
             const conv = state.conversations[idx];
             conv.last_message = {
               content: message.content,
+              kind: message.kind,
+              payload: message.payload,
               timestamp: message.timestamp,
             };
             if (idx > 0) {
@@ -592,36 +586,39 @@ export const connectWebSocket = (conversationId) => (dispatch) => {
   const onMessage = (data) => {
     try {
       // Normalise different server payload shapes
-      let payload = data;
-      if (data && typeof data === "object" && (data.data || data.payload)) {
-        payload = data.data || data.payload;
-      }
-
-      const messageText = payload.message ?? payload.content ?? payload.text;
+      const payload =
+        data && typeof data === "object" && (data.data || data.payload)
+          ? data.data || data.payload
+          : data;
+      const kind = payload?.kind || payload?.message_kind || "text";
       const senderId =
-        payload.sender_id ?? payload.sender ?? payload.from ?? payload.user_id;
+        payload?.sender_id ?? payload?.sender ?? payload?.from ?? payload?.user_id;
       const senderName =
-        payload.sender_name ??
-        payload.username ??
-        payload.user_name ??
-        payload.sender_full_name;
+        payload?.sender_name ??
+        payload?.username ??
+        payload?.user_name ??
+        payload?.sender_full_name;
       const timestamp =
-        payload.timestamp ??
-        payload.sent_at ??
-        payload.created_at ??
+        payload?.timestamp ??
+        payload?.sent_at ??
+        payload?.created_at ??
         new Date().toISOString();
+      const messageText = payload?.message ?? payload?.content ?? payload?.text;
 
-      if (messageText && senderId) {
+      if (messageText || kind === "system" || kind === "recording" || kind === "info") {
         dispatch(
           addRealtimeMessage({
             conversationId,
-            message: {
-              message: messageText,
-              sender_id: senderId,
-              sender_name: senderName,
-              timestamp,
-            },
-          }),
+              message: {
+                id: payload?.id,
+                message: messageText,
+                sender_id: senderId,
+                sender_name: senderName,
+                kind,
+                payload: payload?.payload || payload?.meta || payload,
+                timestamp,
+              },
+            }),
         );
       }
     } catch (err) {

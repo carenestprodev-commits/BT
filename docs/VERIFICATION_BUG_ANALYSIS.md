@@ -44,26 +44,26 @@ When an Admin approves/verifies a user (CareProvider or CareSeeker):
 
 ### 1. **Admin Approval**
 
-- **File:** [src/Pages/Admin/ProfileVerificationProvider.jsx](src/Pages/Admin/ProfileVerificationProvider.jsx#L155-L164)
+- **File:** [src/Pages/Admin/ProfileVerificationProvider.jsx](../src/Pages/Admin/ProfileVerificationProvider.jsx#L155-L164)
 - **Action:** Clicks "Approve" → dispatches `postVerificationAction({ id, action: "approve" })`
 - **Issue:** After approval, nothing prompts the user's session to refresh
 
 ### 2. **Redux Verification Slice**
 
-- **File:** [src/Redux/Verification.jsx](src/Redux/Verification.jsx#L43-L91)
+- **File:** [src/Redux/Verification.jsx](../src/Redux/Verification.jsx#L43-L91)
 - **`postVerificationAction` thunk:** Calls backend to approve/reject
 - **Current Code:** Stores approval event in localStorage with timestamp
 - **Issue:** The user's browser doesn't monitor this event unless they manually refresh
 
 ### 3. **User Profile Data**
 
-- **Redux:** [src/Redux/Auth.js](src/Redux/Auth.js) - `fetchUserProfile` thunk
-- **AuthContext:** [src/Context/AuthContext.jsx](src/Context/AuthContext.jsx) - Stores user in localStorage
+- **Redux:** [src/Redux/Auth.js](../src/Redux/Auth.js) - `fetchUserProfile` thunk
+- **AuthContext:** [src/Context/AuthContext.jsx](../src/Context/AuthContext.jsx) - Stores user in localStorage
 - **Issue:** No automatic refresh triggered when verification happens
 
 ### 4. **Verification Badge Display**
 
-- **CareProvider HomePage:** [src/Pages/CareProviders/Dashboard/HomePage.jsx#L122-L123](src/Pages/CareProviders/Dashboard/HomePage.jsx#L122-L123)
+- **CareProvider HomePage:** [src/Pages/CareProviders/Dashboard/HomePage.jsx#L122-L123](../src/Pages/CareProviders/Dashboard/HomePage.jsx#L122-L123)
   ```jsx
   {
     authUser?.is_verified && (
@@ -71,7 +71,7 @@ When an Admin approves/verifies a user (CareProvider or CareSeeker):
     );
   }
   ```
-- **Job Details:** [src/Pages/CareProviders/Dashboard/JobDetails.jsx#L225-L226](src/Pages/CareProviders/Dashboard/JobDetails.jsx#L225-L226)
+- **Job Details:** [src/Pages/CareProviders/Dashboard/JobDetails.jsx#L225-L226](../src/Pages/CareProviders/Dashboard/JobDetails.jsx#L225-L226)
   ```jsx
   {
     job.is_verified && (
@@ -82,7 +82,7 @@ When an Admin approves/verifies a user (CareProvider or CareSeeker):
 
 ### 5. **Verification Check Modal**
 
-- **File:** [src/Components/VerificationCheckModal.jsx](src/Components/VerificationCheckModal.jsx)
+- **File:** [src/Components/VerificationCheckModal.jsx](../src/Components/VerificationCheckModal.jsx)
 - **Used in:** JobDetails.jsx when user tries to apply
 - **Issue:** Modal checks `currentUser?.is_verified` which is stale
 
@@ -93,7 +93,7 @@ When an Admin approves/verifies a user (CareProvider or CareSeeker):
 ### ❌ Issue #1: HomePage doesn't fetch fresh user data
 
 **Problem:** HomePage loads, checks `authUser.is_verified` from Redux, but never refreshes it
-**Location:** [HomePage.jsx line 25-33](src/Pages/CareProviders/Dashboard/HomePage.jsx#L25-L33)
+**Location:** [HomePage.jsx line 25-33](../src/Pages/CareProviders/Dashboard/HomePage.jsx#L25-L33)
 
 ```jsx
 const authUser = useSelector((s) =>
@@ -109,7 +109,7 @@ const authUser = useSelector((s) =>
 ### ❌ Issue #2: JobDetails checks stale verification status
 
 **Problem:** JobDetails has `fetchUserProfile` in useEffect (line 51), but it doesn't trigger on important status changes
-**Location:** [JobDetails.jsx line 44-66](src/Pages/CareProviders/Dashboard/JobDetails.jsx#L44-L66)
+**Location:** [JobDetails.jsx line 44-66](../src/Pages/CareProviders/Dashboard/JobDetails.jsx#L44-L66)
 
 ```jsx
 // ✅ Good: Fetches on mount
@@ -152,7 +152,7 @@ useEffect(() => {
 
 ### ❌ Issue #4: AuthContext stores user but doesn't auto-refresh
 
-**File:** [AuthContext.jsx](src/Context/AuthContext.jsx)
+**File:** [AuthContext.jsx](../src/Context/AuthContext.jsx)
 **Problem:** User data is set once on login, never automatically refreshed
 
 ```jsx
@@ -178,7 +178,7 @@ const login = async (email, password, rememberMe = false) => {
 
 **Highest Priority** - Users spend most time here
 
-[HomePage.jsx](src/Pages/CareProviders/Dashboard/HomePage.jsx) needs to fetch fresh user profile on mount:
+[HomePage.jsx](../src/Pages/CareProviders/Dashboard/HomePage.jsx) needs to fetch fresh user profile on mount:
 
 ```jsx
 import { fetchUserProfile } from "../../../Redux/Auth";
@@ -221,7 +221,7 @@ Instead of relying on localStorage events, implement:
 
 **Low Priority** - Dependent on Solution #1 working
 
-[VerificationCheckModal.jsx](src/Components/VerificationCheckModal.jsx#L131-L140) has code to check `isVerified` prop:
+[VerificationCheckModal.jsx](../src/Components/VerificationCheckModal.jsx#L131-L140) has code to check `isVerified` prop:
 
 ```jsx
 const handleProceedClick = () => {
