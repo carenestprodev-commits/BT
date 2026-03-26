@@ -28,6 +28,7 @@ import {
 import { BASE_URL } from "../../../Redux/config";
 import ChatMessageItem from "../../../Components/Chat/ChatMessageItem";
 import { toDisplayMessage } from "../../../lib/chatMessages";
+import { getCurrentUserIdFromProfile } from "../../../lib/currentUser";
 import { formatCurrencyAmount } from "../../../utils/countryHelper";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 
@@ -76,19 +77,6 @@ const cleanErrorMessage = (err) => {
   if (isServerHtmlError(err))
     return "Message delivery confirmation failed. The message may have been sent — please wait or refresh.";
   return err;
-};
-
-const getCurrentUserId = () => {
-  try {
-    const token = localStorage.getItem("access");
-    if (token) {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      return payload.user_id || payload.id || payload.sub;
-    }
-  } catch (error) {
-    console.error("Error getting user ID from token:", error);
-  }
-  return null;
 };
 
 const buildCallRoute = (bookingId, mode, title) => {
@@ -338,12 +326,12 @@ function MessageDetails() {
 
   // Message display processing
   const displayMessages = useMemo(() => {
-    const currentUserId = getCurrentUserId();
+    const currentUserId = getCurrentUserIdFromProfile(currentUser);
     return currentMessages.map((message) =>
       toDisplayMessage(message, currentUserId),
     );
     // ✅ Only recompute when the actual messages change, not on every render
-  }, [currentMessages]);
+  }, [currentMessages, currentUser]);
 
   const handleSendMessage = async () => {
     if (!currentConversation || !input.trim()) return;

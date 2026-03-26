@@ -27,6 +27,7 @@ import {
   getConversationPreviewText,
   toDisplayMessage,
 } from "../../../lib/chatMessages";
+import { getCurrentUserIdFromProfile } from "../../../lib/currentUser";
 import { formatCurrencyAmount } from "../../../utils/countryHelper";
 
 // Helper functions
@@ -90,22 +91,6 @@ const extractErrorMessage = (value, fallback = "Request failed.") => {
     return value.error || value.detail || value.message || fallback;
   }
   return fallback;
-};
-
-const getCurrentUserId = () => {
-  try {
-    const token = localStorage.getItem("access");
-    if (token) {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      console.log("JWT payload:", payload);
-      const userId = payload.user_id || payload.id || payload.sub;
-      console.log("Extracted user ID:", userId);
-      return userId;
-    }
-  } catch (error) {
-    console.error("Error getting user ID from token:", error);
-  }
-  return null;
 };
 
 const buildCallRoute = (bookingId, mode, title) => {
@@ -516,6 +501,7 @@ const MobileChatView = ({
 function Message() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const authUser = useSelector((state) => state.auth?.user || null);
 
   const {
     conversations,
@@ -775,7 +761,7 @@ function Message() {
     };
   }, [dispatch, currentConversation]);
 
-  const currentUserId = getCurrentUserId();
+  const currentUserId = getCurrentUserIdFromProfile(authUser);
 
   const displayMessages = useMemo(
     () =>
