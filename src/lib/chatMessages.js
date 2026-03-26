@@ -47,12 +47,16 @@ export const getConversationPreviewText = (message) => {
 
 export const normalizeRealtimeMessage = (message) => {
   const timestamp = getMessageTimestamp(message);
+  const sender = getMessageSender(message) || "system";
+  const kind = getMessageKind(message);
   return {
-    id: message?.id || `${timestamp}_${getMessageSender(message) || "system"}`,
+    id:
+      message?.id ||
+      `${kind}_${sender}_${timestamp}_${getMessageContent(message)}`,
     sender: getMessageSender(message),
     sender_name: message?.sender_name || "",
     content: getMessageContent(message),
-    kind: getMessageKind(message),
+    kind,
     payload: getMessagePayload(message),
     timestamp,
   };
