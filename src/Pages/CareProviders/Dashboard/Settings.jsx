@@ -379,19 +379,96 @@ function Settings() {
     setMessage({ type: "", text: "" });
 
     try {
-      const res = await fetchWithAuth("/api/user/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      if (activeTab === "password") {
+        const cleared = {
+          ...formData,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        };
+        const res = await fetchWithAuth(
+          API_URL + "/api/auth/profile/password_change/",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              password: formData.newPassword,
+              confirm_password: formData.confirmPassword,
+            }),
+          },
+        );
 
-      console.log(res);
+        if (!res.ok) throw new Error("Save failed");
 
-      if (!res.ok) throw new Error("Save failed");
+        setFormData(cleared);
+        setOriginalFormData(cleared);
+        setMessage({ type: "success", text: "Password updated!" });
+      } else if (activeTab === "other") {
+        const experienceYears = {
+          "0-1": 0,
+          "1-3": 1,
+          "3-5": 3,
+          "5+": 5,
+        }[formData.yearsOfExperience] ?? 0;
+        const payload = {
+          about_me: formData.about,
+          profile_title: formData.title,
+          years_of_experience: experienceYears,
+          native_language: formData.nativeLanguage,
+          additional_services: formData.otherServices
+            ? [formData.otherServices]
+            : [],
+          languages: formData.otherLanguages ? [formData.otherLanguages] : [],
+          house_keeping_preferences: formData.housekeeping
+            ? [formData.housekeeping]
+            : [],
+        };
 
-      setOriginalFormData(formData);
+        if (formData.hourlyRate) {
+          payload.hourly_rate = String(formData.hourlyRate).replace(
+            /[^\d.]/g,
+            "",
+          );
+        }
+
+        const res = await fetchWithAuth(
+          API_URL + "/api/provider/profile/other-details/",
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+
+        if (!res.ok) throw new Error("Save failed");
+        setOriginalFormData(formData);
+        setMessage({ type: "success", text: "Settings saved!" });
+      } else {
+        const res = await fetchWithAuth(
+          API_URL + "/api/provider/profile/personal-info/",
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              phone_number: formData.phone,
+              country: formData.country,
+              state: formData.state,
+              city: formData.city,
+              zip_code: formData.zipCode,
+              nationality: formData.nationality,
+              native_language: formData.nativeLanguage,
+            }),
+          },
+        );
+
+        if (!res.ok) throw new Error("Save failed");
+        setOriginalFormData(formData);
+        setMessage({ type: "success", text: "Settings saved!" });
+      }
+
       setHasChanges(false);
-      setMessage({ type: "success", text: "Settings saved!" });
     } catch (e) {
       setMessage({ type: "error", text: e.message });
     } finally {
@@ -1070,13 +1147,14 @@ function Settings() {
                           d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                         />
                       </svg>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 pl-9 sm:pl-10 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
-                      />
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      readOnly
+                      className="w-full px-3 sm:px-4 py-2 pl-9 sm:pl-10 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
+                    />
                     </div>
                   </div>
 
