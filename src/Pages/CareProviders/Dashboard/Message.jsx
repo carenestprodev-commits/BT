@@ -108,6 +108,15 @@ const getCurrentUserId = () => {
   return null;
 };
 
+const buildCallRoute = (bookingId, mode, title) => {
+  if (!bookingId) return "";
+  const params = new URLSearchParams({ mode: mode === "audio" ? "audio" : "video" });
+  if ((title || "").trim()) {
+    params.set("title", title.trim());
+  }
+  return `/careproviders/dashboard/message/${bookingId}/call?${params.toString()}`;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Mobile Conversations List Component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -263,6 +272,7 @@ const MobileChatView = ({
   bookingId,
   setShowPayment,
   showMenu,
+  currentUserId,
 }) => {
   return (
     // FIX: Added pt-16 so the chat header is not hidden behind the Sidebar mobile top bar
@@ -298,9 +308,7 @@ const MobileChatView = ({
                 aria-label="Call"
                 onClick={() =>
                   bookingId &&
-                  navigate(
-                    `/careproviders/dashboard/message/${bookingId}/call?mode=audio`,
-                  )
+                  navigate(buildCallRoute(bookingId, "audio", currentConversation?.job_title))
                 }
               >
                 <svg
@@ -316,9 +324,7 @@ const MobileChatView = ({
                 aria-label="Video call"
                 onClick={() =>
                   bookingId &&
-                  navigate(
-                    `/careproviders/dashboard/message/${bookingId}/call?mode=video`,
-                  )
+                  navigate(buildCallRoute(bookingId, "video", currentConversation?.job_title))
                 }
               >
                 <svg
@@ -420,6 +426,7 @@ const MobileChatView = ({
                 <ChatMessageItem
                   message={msg}
                   currentConversation={currentConversation}
+                  currentUserId={currentUserId}
                 />
               </div>
             ))}
@@ -995,9 +1002,7 @@ function Message() {
                   aria-label="Call"
                   onClick={() =>
                     currentConversation &&
-                    navigate(
-                        `/careproviders/dashboard/message/${currentBookingId}/call?mode=audio`,
-                    )
+                    navigate(buildCallRoute(currentBookingId, "audio", currentConversation?.job_title))
                   }
                 >
                   <svg
@@ -1013,9 +1018,7 @@ function Message() {
                   aria-label="Video call"
                   onClick={() =>
                     currentConversation &&
-                    navigate(
-                        `/careproviders/dashboard/message/${currentBookingId}/call?mode=video`,
-                    )
+                    navigate(buildCallRoute(currentBookingId, "video", currentConversation?.job_title))
                   }
                 >
                   <svg
@@ -1064,6 +1067,7 @@ function Message() {
                       <ChatMessageItem
                         message={msg}
                         currentConversation={currentConversation}
+                        currentUserId={currentUserId}
                       />
                     </div>
                   ))}
@@ -1140,6 +1144,7 @@ function Message() {
                 bookingId={bookingId}
                 setShowPayment={setShowPayment}
                 showMenu={false}
+                currentUserId={currentUserId}
               />
             ) : (
               <MobileConversationsList

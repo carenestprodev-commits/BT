@@ -33,13 +33,23 @@ export const formatMessageDate = (timestamp) => {
 
 export const getConversationPreviewText = (message) => {
   const kind = getMessageKind(message);
+  const payload = getMessagePayload(message);
   if (kind === "recording") {
-    return getMessagePayload(message)?.title || "Call recording";
+    const status = String(payload?.status || "").toLowerCase();
+    if (status === "processing") return "Recording processing";
+    if (status === "errored") return "Recording unavailable";
+    return payload?.title || "Call recording";
   }
   if (kind === "info") {
     return getMessageContent(message) || "Info update";
   }
   if (kind === "system") {
+    if (payload?.event === "call_started") {
+      return `${payload?.call_type === "audio" ? "Audio" : "Video"} call started`;
+    }
+    if (payload?.event === "call_ended") {
+      return `${payload?.call_type === "audio" ? "Audio" : "Video"} call ended`;
+    }
     return getMessageContent(message) || "System update";
   }
   return getMessageContent(message) || "No messages yet";

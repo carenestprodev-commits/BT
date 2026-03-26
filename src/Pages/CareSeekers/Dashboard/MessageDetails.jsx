@@ -91,6 +91,15 @@ const getCurrentUserId = () => {
   return null;
 };
 
+const buildCallRoute = (bookingId, mode, title) => {
+  if (!bookingId) return "";
+  const params = new URLSearchParams({ mode: mode === "audio" ? "audio" : "video" });
+  if ((title || "").trim()) {
+    params.set("title", title.trim());
+  }
+  return `/careseekers/dashboard/message/${bookingId}/call?${params.toString()}`;
+};
+
 function MessageDetails() {
   const extractErrorMessage = (value, fallback = "Request failed.") => {
     if (!value) return fallback;
@@ -565,9 +574,7 @@ function MessageDetails() {
               title="Call provider"
               onClick={() =>
                 currentConversation &&
-                navigate(
-                  `/careseekers/dashboard/message/${currentBookingId}/call?mode=audio`,
-                )
+                navigate(buildCallRoute(currentBookingId, "audio", currentConversation?.job_title))
               }
             >
               <i className="fas fa-phone"></i>
@@ -578,9 +585,7 @@ function MessageDetails() {
               title="Video call with provider"
               onClick={() =>
                 currentConversation &&
-                navigate(
-                  `/careseekers/dashboard/message/${currentBookingId}/call?mode=video`,
-                )
+                navigate(buildCallRoute(currentBookingId, "video", currentConversation?.job_title))
               }
             >
               <i className="fas fa-video"></i>
@@ -695,6 +700,7 @@ function MessageDetails() {
                   key={msg.id}
                   message={msg}
                   currentConversation={currentConversation}
+                  currentUserId={currentUserId}
                 />
               ))}
               <div ref={chatEndRef} />
