@@ -49,7 +49,7 @@ if (!verificationId) {
 
 ### What Was Changed:
 
-**File:** [src/Redux/AdminUsers.jsx](src/Redux/AdminUsers.jsx)
+**File:** [src/Redux/AdminUsers.jsx](../src/Redux/AdminUsers.jsx)
 
 The `approveUser` thunk now implements a **two-step approval process**:
 

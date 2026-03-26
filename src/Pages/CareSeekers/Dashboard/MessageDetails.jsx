@@ -26,6 +26,8 @@ import {
   clearProviderDetails,
 } from "../../../Redux/ProvidersDetails";
 import { BASE_URL } from "../../../Redux/config";
+import ChatMessageItem from "../../../Components/Chat/ChatMessageItem";
+import { toDisplayMessage } from "../../../lib/chatMessages";
 import { formatCurrencyAmount } from "../../../utils/countryHelper";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 
@@ -90,6 +92,28 @@ const getCurrentUserId = () => {
 };
 
 function MessageDetails() {
+  const extractErrorMessage = (value, fallback = "Request failed.") => {
+    if (!value) return fallback;
+    if (typeof value === "string") {
+      try {
+        const parsed = JSON.parse(value);
+        if (parsed?.error) return parsed.error;
+        if (parsed?.detail) return parsed.detail;
+        if (parsed?.message) return parsed.message;
+        const first = Object.values(parsed).find((entry) =>
+          Array.isArray(entry) ? typeof entry[0] === "string" : typeof entry === "string",
+        );
+        if (Array.isArray(first)) return first[0] || fallback;
+        return first || value;
+      } catch {
+        return value;
+      }
+    }
+    if (typeof value === "object") {
+      return value.error || value.detail || value.message || fallback;
+    }
+    return fallback;
+  };
   const navigate = useNavigate();
   const params = useParams();
   const dispatch = useDispatch();
@@ -158,6 +182,10 @@ function MessageDetails() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [conversations.length, providerId],
   );
+  const currentBookingId =
+    currentConversation?.booking ||
+    currentConversation?.booking_id ||
+    currentConversation?.id;
 
   const currentMessages = useMemo(
     () =>
@@ -302,18 +330,9 @@ function MessageDetails() {
   // Message display processing
   const displayMessages = useMemo(() => {
     const currentUserId = getCurrentUserId();
-    return currentMessages.map((message) => {
-      const type =
-        String(message.sender) === String(currentUserId) ? "sent" : "received";
-      return {
-        id: message.id,
-        text: message.content || message.message || "",
-        type,
-        time: formatTime(message.timestamp || message.created_at || new Date()),
-        date: formatDate(message.timestamp || message.created_at || new Date()),
-        senderName: message.sender_name,
-      };
-    });
+    return currentMessages.map((message) =>
+      toDisplayMessage(message, currentUserId),
+    );
     // ✅ Only recompute when the actual messages change, not on every render
   }, [currentMessages]);
 
@@ -352,7 +371,7 @@ function MessageDetails() {
    * ✅ "start" → send the message + call startActivity API. NO payment modal.
    * ✅ "end"   → send the message + call endActivity API + show payment modal.
    */
-  const handleFirstMessageAction = (action) => {
+  const handleFirstMessageAction = async (action) => {
     if (action === "start") {
       // Send the queued message
       dispatch(
@@ -387,18 +406,23 @@ function MessageDetails() {
       setMessageCount(messageCount + 1);
 
       // End the activity via API
-      try {
-        if (bookingId) {
-          dispatch(endActivity(bookingId));
-        }
-      } catch (e) {
-        console.error("Failed to end activity:", e);
+      let endResult = null;
+      if (bookingId) {
+        endResult = await dispatch(endActivity(bookingId));
       }
 
       setShowActivityModal(false);
 
-      // ✅ Only "End Activity" opens the payment modal
-      setShowPayment(true);
+      if (endResult && endActivity.fulfilled.match(endResult)) {
+        // ✅ Only successful End Activity opens the payment modal
+        setShowPayment(true);
+      } else {
+        const message = extractErrorMessage(
+          endResult?.payload || endResult?.error?.message,
+          "Failed to end activity.",
+        );
+        alert(message);
+      }
     }
   };
 
@@ -452,12 +476,15 @@ function MessageDetails() {
       setMenuOpen(false);
     } else if (action === "end") {
       setMenuOpen(false);
-      try {
-        await dispatch(endActivity(bookingId));
-        // ✅ Only End Activity opens the payment modal
+      const result = await dispatch(endActivity(bookingId));
+      if (endActivity.fulfilled.match(result)) {
         setShowPayment(true);
-      } catch {
-        alert("Failed to end activity");
+      } else {
+        const message = extractErrorMessage(
+          result?.payload || result?.error?.message,
+          "Failed to end activity.",
+        );
+        alert(message);
       }
     }
   };
@@ -536,6 +563,12 @@ function MessageDetails() {
               className="text-[#0d99c9] hover:text-[#007bb0] text-lg sm:text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
               aria-label="Call provider"
               title="Call provider"
+              onClick={() =>
+                currentConversation &&
+                navigate(
+                  `/careseekers/dashboard/message/${currentBookingId}/call?mode=audio`,
+                )
+              }
             >
               <i className="fas fa-phone"></i>
             </button>
@@ -543,6 +576,12 @@ function MessageDetails() {
               className="text-[#0d99c9] hover:text-[#007bb0] text-lg sm:text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
               aria-label="Video call with provider"
               title="Video call with provider"
+              onClick={() =>
+                currentConversation &&
+                navigate(
+                  `/careseekers/dashboard/message/${currentBookingId}/call?mode=video`,
+                )
+              }
             >
               <i className="fas fa-video"></i>
             </button>
@@ -651,36 +690,12 @@ function MessageDetails() {
                   </span>
                 </div>
               )}
-              {displayMessages.map((msg, i) => (
-                <div key={i} className="mb-3 sm:mb-4">
-                  {msg.type === "received" && (
-                    <div className="flex flex-col max-w-[85%] sm:max-w-[70%] md:max-w-[60%] items-start">
-                      <span className="text-xs text-gray-500 font-semibold mb-1">
-                        {currentConversation.other_participant?.full_name ||
-                          "Other User"}
-                      </span>
-                      <div className="bg-gray-100 rounded-lg px-3 sm:px-4 md:px-5 py-2 sm:py-3 text-gray-800 text-xs sm:text-sm break-words">
-                        {msg.text}
-                      </div>
-                      <span className="text-xs text-gray-400 mt-1">
-                        {msg.time}
-                      </span>
-                    </div>
-                  )}
-                  {msg.type === "sent" && (
-                    <div className="flex flex-col max-w-[85%] sm:max-w-[70%] md:max-w-[60%] items-end ml-auto">
-                      <span className="text-xs text-gray-500 font-semibold mb-1">
-                        You
-                      </span>
-                      <div className="bg-[#0d99c9] rounded-lg px-3 sm:px-4 md:px-5 py-2 sm:py-3 text-white text-xs sm:text-sm break-words">
-                        {msg.text}
-                      </div>
-                      <span className="text-xs text-gray-400 mt-1">
-                        {msg.time}
-                      </span>
-                    </div>
-                  )}
-                </div>
+              {displayMessages.map((msg) => (
+                <ChatMessageItem
+                  key={msg.id}
+                  message={msg}
+                  currentConversation={currentConversation}
+                />
               ))}
               <div ref={chatEndRef} />
               {/* ✅ Show a clean error if message sending fails */}
@@ -951,6 +966,7 @@ function MessageDetails() {
                     >
                       Could not load server preview. Final charge will still use
                       server-calculated totals.
+                      <div className="mt-1">{paymentPreviewError}</div>
                     </div>
                   )}
                   {paymentError && (

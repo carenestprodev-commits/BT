@@ -64,6 +64,63 @@ const getPaymentDefaults = () => {
   };
 };
 
+const normalizeApiError = (
+  errorPayload,
+  fallback = "Something went wrong. Please try again.",
+) => {
+  if (!errorPayload) return fallback;
+
+  const extractFromObject = (obj) => {
+    if (!obj || typeof obj !== "object") return null;
+
+    if (typeof obj.detail === "string" && obj.detail.trim()) return obj.detail;
+    if (typeof obj.message === "string" && obj.message.trim())
+      return obj.message;
+    if (typeof obj.error === "string" && obj.error.trim()) return obj.error;
+
+    const entries = Object.entries(obj).filter(([key]) => key !== "logged_total_hours");
+    for (const [, value] of entries) {
+      if (Array.isArray(value) && value.length > 0) {
+        const first = value.find((item) => typeof item === "string");
+        if (first) return first;
+      }
+      if (typeof value === "string" && value.trim()) return value;
+    }
+
+    return null;
+  };
+
+  if (typeof errorPayload === "string") {
+    const trimmed = errorPayload.trim();
+    if (!trimmed) return fallback;
+    try {
+      const parsed = JSON.parse(trimmed);
+      const extracted = extractFromObject(parsed);
+      if (extracted) {
+        if (parsed?.logged_total_hours != null) {
+          return `${extracted} Logged total hours: ${parsed.logged_total_hours}`;
+        }
+        return extracted;
+      }
+      return trimmed;
+    } catch {
+      return trimmed;
+    }
+  }
+
+  if (typeof errorPayload === "object") {
+    const extracted = extractFromObject(errorPayload);
+    if (extracted) {
+      if (errorPayload?.logged_total_hours != null) {
+        return `${extracted} Logged total hours: ${errorPayload.logged_total_hours}`;
+      }
+      return extracted;
+    }
+  }
+
+  return fallback;
+};
+
 // Fetch server-calculated payment preview for an activity booking
 export const fetchActivityPaymentPreview = createAsyncThunk(
   "startActivity/fetchPaymentPreview",
@@ -293,8 +350,10 @@ const startActivitySlice = createSlice({
       })
       .addCase(fetchActivityPaymentPreview.rejected, (state, action) => {
         state.loadingPaymentPreview = false;
-        state.paymentPreviewError =
-          action.payload || "Failed to load payment preview";
+        state.paymentPreviewError = normalizeApiError(
+          action.payload,
+          "Failed to load payment preview",
+        );
       })
       // Initiate payment
       .addCase(initiateActivityPayment.pending, (state) => {
@@ -338,7 +397,10 @@ const startActivitySlice = createSlice({
       })
       .addCase(initiateActivityPayment.rejected, (state, action) => {
         state.initiatingPayment = false;
-        state.paymentError = action.payload || "Failed to initiate payment";
+        state.paymentError = normalizeApiError(
+          action.payload,
+          "Failed to initiate payment",
+        );
       })
       // End activity
       .addCase(endActivity.pending, (state) => {
@@ -362,8 +424,10 @@ const startActivitySlice = createSlice({
       })
       .addCase(startActivity.rejected, (state, action) => {
         state.startingActivity = false;
-        state.startActivityError =
-          action.payload || action.error?.message || "Failed to start activity";
+        state.startActivityError = normalizeApiError(
+          action.payload || action.error?.message,
+          "Failed to start activity",
+        );
       })
       .addCase(endActivity.fulfilled, (state, action) => {
         state.endingActivity = false;
@@ -378,8 +442,10 @@ const startActivitySlice = createSlice({
       })
       .addCase(endActivity.rejected, (state, action) => {
         state.endingActivity = false;
-        state.endActivityError =
-          action.payload || action.error?.message || "Failed to end activity";
+        state.endActivityError = normalizeApiError(
+          action.payload || action.error?.message,
+          "Failed to end activity",
+        );
       });
   },
 });
