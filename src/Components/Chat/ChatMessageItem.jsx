@@ -4,8 +4,10 @@ import { getRecordingAccessUrl } from "../../lib/chatMessages";
 const resolveHref = (url) => {
   if (!url) return "";
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  if (url.startsWith("/")) return BASE_URL ? `${BASE_URL}${url}` : url;
-  return BASE_URL ? `${BASE_URL}/${url}` : url;
+  if (!BASE_URL) return url;
+  const base = BASE_URL.replace(/\/+$/, "");
+  const path = url.replace(/^\/+/, "");
+  return `${base}/${path}`;
 };
 
 const formatDuration = (value) => {

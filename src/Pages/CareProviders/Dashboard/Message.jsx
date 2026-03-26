@@ -720,12 +720,14 @@ function Message() {
     };
   }, [dispatch, currentConversation]);
 
+  const currentUserId = getCurrentUserId();
+
   const displayMessages = useMemo(
     () =>
       currentMessages.map((message) =>
-        toDisplayMessage(message, getCurrentUserId()),
+        toDisplayMessage(message, currentUserId),
       ),
-    [currentMessages],
+    [currentMessages, currentUserId],
   );
 
   const chatBodyRef = useRef(null);

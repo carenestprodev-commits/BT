@@ -715,12 +715,14 @@ function Message() {
     return () => clearInterval(poll);
   }, [wsConnected, currentConversation, dispatch]);
 
+  const currentUserId = getCurrentUserId();
+
   const displayMessages = useMemo(
     () =>
       currentMessages.map((message) =>
-        toDisplayMessage(message, getCurrentUserId()),
+        toDisplayMessage(message, currentUserId),
       ),
-    [currentMessages],
+    [currentMessages, currentUserId],
   );
 
   const chatBodyRef = useRef(null);
