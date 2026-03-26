@@ -36,6 +36,9 @@ export const getConversationPreviewText = (message) => {
   if (kind === "recording") {
     return getMessagePayload(message)?.title || "Call recording";
   }
+  if (kind === "info") {
+    return getMessageContent(message) || "Info update";
+  }
   if (kind === "system") {
     return getMessageContent(message) || "System update";
   }
@@ -61,6 +64,7 @@ export const toDisplayMessage = (message, currentUserId) => {
   const sender = getMessageSender(message);
   const isOwnMessage =
     kind !== "system" &&
+    kind !== "info" &&
     kind !== "recording" &&
     sender !== null &&
     String(sender) === String(currentUserId);
@@ -76,7 +80,7 @@ export const toDisplayMessage = (message, currentUserId) => {
     time: formatMessageTime(timestamp),
     date: formatMessageDate(timestamp),
     type:
-      kind === "system" || kind === "recording"
+      kind === "system" || kind === "recording" || kind === "info"
         ? kind
         : isOwnMessage
           ? "sent"
@@ -90,4 +94,3 @@ export const getRecordingAccessUrl = (message) =>
   getMessagePayload(message)?.recording_url ||
   getMessagePayload(message)?.url ||
   "";
-

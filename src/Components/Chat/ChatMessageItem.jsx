@@ -33,6 +33,19 @@ function ChatMessageItem({ message, currentConversation }) {
     );
   }
 
+  if (message.kind === "info") {
+    return (
+      <div className="flex justify-center my-4">
+        <div className="max-w-[85%] rounded-2xl border border-[#dbeafe] bg-[#eff6ff] px-4 py-3 text-center text-sm text-[#1d4ed8] shadow-sm">
+          <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#3b82f6]">
+            Info
+          </div>
+          <div>{message.text}</div>
+        </div>
+      </div>
+    );
+  }
+
   if (message.kind === "recording") {
     const payload = message.payload || {};
     const status = (payload.status || "uploaded").toLowerCase();
