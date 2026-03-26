@@ -521,6 +521,7 @@ function Message() {
     messagesLoading,
     messagesError,
     wsConnected,
+    wsFallbackActive,
     sendingMessage,
     sendMessageError,
   } = useSelector((state) => state.messenger);
@@ -788,6 +789,22 @@ function Message() {
       dispatch(disconnectWebSocket());
     };
   }, [dispatch, currentConversationId]);
+
+  const notificationFallbackActive = useMemo(
+    () => isDegraded || wsFallbackActive,
+    [isDegraded, wsFallbackActive],
+  );
+
+  useEffect(() => {
+    if (!notificationFallbackActive) return;
+    const intervalId = setInterval(() => {
+      dispatch(fetchConversations());
+      if (currentConversationId) {
+        dispatch(fetchMessages(currentConversationId));
+      }
+    }, 4000);
+    return () => clearInterval(intervalId);
+  }, [dispatch, notificationFallbackActive, currentConversationId]);
 
   const currentUserId = getCurrentUserIdFromProfile(authUser);
 

@@ -123,6 +123,7 @@ function MessageDetails() {
     messagesByConversation,
     messagesLoading,
     sendingMessage,
+    wsFallbackActive,
     sendMessageError,
   } = useSelector((state) => state.messenger);
 
@@ -255,6 +256,14 @@ function MessageDetails() {
       dispatch(disconnectWebSocket());
     };
   }, [dispatch, currentConversationId]);
+
+  useEffect(() => {
+    if (!wsFallbackActive || !currentConversationId) return;
+    const intervalId = setInterval(() => {
+      dispatch(fetchMessages(currentConversationId));
+    }, 4000);
+    return () => clearInterval(intervalId);
+  }, [dispatch, wsFallbackActive, currentConversationId]);
 
   // Update message count when messages arrive
   // ✅ Depend on length, not the array reference

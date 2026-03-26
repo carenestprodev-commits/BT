@@ -120,28 +120,6 @@ export const NotificationProvider = ({ children }) => {
           return;
         }
 
-        // Don't reconnect if WebSocket server not available (1006, 1011)
-        if ([1006, 1011].includes(event.code)) {
-          console.warn(
-            "⚠️ WebSocket server unavailable, activating degraded mode",
-          );
-          setIsDegraded(true);
-          // Still attempt reconnection but less aggressively
-          if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-            const backoff = calculateBackoff();
-            console.log(
-              `⏱️ Retrying in ${backoff}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`,
-            );
-            reconnectAttemptsRef.current += 1;
-
-            reconnectTimeoutRef.current = setTimeout(() => {
-              connectWebSocket();
-            }, backoff);
-          }
-          return;
-        }
-
-        // Attempt reconnection with backoff
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           const backoff = calculateBackoff();
           console.log(
@@ -152,15 +130,15 @@ export const NotificationProvider = ({ children }) => {
           reconnectTimeoutRef.current = setTimeout(() => {
             connectWebSocket();
           }, backoff);
+          return;
         }
+
+        console.warn("⚠️ Notifications websocket exhausted reconnect attempts");
+        setIsDegraded(true);
       };
 
       ws.onerror = (err) => {
         console.error("❌ WebSocket error:", err);
-        console.warn(
-          "⚠️ WebSocket connection failed, falling back to degraded mode",
-        );
-        setIsDegraded(true);
       };
     } catch (err) {
       console.error("❌ Failed to create WebSocket:", err);

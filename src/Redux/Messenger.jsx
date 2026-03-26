@@ -191,7 +191,7 @@ class WebSocketManager {
     // Reconnect state
     this._reconnectTimer = null;
     this._reconnectAttempts = 0;
-    this._maxReconnectAttempts = 8;
+    this._maxReconnectAttempts = 5;
     this._baseDelay = 1000; // 1 s
     this._maxDelay = 30000; // 30 s
     this._intentionalDisconnect = false;
@@ -278,6 +278,9 @@ class WebSocketManager {
     if (this._intentionalDisconnect) return;
     if (this._reconnectAttempts >= this._maxReconnectAttempts) {
       console.warn("⚠️ WebSocket max reconnect attempts reached. Giving up.");
+      if (this.onConnectionCallback) {
+        this.onConnectionCallback({ type: "degraded" });
+      }
       return;
     }
 
@@ -351,6 +354,7 @@ const initialState = {
 
   wsConnected: false,
   wsError: null,
+  wsFallbackActive: false,
 
   creatingConversation: false,
   createConversationError: null,
@@ -374,6 +378,10 @@ const messengerSlice = createSlice({
 
     setWebSocketError: (state, action) => {
       state.wsError = action.payload;
+    },
+
+    setWebSocketFallback: (state, action) => {
+      state.wsFallbackActive = action.payload;
     },
 
     addRealtimeMessage: (state, action) => {
@@ -572,6 +580,7 @@ export const {
   setActiveConversation,
   setWebSocketConnected,
   setWebSocketError,
+  setWebSocketFallback,
   addRealtimeMessage,
   clearCreatedConversationId,
   clearMessagesError,
@@ -635,11 +644,16 @@ export const connectWebSocket = (conversationId) => (dispatch) => {
     if (event.type === "connected") {
       dispatch(setWebSocketConnected(true));
       dispatch(setWebSocketError(null));
+      dispatch(setWebSocketFallback(false));
     } else if (event.type === "disconnected") {
       dispatch(setWebSocketConnected(false));
     } else if (event.type === "error") {
       dispatch(setWebSocketError("WebSocket connection failed"));
       dispatch(setWebSocketConnected(false));
+    } else if (event.type === "degraded") {
+      dispatch(setWebSocketConnected(false));
+      dispatch(setWebSocketError("WebSocket unavailable, using polling fallback"));
+      dispatch(setWebSocketFallback(true));
     }
   };
 
@@ -649,6 +663,7 @@ export const connectWebSocket = (conversationId) => (dispatch) => {
 export const disconnectWebSocket = () => (dispatch) => {
   wsManager.disconnect();
   dispatch(setWebSocketConnected(false));
+  dispatch(setWebSocketFallback(false));
 };
 
 export const sendWebSocketMessage = (message) => (dispatch) => {
