@@ -15,7 +15,7 @@ function RealtimeKitCallRoom() {
   const { id: bookingId } = useParams();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get("mode") === "audio" ? "audio" : "video";
-  const backPath = resolveStartPath(location.pathname);
+  const backPath = `${resolveStartPath(location.pathname)}/${bookingId}`;
 
   const [meeting, initMeeting] = useRealtimeKitClient();
   const [loading, setLoading] = useState(true);
