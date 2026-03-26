@@ -21,13 +21,13 @@ function RealtimeKitCallRoom() {
 
   const [meeting, initMeeting] = useRealtimeKitClient();
   const [title, setTitle] = useState(initialTitle);
-  const [selectedMode, setSelectedMode] = useState(initialMode);
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [ending, setEnding] = useState(false);
   const [error, setError] = useState("");
   const [activeMode, setActiveMode] = useState(initialMode);
   const [activeTitle, setActiveTitle] = useState(initialTitle);
+  const selectedMode = initialMode;
 
   useEffect(() => {
     setTitle(initialTitle);
@@ -92,27 +92,8 @@ function RealtimeKitCallRoom() {
           <p className="mt-2 text-sm text-gray-600">
             Add a title before creating this call.
           </p>
-          <div className="mt-4 flex w-full rounded-xl bg-gray-100 p-1">
-            <button
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                selectedMode === "audio"
-                  ? "bg-white text-[#0d99c9] shadow-sm"
-                  : "text-gray-600"
-              }`}
-              onClick={() => setSelectedMode("audio")}
-            >
-              Audio
-            </button>
-            <button
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                selectedMode === "video"
-                  ? "bg-white text-[#0d99c9] shadow-sm"
-                  : "text-gray-600"
-              }`}
-              onClick={() => setSelectedMode("video")}
-            >
-              Video
-            </button>
+          <div className="mt-4 rounded-xl border border-gray-200 bg-[#f7fafd] px-3 py-2 text-sm font-medium text-gray-700">
+            {selectedMode === "audio" ? "Audio call" : "Video call"}
           </div>
           <label className="mt-5 block text-sm font-medium text-gray-700">
             Call title
@@ -121,7 +102,7 @@ function RealtimeKitCallRoom() {
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Enter call title"
-            className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-[#0d99c9] focus:outline-none focus:ring-2 focus:ring-[#0d99c9]/20"
+            className="mt-2 w-full rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 focus:border-[#0d99c9] focus:outline-none focus:ring-2 focus:ring-[#0d99c9]/20"
             maxLength={120}
           />
           {error ? (
