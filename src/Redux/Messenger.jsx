@@ -380,7 +380,6 @@ const messengerSlice = createSlice({
 
       const formattedMessage = normalizeRealtimeMessage({
         ...message,
-        id: message.id || `ws_${Date.now()}_${message.sender_id || "system"}`,
         sender: message.sender_id,
         sender_name: message.sender_name,
         content: message.message,
