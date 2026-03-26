@@ -24,8 +24,51 @@ const formatDuration = (value) => {
   return `${hours}h${remainingMinutes ? ` ${remainingMinutes}m` : ""}`;
 };
 
-function ChatMessageItem({ message, currentConversation }) {
+function ChatMessageItem({ message, currentConversation, currentUserId }) {
   if (message.kind === "system") {
+    const payload = message.payload || {};
+    const event = payload.event || "";
+    const callType = payload.call_type === "audio" ? "audio" : "video";
+    const startedById = payload.started_by_id || payload.initiator_id || null;
+    const alignsToStarter =
+      startedById !== null &&
+      startedById !== undefined &&
+      String(startedById) === String(currentUserId || "");
+    const isCallEvent = event === "call_started" || event === "call_ended";
+
+    if (isCallEvent) {
+      const icon =
+        callType === "audio" ? (
+          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+          </svg>
+        ) : (
+          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+          </svg>
+        );
+      const title = (payload.title || "").trim();
+      const label = event === "call_started" ? "Call started" : "Call ended";
+      return (
+        <div className={`mb-4 flex ${alignsToStarter ? "justify-end" : "justify-start"}`}>
+          <div
+            className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${
+              alignsToStarter
+                ? "bg-[#e7f7fd] text-[#0a6f97] rounded-tr-sm"
+                : "bg-gray-100 text-gray-700 rounded-tl-sm"
+            }`}
+          >
+            <div className="flex items-center gap-2 font-semibold">
+              {icon}
+              <span>{label}</span>
+            </div>
+            {title ? <div className="mt-1 text-xs opacity-90">{title}</div> : null}
+            <span className="mt-1 block text-right text-xs opacity-70">{message.time}</span>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex justify-center my-4">
         <div className="max-w-[85%] rounded-full border border-[#dceff8] bg-[#f4fbfe] px-4 py-2 text-center text-sm font-medium text-[#0d99c9]">

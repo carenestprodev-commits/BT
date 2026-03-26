@@ -111,6 +111,32 @@ const getCurrentUserId = () => {
   return null;
 };
 
+const buildCallRoute = (bookingId, mode, title) => {
+  if (!bookingId) return "";
+  const params = new URLSearchParams({ mode: mode === "audio" ? "audio" : "video" });
+  if ((title || "").trim()) {
+    params.set("title", title.trim());
+  }
+  return `/careseekers/dashboard/message/${bookingId}/call?${params.toString()}`;
+};
+
+const getConversationBookingId = (conversation) =>
+  conversation?.booking || conversation?.booking_id || conversation?.id;
+
+const getActiveCallSession = (conversation) => {
+  const session = conversation?.call_session;
+  return session?.status === "active" ? session : null;
+};
+
+const getConversationCallRoute = (conversation) => {
+  const bookingId = getConversationBookingId(conversation);
+  if (!bookingId) return "";
+  const activeSession = getActiveCallSession(conversation);
+  const mode = activeSession?.call_type === "audio" ? "audio" : "video";
+  const title = activeSession?.call_title || conversation?.job_title || "";
+  return buildCallRoute(bookingId, mode, title);
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Mobile Conversations List
 // ─────────────────────────────────────────────────────────────────────────────
@@ -191,6 +217,8 @@ const MobileConversationsList = ({
         ) : (
           filteredConversations.map((conversation) => {
             const originalIndex = conversations.indexOf(conversation);
+            const activeCall = getActiveCallSession(conversation);
+            const callRoute = getConversationCallRoute(conversation);
             return (
               <button
                 key={conversation.id}
@@ -214,9 +242,17 @@ const MobileConversationsList = ({
                         conversation.other_participant?.email ||
                         "Unknown User"}
                     </span>
+                    {activeCall ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Live call
+                      </span>
+                    ) : null}
                   </div>
                   <p className="text-xs text-gray-500 truncate">
-                    {getConversationPreviewText(conversation.last_message || {})}
+                    {activeCall
+                      ? `Tap to join ${activeCall.call_type === "audio" ? "audio" : "video"} call`
+                      : getConversationPreviewText(conversation.last_message || {})}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
@@ -225,6 +261,17 @@ const MobileConversationsList = ({
                       ? formatTime(conversation.last_message.timestamp)
                       : ""}
                   </span>
+                  {activeCall && callRoute ? (
+                    <span
+                      className="inline-flex cursor-pointer items-center rounded-full bg-[#0d99c9] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#007bb0]"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        navigate(callRoute);
+                      }}
+                    >
+                      Join
+                    </span>
+                  ) : null}
                   {conversation.unread_count > 0 && (
                     <span className="bg-[#00A8E8] text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
                       {conversation.unread_count}
@@ -266,6 +313,11 @@ const MobileChatView = ({
   bookingId,
   setShowPayment,
   showMenu,
+  currentUserId,
+  callRoute,
+  callButtonLabel,
+  callType,
+  isCallLive,
 }) => {
   return (
     // FIX: Added pt-16 so the chat header is not hidden behind the Sidebar mobile top bar
@@ -297,40 +349,25 @@ const MobileChatView = ({
             {/* FIX: Call and Video icons added before three-dot menu */}
             <div className="flex gap-3 items-center">
               <button
-                className="text-[#00A8E8] p-1"
-                aria-label="Call"
-                onClick={() =>
-                  bookingId &&
-                  navigate(
-                    `/careseekers/dashboard/message/${bookingId}/call?mode=audio`,
-                  )
-                }
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                  isCallLive
+                    ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
+                }`}
+                aria-label={callButtonLabel}
+                onClick={() => callRoute && navigate(callRoute)}
+                disabled={!callRoute}
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                </svg>
-              </button>
-              <button
-                className="text-[#00A8E8] p-1"
-                aria-label="Video call"
-                onClick={() =>
-                  bookingId &&
-                  navigate(
-                    `/careseekers/dashboard/message/${bookingId}/call?mode=video`,
-                  )
-                }
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                </svg>
+                {callType === "audio" ? (
+                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                  </svg>
+                )}
+                <span>{callButtonLabel}</span>
               </button>
               {/* Three-dot menu for mobile */}
               {showMenu && currentConversation?.booking && (
@@ -435,6 +472,7 @@ const MobileChatView = ({
                   <ChatMessageItem
                     message={msg}
                     currentConversation={currentConversation}
+                    currentUserId={currentUserId}
                   />
                 </div>
               );
@@ -533,6 +571,7 @@ function Message() {
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
+  const lastBookingHandledRef = useRef(null);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -591,15 +630,27 @@ function Message() {
   };
 
   const bookingId = currentBookingId;
+  const activeCallSession = getActiveCallSession(currentConversation);
+  const currentCallRoute = getConversationCallRoute(currentConversation);
+  const callButtonLabel = activeCallSession ? "Join call" : "Start call";
+  const callType = activeCallSession?.call_type === "audio" ? "audio" : "video";
 
   useEffect(() => {
     dispatch(fetchConversations());
+  }, [dispatch]);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      dispatch(fetchConversations());
+    }, 5000);
+    return () => clearInterval(intervalId);
   }, [dispatch]);
 
   const { lastBookingId } = useSelector((state) => state.startActivity);
   useEffect(() => {
     if (!lastBookingId) return;
     const bid = String(lastBookingId);
+    if (lastBookingHandledRef.current === bid) return;
     const idx = conversations.findIndex(
       (c) =>
         String(c.booking) === bid ||
@@ -608,6 +659,7 @@ function Message() {
     );
     if (idx >= 0) {
       const conv = conversations[idx];
+      lastBookingHandledRef.current = bid;
       setSelectedIndex(idx);
       dispatch(setActiveConversation(String(conv.id)));
       dispatch(fetchMessages(String(conv.id)));
@@ -625,6 +677,7 @@ function Message() {
         );
         if (idx2 >= 0) {
           const conv = convs[idx2];
+          lastBookingHandledRef.current = bid;
           setSelectedIndex(idx2);
           dispatch(setActiveConversation(String(conv.id)));
           dispatch(fetchMessages(String(conv.id)));
@@ -916,6 +969,11 @@ function Message() {
                 bookingId={bookingId}
                 setShowPayment={setShowPayment}
                 showMenu={true}
+                currentUserId={currentUserId}
+                callRoute={currentCallRoute}
+                callButtonLabel={callButtonLabel}
+                callType={callType}
+                isCallLive={Boolean(activeCallSession)}
               />
             )}
           </div>
@@ -960,6 +1018,8 @@ function Message() {
                 ) : (
                   filteredConversations.map((conversation) => {
                     const originalIndex = conversations.indexOf(conversation);
+                    const activeCall = getActiveCallSession(conversation);
+                    const callRoute = getConversationCallRoute(conversation);
                     return (
                       <button
                         key={conversation.id}
@@ -976,15 +1036,25 @@ function Message() {
                           className="w-10 h-10 rounded-full object-cover"
                         />
                         <div className="flex-1">
-                          <div className="font-medium text-gray-800 text-base">
-                            {conversation.other_participant?.full_name ||
-                              conversation.other_participant?.email ||
-                              "Unknown User"}
+                          <div className="flex items-center gap-2">
+                            <div className="font-medium text-gray-800 text-base">
+                              {conversation.other_participant?.full_name ||
+                                conversation.other_participant?.email ||
+                                "Unknown User"}
+                            </div>
+                            {activeCall ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Live call
+                              </span>
+                            ) : null}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {getConversationPreviewText(
-                              conversation.last_message || {},
-                            )}
+                            {activeCall
+                              ? `Tap to join ${activeCall.call_type === "audio" ? "audio" : "video"} call`
+                              : getConversationPreviewText(
+                                  conversation.last_message || {},
+                                )}
                           </div>
                         </div>
                         <div className="flex flex-col items-end">
@@ -993,6 +1063,17 @@ function Message() {
                               ? formatTime(conversation.last_message.timestamp)
                               : ""}
                           </span>
+                          {activeCall && callRoute ? (
+                            <span
+                              className="mt-1 inline-flex cursor-pointer items-center rounded-full bg-[#0d99c9] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#007bb0]"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                navigate(callRoute);
+                              }}
+                            >
+                              Join
+                            </span>
+                          ) : null}
                           {conversation.unread_count > 0 && (
                             <span className="bg-[#0d99c9] text-white text-xs rounded-full px-2 py-1 mt-1">
                               {conversation.unread_count}
@@ -1044,40 +1125,25 @@ function Message() {
 
                 <div className="flex gap-4 items-center">
                   <button
-                    className="text-[#0d99c9] hover:text-[#007bb0]"
-                    aria-label="Call"
-                    onClick={() =>
-                      currentConversation &&
-                      navigate(
-                        `/careseekers/dashboard/message/${currentBookingId}/call?mode=audio`,
-                      )
-                    }
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold ${
+                      activeCallSession
+                        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
+                    }`}
+                    aria-label={callButtonLabel}
+                    onClick={() => currentCallRoute && navigate(currentCallRoute)}
+                    disabled={!currentCallRoute}
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                    </svg>
-                  </button>
-                  <button
-                    className="text-[#0d99c9] hover:text-[#007bb0]"
-                    aria-label="Video call"
-                    onClick={() =>
-                      currentConversation &&
-                      navigate(
-                        `/careseekers/dashboard/message/${currentBookingId}/call?mode=video`,
-                      )
-                    }
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                    </svg>
+                    {callType === "audio" ? (
+                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                      </svg>
+                    ) : (
+                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                      </svg>
+                    )}
+                    <span>{callButtonLabel}</span>
                   </button>
                 </div>
 
@@ -1173,6 +1239,7 @@ function Message() {
                       <ChatMessageItem
                         message={msg}
                         currentConversation={currentConversation}
+                        currentUserId={currentUserId}
                       />
                       </div>
                     ))}
