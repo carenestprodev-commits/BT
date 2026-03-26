@@ -123,7 +123,6 @@ function MessageDetails() {
     messagesByConversation,
     messagesLoading,
     sendingMessage,
-    wsConnected,
     sendMessageError,
   } = useSelector((state) => state.messenger);
 
@@ -256,18 +255,6 @@ function MessageDetails() {
       dispatch(disconnectWebSocket());
     };
   }, [dispatch, currentConversationId]);
-
-  // ✅ Polling fallback: when WebSocket is unavailable, poll every 4s so messages arrive in near-real-time
-  // ✅ Depend on the ID, not the whole object
-  useEffect(() => {
-    if (wsConnected || !currentConversationId) return;
-
-    const pollInterval = setInterval(() => {
-      dispatch(fetchMessages(currentConversationId));
-    }, 4000);
-
-    return () => clearInterval(pollInterval);
-  }, [wsConnected, currentConversationId, dispatch]);
 
   // Update message count when messages arrive
   // ✅ Depend on length, not the array reference

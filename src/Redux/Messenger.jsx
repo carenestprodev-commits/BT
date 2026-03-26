@@ -3,6 +3,11 @@ import { BASE_URL, getAuthHeaders } from "./config";
 import { fetchWithAuth } from "../lib/fetchWithAuth.js";
 import { normalizeRealtimeMessage } from "../lib/chatMessages";
 
+const getWSHost = () => {
+  const apiUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+  return apiUrl.replace("http://", "ws://").replace("https://", "wss://");
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -211,7 +216,7 @@ class WebSocketManager {
       this.socket = null;
     }
 
-    const wsUrl = `wss://backend.staging.bristones.com/ws/chat/${this.conversationId}/?token=${this.token}`;
+    const wsUrl = `${getWSHost()}/ws/chat/${this.conversationId}/?token=${this.token}`;
     console.log(
       `🔌 WebSocket connecting (attempt ${this._reconnectAttempts + 1}):`,
       wsUrl,

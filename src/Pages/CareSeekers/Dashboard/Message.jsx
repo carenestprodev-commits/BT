@@ -29,6 +29,7 @@ import {
 } from "../../../lib/chatMessages";
 import { getCurrentUserIdFromProfile } from "../../../lib/currentUser";
 import { formatCurrencyAmount } from "../../../utils/countryHelper";
+import { useNotifications } from "../../../Context/NotificationContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -559,6 +560,7 @@ function Message() {
     localizedTotalAmount,
     isFallbackPrice,
   } = useSelector((state) => state.startActivity);
+  const { notifications } = useNotifications();
 
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
@@ -652,13 +654,6 @@ function Message() {
       setSelectedConversationId(String(conversations[0].id));
     }
   }, [conversations, selectedConversationId]);
-
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      dispatch(fetchConversations());
-    }, 5000);
-    return () => clearInterval(intervalId);
-  }, [dispatch]);
 
   const { lastBookingId } = useSelector((state) => state.startActivity);
   useEffect(() => {
@@ -774,13 +769,24 @@ function Message() {
     return () => dispatch(disconnectWebSocket());
   }, [dispatch, currentConversationId]);
 
+  const latestNotificationId = notifications[0]?.id || null;
+  const latestNotificationType = notifications[0]?.type || "";
   useEffect(() => {
-    if (wsConnected || !currentConversationId) return;
-    const poll = setInterval(() => {
-      dispatch(fetchMessages(currentConversationId));
-    }, 4000);
-    return () => clearInterval(poll);
-  }, [wsConnected, currentConversationId, dispatch]);
+    if (!latestNotificationId) return;
+    if (
+      ![
+        "new_message",
+        "call_started",
+        "call_ended",
+        "recording_processing",
+        "recording_uploaded",
+        "recording_errored",
+      ].includes(latestNotificationType)
+    ) {
+      return;
+    }
+    dispatch(fetchConversations());
+  }, [dispatch, latestNotificationId, latestNotificationType]);
 
   const currentUserId = getCurrentUserIdFromProfile(authUser);
 

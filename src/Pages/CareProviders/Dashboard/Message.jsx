@@ -29,6 +29,7 @@ import {
 } from "../../../lib/chatMessages";
 import { getCurrentUserIdFromProfile } from "../../../lib/currentUser";
 import { formatCurrencyAmount } from "../../../utils/countryHelper";
+import { useNotifications } from "../../../Context/NotificationContext";
 
 // Helper functions
 const resolveImage = (url) => {
@@ -540,6 +541,7 @@ function Message() {
     localizedTotalAmount,
     isFallbackPrice,
   } = useSelector((state) => state.startActivity);
+  const { notifications } = useNotifications();
 
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
@@ -635,13 +637,6 @@ function Message() {
       setSelectedConversationId(String(conversations[0].id));
     }
   }, [conversations, selectedConversationId]);
-
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      dispatch(fetchConversations());
-    }, 5000);
-    return () => clearInterval(intervalId);
-  }, [dispatch]);
 
   const { lastBookingId } = useSelector((state) => state.startActivity);
   useEffect(() => {
@@ -761,13 +756,24 @@ function Message() {
     }
   }, [activityEnded, currentConversation, dispatch]);
 
+  const latestNotificationId = notifications[0]?.id || null;
+  const latestNotificationType = notifications[0]?.type || "";
   useEffect(() => {
-    if (wsConnected || !currentConversation) return;
-    const pollInterval = setInterval(() => {
-      dispatch(fetchMessages(currentConversation.id));
-    }, 4000);
-    return () => clearInterval(pollInterval);
-  }, [wsConnected, currentConversation, dispatch]);
+    if (!latestNotificationId) return;
+    if (
+      ![
+        "new_message",
+        "call_started",
+        "call_ended",
+        "recording_processing",
+        "recording_uploaded",
+        "recording_errored",
+      ].includes(latestNotificationType)
+    ) {
+      return;
+    }
+    dispatch(fetchConversations());
+  }, [dispatch, latestNotificationId, latestNotificationType]);
 
   useEffect(() => {
     if (currentConversation) {
@@ -781,7 +787,7 @@ function Message() {
     return () => {
       dispatch(disconnectWebSocket());
     };
-  }, [dispatch, currentConversation]);
+  }, [dispatch, currentConversationId]);
 
   const currentUserId = getCurrentUserIdFromProfile(authUser);
 

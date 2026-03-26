@@ -2,6 +2,11 @@
 import { useEffect, useRef } from "react";
 import {logout} from "../Redux/Login.jsx"; // adjust path if needed
 
+const getWSHost = () => {
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+    return apiUrl.replace("http://", "ws://").replace("https://", "wss://");
+};
+
 export function useAppNotifications(onMessage) {
     const socketRef = useRef(null);
 
@@ -9,7 +14,7 @@ export function useAppNotifications(onMessage) {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const wsUrl = `wss://backend.staging.bristones.com/ws/appnotifications/?token=${token}`;
+        const wsUrl = `${getWSHost()}/ws/appnotifications/?token=${token}`;
         const socket = new WebSocket(wsUrl);
         socketRef.current = socket;
 
