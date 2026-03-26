@@ -14,17 +14,19 @@ function RealtimeKitCallRoom() {
   const location = useLocation();
   const { id: bookingId } = useParams();
   const [searchParams] = useSearchParams();
-  const mode = searchParams.get("mode") === "audio" ? "audio" : "video";
+  const modeParam = searchParams.get("mode");
+  const initialMode = modeParam === "audio" || modeParam === "video" ? modeParam : "video";
   const initialTitle = (searchParams.get("title") || "").trim();
   const backPath = `${resolveStartPath(location.pathname)}/${bookingId}`;
 
   const [meeting, initMeeting] = useRealtimeKitClient();
   const [title, setTitle] = useState(initialTitle);
+  const [selectedMode, setSelectedMode] = useState(initialMode);
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [ending, setEnding] = useState(false);
   const [error, setError] = useState("");
-  const [activeMode, setActiveMode] = useState(mode);
+  const [activeMode, setActiveMode] = useState(initialMode);
   const [activeTitle, setActiveTitle] = useState(initialTitle);
 
   useEffect(() => {
@@ -43,7 +45,7 @@ function RealtimeKitCallRoom() {
       const res = await fetch(`${BASE_URL}/api/bookings/${bookingId}/realtimekit/join/`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ mode, title: trimmedTitle }),
+        body: JSON.stringify({ mode: selectedMode, title: trimmedTitle }),
       });
 
       if (!res.ok) {
@@ -63,14 +65,14 @@ function RealtimeKitCallRoom() {
         throw new Error("Missing RealtimeKit auth token");
       }
 
-      await initMeeting({
-        authToken,
-        defaults: {
-          audio: true,
-          video: mode === "video",
-        },
-      });
-      setActiveMode(data.call_type || mode);
+        await initMeeting({
+          authToken,
+          defaults: {
+            audio: true,
+            video: selectedMode === "video",
+          },
+        });
+      setActiveMode(data.call_type || selectedMode);
       setActiveTitle(data.title || trimmedTitle);
       setJoined(true);
     } catch (err) {
@@ -84,12 +86,34 @@ function RealtimeKitCallRoom() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f3fafc] px-4">
         <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h1 className="text-lg font-semibold text-gray-900">
-            {mode === "audio" ? "Start audio call" : "Start video call"}
-          </h1>
+            <h1 className="text-lg font-semibold text-gray-900">
+            Start call
+            </h1>
           <p className="mt-2 text-sm text-gray-600">
             Add a title before creating this call.
           </p>
+          <div className="mt-4 flex w-full rounded-xl bg-gray-100 p-1">
+            <button
+              className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                selectedMode === "audio"
+                  ? "bg-white text-[#0d99c9] shadow-sm"
+                  : "text-gray-600"
+              }`}
+              onClick={() => setSelectedMode("audio")}
+            >
+              Audio
+            </button>
+            <button
+              className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                selectedMode === "video"
+                  ? "bg-white text-[#0d99c9] shadow-sm"
+                  : "text-gray-600"
+              }`}
+              onClick={() => setSelectedMode("video")}
+            >
+              Video
+            </button>
+          </div>
           <label className="mt-5 block text-sm font-medium text-gray-700">
             Call title
           </label>
