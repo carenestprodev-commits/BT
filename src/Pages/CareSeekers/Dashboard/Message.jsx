@@ -113,13 +113,14 @@ const getActiveCallSession = (conversation) => {
   return session?.status === "active" ? session : null;
 };
 
-const getConversationCallRoute = (conversation) => {
+const getConversationCallRoute = (conversation, mode) => {
   const bookingId = getConversationBookingId(conversation);
   if (!bookingId) return "";
   const activeSession = getActiveCallSession(conversation);
-  const mode = activeSession?.call_type === "audio" ? "audio" : "video";
+  const resolvedMode =
+    mode || (activeSession?.call_type === "audio" ? "audio" : "video");
   const title = activeSession?.call_title || conversation?.job_title || "";
-  return buildCallRoute(bookingId, mode, title);
+  return buildCallRoute(bookingId, resolvedMode, title);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -129,7 +130,7 @@ const MobileConversationsList = ({
   conversations,
   search,
   setSearch,
-  selectedIndex,
+  selectedConversationId,
   handleConversationSelect,
   setShowChatOnMobile,
   conversationsLoading,
@@ -138,16 +139,19 @@ const MobileConversationsList = ({
   resolveImage,
   formatTime,
 }) => {
-  const filteredConversations = conversations.filter(
-    (conv) =>
-      (conv.other_participant?.full_name || conv.other_participant?.email || "")
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      getConversationPreviewText(conv.last_message || {})
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      (conv.job_title || "").toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredConversations = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return conversations.filter(
+      (conv) =>
+        (conv.other_participant?.full_name || conv.other_participant?.email || "")
+          .toLowerCase()
+          .includes(query) ||
+        getConversationPreviewText(conv.last_message || {})
+          .toLowerCase()
+          .includes(query) ||
+        (conv.job_title || "").toLowerCase().includes(query),
+    );
+  }, [conversations, search]);
 
   return (
     // FIX: Added pt-16 to push content below the Sidebar mobile top bar
@@ -201,15 +205,18 @@ const MobileConversationsList = ({
           </div>
         ) : (
           filteredConversations.map((conversation) => {
-            const originalIndex = conversations.indexOf(conversation);
             const activeCall = getActiveCallSession(conversation);
             const callRoute = getConversationCallRoute(conversation);
             return (
               <button
                 key={conversation.id}
-                className="w-full flex items-center gap-3 px-4 py-4 transition text-left border-b border-gray-50 hover:bg-gray-50"
+                className={`w-full flex items-center gap-3 px-4 py-4 transition text-left border-b border-gray-50 hover:bg-gray-50 ${
+                  String(selectedConversationId) === String(conversation.id)
+                    ? "bg-gray-50"
+                    : ""
+                }`}
                 onClick={() => {
-                  handleConversationSelect(originalIndex);
+                  handleConversationSelect(conversation.id);
                   setShowChatOnMobile(true);
                 }}
               >
@@ -299,9 +306,8 @@ const MobileChatView = ({
   setShowPayment,
   showMenu,
   currentUserId,
-  callRoute,
-  callButtonLabel,
-  callType,
+  audioCallRoute,
+  videoCallRoute,
   isCallLive,
 }) => {
   return (
@@ -331,7 +337,6 @@ const MobileChatView = ({
                   "Unknown User"}
               </span>
             </div>
-            {/* FIX: Call and Video icons added before three-dot menu */}
             <div className="flex gap-3 items-center">
               <button
                 className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
@@ -339,20 +344,29 @@ const MobileChatView = ({
                     ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                     : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
                 }`}
-                aria-label={callButtonLabel}
-                onClick={() => callRoute && navigate(callRoute)}
-                disabled={!callRoute}
+                aria-label="Start audio call"
+                onClick={() => audioCallRoute && navigate(audioCallRoute)}
+                disabled={!audioCallRoute}
               >
-                {callType === "audio" ? (
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                  </svg>
-                ) : (
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                  </svg>
-                )}
-                <span>{callButtonLabel}</span>
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                </svg>
+                <span>Call</span>
+              </button>
+              <button
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                  isCallLive
+                    ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
+                }`}
+                aria-label="Start video call"
+                onClick={() => videoCallRoute && navigate(videoCallRoute)}
+                disabled={!videoCallRoute}
+              >
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                </svg>
+                <span>Video</span>
               </button>
               {/* Three-dot menu for mobile */}
               {showMenu && currentConversation?.booking && (
@@ -446,7 +460,7 @@ const MobileChatView = ({
                 i > 0 &&
                 displayMessages[i].date !== displayMessages[i - 1].date;
               return (
-                <div key={i}>
+                <div key={msg.id || `${msg.timestamp || "msg"}-${i}`}>
                   {showDateSeparator && (
                     <div className="flex justify-center my-6">
                       <span className="text-xs text-gray-500 px-3 py-1">
@@ -548,7 +562,7 @@ function Message() {
 
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedConversationId, setSelectedConversationId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -566,11 +580,16 @@ function Message() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const handleConversationSelect = (index) => setSelectedIndex(index);
+  const handleConversationSelect = (conversationId) =>
+    setSelectedConversationId(String(conversationId));
 
   const currentConversation = useMemo(
-    () => conversations[selectedIndex] || null,
-    [conversations, selectedIndex],
+    () =>
+      conversations.find(
+        (conversation) =>
+          String(conversation.id) === String(selectedConversationId),
+      ) || conversations[0] || null,
+    [conversations, selectedConversationId],
   );
   const currentMessages = useMemo(
     () =>
@@ -583,17 +602,21 @@ function Message() {
     currentConversation?.booking ||
     currentConversation?.booking_id ||
     currentConversation?.id;
+  const currentConversationId = currentConversation?.id || null;
 
-  const filteredConversations = conversations.filter(
-    (conv) =>
-      (conv.other_participant?.full_name || conv.other_participant?.email || "")
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      getConversationPreviewText(conv.last_message || {})
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      (conv.job_title || "").toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredConversations = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return conversations.filter(
+      (conv) =>
+        (conv.other_participant?.full_name || conv.other_participant?.email || "")
+          .toLowerCase()
+          .includes(query) ||
+        getConversationPreviewText(conv.last_message || {})
+          .toLowerCase()
+          .includes(query) ||
+        (conv.job_title || "").toLowerCase().includes(query),
+    );
+  }, [conversations, search]);
 
   const RATE_PER_HOUR = currentConversation?.hourly_rate || 1;
   const SERVICE_FEE = 7;
@@ -617,13 +640,18 @@ function Message() {
 
   const bookingId = currentBookingId;
   const activeCallSession = getActiveCallSession(currentConversation);
-  const currentCallRoute = getConversationCallRoute(currentConversation);
-  const callButtonLabel = activeCallSession ? "Join call" : "Start call";
-  const callType = activeCallSession?.call_type === "audio" ? "audio" : "video";
+  const audioCallRoute = getConversationCallRoute(currentConversation, "audio");
+  const videoCallRoute = getConversationCallRoute(currentConversation, "video");
 
   useEffect(() => {
     dispatch(fetchConversations());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!selectedConversationId && conversations.length > 0) {
+      setSelectedConversationId(String(conversations[0].id));
+    }
+  }, [conversations, selectedConversationId]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -646,7 +674,7 @@ function Message() {
     if (idx >= 0) {
       const conv = conversations[idx];
       lastBookingHandledRef.current = bid;
-      setSelectedIndex(idx);
+      setSelectedConversationId(String(conv.id));
       dispatch(setActiveConversation(String(conv.id)));
       dispatch(fetchMessages(String(conv.id)));
       dispatch(connectWebSocket(String(conv.id)));
@@ -664,7 +692,7 @@ function Message() {
         if (idx2 >= 0) {
           const conv = convs[idx2];
           lastBookingHandledRef.current = bid;
-          setSelectedIndex(idx2);
+          setSelectedConversationId(String(conv.id));
           dispatch(setActiveConversation(String(conv.id)));
           dispatch(fetchMessages(String(conv.id)));
           dispatch(connectWebSocket(String(conv.id)));
@@ -735,24 +763,24 @@ function Message() {
   }, [activityEnded, currentConversation, dispatch]);
 
   useEffect(() => {
-    if (currentConversation) {
-      dispatch(fetchMessages(currentConversation.id));
-      dispatch(setActiveConversation(currentConversation.id));
-      dispatch(connectWebSocket(currentConversation.id));
-      if (currentConversation.unread_count > 0) {
-        dispatch(markAsRead(currentConversation.id));
+    if (currentConversationId) {
+      dispatch(fetchMessages(currentConversationId));
+      dispatch(setActiveConversation(currentConversationId));
+      dispatch(connectWebSocket(currentConversationId));
+      if (currentConversation?.unread_count > 0) {
+        dispatch(markAsRead(currentConversationId));
       }
     }
     return () => dispatch(disconnectWebSocket());
-  }, [dispatch, currentConversation]);
+  }, [dispatch, currentConversationId]);
 
   useEffect(() => {
-    if (wsConnected || !currentConversation) return;
+    if (wsConnected || !currentConversationId) return;
     const poll = setInterval(() => {
-      dispatch(fetchMessages(currentConversation.id));
+      dispatch(fetchMessages(currentConversationId));
     }, 4000);
     return () => clearInterval(poll);
-  }, [wsConnected, currentConversation, dispatch]);
+  }, [wsConnected, currentConversationId, dispatch]);
 
   const currentUserId = getCurrentUserIdFromProfile(authUser);
 
@@ -806,12 +834,7 @@ function Message() {
       setTimeout(() => {
         el.scrollTop = el.scrollHeight;
       }, 50);
-  }, [
-    selectedIndex,
-    currentConversation?.id,
-    displayMessages,
-    currentConversation,
-  ]);
+  }, [currentConversationId, displayMessages]);
 
   useEffect(() => {
     const lastMessageId =
@@ -922,7 +945,7 @@ function Message() {
                 conversations={conversations}
                 search={search}
                 setSearch={setSearch}
-                selectedIndex={selectedIndex}
+                selectedConversationId={selectedConversationId}
                 handleConversationSelect={handleConversationSelect}
                 setShowChatOnMobile={setShowChatOnMobile}
                 conversationsLoading={conversationsLoading}
@@ -956,9 +979,8 @@ function Message() {
                 setShowPayment={setShowPayment}
                 showMenu={true}
                 currentUserId={currentUserId}
-                callRoute={currentCallRoute}
-                callButtonLabel={callButtonLabel}
-                callType={callType}
+                audioCallRoute={audioCallRoute}
+                videoCallRoute={videoCallRoute}
                 isCallLive={Boolean(activeCallSession)}
               />
             )}
@@ -1003,16 +1025,18 @@ function Message() {
                   </div>
                 ) : (
                   filteredConversations.map((conversation) => {
-                    const originalIndex = conversations.indexOf(conversation);
                     const activeCall = getActiveCallSession(conversation);
                     const callRoute = getConversationCallRoute(conversation);
                     return (
                       <button
                         key={conversation.id}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-left mb-1 hover:bg-[#c5c7ca] focus:outline-none ${
-                          selectedIndex === originalIndex ? "bg-[#c5c7ca]" : ""
+                          String(currentConversationId) ===
+                          String(conversation.id)
+                            ? "bg-[#c5c7ca]"
+                            : ""
                         }`}
-                        onClick={() => handleConversationSelect(originalIndex)}
+                        onClick={() => handleConversationSelect(conversation.id)}
                       >
                         <img
                           src={resolveImage(
@@ -1116,20 +1140,29 @@ function Message() {
                         ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                         : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
                     }`}
-                    aria-label={callButtonLabel}
-                    onClick={() => currentCallRoute && navigate(currentCallRoute)}
-                    disabled={!currentCallRoute}
+                    aria-label="Start audio call"
+                    onClick={() => audioCallRoute && navigate(audioCallRoute)}
+                    disabled={!audioCallRoute}
                   >
-                    {callType === "audio" ? (
-                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                      </svg>
-                    ) : (
-                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                      </svg>
-                    )}
-                    <span>{callButtonLabel}</span>
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                    <span>Call</span>
+                  </button>
+                  <button
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold ${
+                      activeCallSession
+                        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
+                    }`}
+                    aria-label="Start video call"
+                    onClick={() => videoCallRoute && navigate(videoCallRoute)}
+                    disabled={!videoCallRoute}
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                    </svg>
+                    <span>Video</span>
                   </button>
                 </div>
 
@@ -1221,12 +1254,12 @@ function Message() {
                       </span>
                     </div>
                     {displayMessages.map((msg, i) => (
-                      <div key={i} className="mb-4">
-                      <ChatMessageItem
-                        message={msg}
-                        currentConversation={currentConversation}
-                        currentUserId={currentUserId}
-                      />
+                      <div key={msg.id || `${msg.timestamp || "msg"}-${i}`} className="mb-4">
+                        <ChatMessageItem
+                          message={msg}
+                          currentConversation={currentConversation}
+                          currentUserId={currentUserId}
+                        />
                       </div>
                     ))}
                     <div ref={chatEndRef} />
