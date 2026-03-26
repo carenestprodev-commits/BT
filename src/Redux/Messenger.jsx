@@ -3,6 +3,11 @@ import { BASE_URL, getAuthHeaders } from "./config";
 import { fetchWithAuth } from "../lib/fetchWithAuth.js";
 import { normalizeRealtimeMessage } from "../lib/chatMessages";
 
+const getWSHost = () => {
+  const apiUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+  return apiUrl.replace("http://", "ws://").replace("https://", "wss://");
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -186,7 +191,7 @@ class WebSocketManager {
     // Reconnect state
     this._reconnectTimer = null;
     this._reconnectAttempts = 0;
-    this._maxReconnectAttempts = 8;
+    this._maxReconnectAttempts = 5;
     this._baseDelay = 1000; // 1 s
     this._maxDelay = 30000; // 30 s
     this._intentionalDisconnect = false;
@@ -211,7 +216,7 @@ class WebSocketManager {
       this.socket = null;
     }
 
-    const wsUrl = `wss://backend.staging.bristones.com/ws/chat/${this.conversationId}/?token=${this.token}`;
+    const wsUrl = `${getWSHost()}/ws/chat/${this.conversationId}/?token=${this.token}`;
     console.log(
       `🔌 WebSocket connecting (attempt ${this._reconnectAttempts + 1}):`,
       wsUrl,
@@ -273,6 +278,9 @@ class WebSocketManager {
     if (this._intentionalDisconnect) return;
     if (this._reconnectAttempts >= this._maxReconnectAttempts) {
       console.warn("⚠️ WebSocket max reconnect attempts reached. Giving up.");
+      if (this.onConnectionCallback) {
+        this.onConnectionCallback({ type: "degraded" });
+      }
       return;
     }
 
@@ -346,6 +354,7 @@ const initialState = {
 
   wsConnected: false,
   wsError: null,
+  wsFallbackActive: false,
 
   creatingConversation: false,
   createConversationError: null,
@@ -369,6 +378,10 @@ const messengerSlice = createSlice({
 
     setWebSocketError: (state, action) => {
       state.wsError = action.payload;
+    },
+
+    setWebSocketFallback: (state, action) => {
+      state.wsFallbackActive = action.payload;
     },
 
     addRealtimeMessage: (state, action) => {
@@ -567,6 +580,7 @@ export const {
   setActiveConversation,
   setWebSocketConnected,
   setWebSocketError,
+  setWebSocketFallback,
   addRealtimeMessage,
   clearCreatedConversationId,
   clearMessagesError,
@@ -630,11 +644,16 @@ export const connectWebSocket = (conversationId) => (dispatch) => {
     if (event.type === "connected") {
       dispatch(setWebSocketConnected(true));
       dispatch(setWebSocketError(null));
+      dispatch(setWebSocketFallback(false));
     } else if (event.type === "disconnected") {
       dispatch(setWebSocketConnected(false));
     } else if (event.type === "error") {
       dispatch(setWebSocketError("WebSocket connection failed"));
       dispatch(setWebSocketConnected(false));
+    } else if (event.type === "degraded") {
+      dispatch(setWebSocketConnected(false));
+      dispatch(setWebSocketError("WebSocket unavailable, using polling fallback"));
+      dispatch(setWebSocketFallback(true));
     }
   };
 
@@ -644,6 +663,7 @@ export const connectWebSocket = (conversationId) => (dispatch) => {
 export const disconnectWebSocket = () => (dispatch) => {
   wsManager.disconnect();
   dispatch(setWebSocketConnected(false));
+  dispatch(setWebSocketFallback(false));
 };
 
 export const sendWebSocketMessage = (message) => (dispatch) => {

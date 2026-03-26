@@ -123,7 +123,7 @@ function MessageDetails() {
     messagesByConversation,
     messagesLoading,
     sendingMessage,
-    wsConnected,
+    wsFallbackActive,
     sendMessageError,
   } = useSelector((state) => state.messenger);
 
@@ -257,17 +257,13 @@ function MessageDetails() {
     };
   }, [dispatch, currentConversationId]);
 
-  // ✅ Polling fallback: when WebSocket is unavailable, poll every 4s so messages arrive in near-real-time
-  // ✅ Depend on the ID, not the whole object
   useEffect(() => {
-    if (wsConnected || !currentConversationId) return;
-
-    const pollInterval = setInterval(() => {
+    if (!wsFallbackActive || !currentConversationId) return;
+    const intervalId = setInterval(() => {
       dispatch(fetchMessages(currentConversationId));
     }, 4000);
-
-    return () => clearInterval(pollInterval);
-  }, [wsConnected, currentConversationId, dispatch]);
+    return () => clearInterval(intervalId);
+  }, [dispatch, wsFallbackActive, currentConversationId]);
 
   // Update message count when messages arrive
   // ✅ Depend on length, not the array reference
