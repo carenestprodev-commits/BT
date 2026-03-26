@@ -352,59 +352,6 @@ function Settings() {
     handleFileUpload(file, field);
   };
 
-  const saveSettingsOld = async () => {
-    // If on verify tab, validate files are uploaded
-    if (activeTab === "verify") {
-      if (!formData.uploadedPhoto || !formData.uploadedId) {
-        setMessage({
-          type: "error",
-          text: "Please upload both profile photo and government ID",
-        });
-        return;
-      }
-    }
-
-    if (!validateForm()) return;
-    setLoading(true);
-    setMessage({ type: "", text: "" });
-
-    try {
-      const response = await fetchWithAuth("/api/user/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save settings");
-      }
-
-      const data = await response.json();
-      setOriginalFormData(formData);
-      setHasChanges(false);
-
-      if (activeTab === "password") {
-        setFormData((prev) => ({
-          ...prev,
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        }));
-      }
-
-      setMessage({ type: "success", text: "Settings saved successfully!" });
-      setTimeout(() => setMessage({ type: "", text: "" }), 3000);
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      setMessage({
-        type: "error",
-        text: error.message || "Failed to save settings. Please try again.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const saveSettings = async () => {
     if (activeTab === "verify") {
       if (!uploadedFiles.uploadedPhoto || !uploadedFiles.uploadedId) {
@@ -452,19 +399,57 @@ function Settings() {
     setMessage({ type: "", text: "" });
 
     try {
-      const res = await fetchWithAuth("/api/user/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      if (activeTab === "password") {
+        const cleared = {
+          ...formData,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        };
+        const res = await fetchWithAuth(
+          API_URL + "/api/auth/profile/password_change/",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              password: formData.newPassword,
+              confirm_password: formData.confirmPassword,
+            }),
+          },
+        );
 
-      console.log(res);
+        if (!res.ok) throw new Error("Save failed");
 
-      if (!res.ok) throw new Error("Save failed");
+        setFormData(cleared);
+        setOriginalFormData(cleared);
+        setMessage({ type: "success", text: "Password updated!" });
+      } else {
+        const res = await fetchWithAuth(
+          API_URL + "/api/seeker/profile/personal-info/",
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              phone_number: formData.phone,
+              country: formData.country,
+              state: formData.state,
+              city: formData.city,
+              zip_code: formData.zipCode,
+              nationality: formData.nationality,
+              language: formData.language,
+              nin: formData.nationalId,
+            }),
+          },
+        );
 
-      setOriginalFormData(formData);
+        if (!res.ok) throw new Error("Save failed");
+        setOriginalFormData(formData);
+        setMessage({ type: "success", text: "Settings saved!" });
+      }
+
       setHasChanges(false);
-      setMessage({ type: "success", text: "Settings saved!" });
     } catch (e) {
       setMessage({ type: "error", text: e.message });
     } finally {
@@ -1119,13 +1104,14 @@ function Settings() {
                           d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                         />
                       </svg>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 pl-9 sm:pl-10 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
-                      />
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      readOnly
+                      className="w-full px-3 sm:px-4 py-2 pl-9 sm:pl-10 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
+                    />
                     </div>
                   </div>
 

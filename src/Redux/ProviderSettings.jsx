@@ -4,7 +4,7 @@ import {fetchWithAuth} from "../lib/fetchWithAuth.js";
 
 export const fetchProviderProfile = createAsyncThunk('providerSettings/fetchProfile', async (_, { rejectWithValue }) => {
   try {
-    const res = await fetchWithAuth(`${BASE_URL}/api/provider/profile/personal-info/ `, { headers: getAuthHeaders() })
+    const res = await fetchWithAuth(`${BASE_URL}/api/provider/profile/personal-info/`, { headers: getAuthHeaders() })
     if (!res.ok) {
       const text = await res.text()
       return rejectWithValue(text)
