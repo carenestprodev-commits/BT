@@ -367,6 +367,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/calls/bookings/:id",
+    element: (
+      <RoleProtectedRoute>
+        <RealtimeKitCallRoom />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
     path: "/careproviders/dashboard/notifications",
     element: (
       <RoleProtectedRoute allowedRole="provider">

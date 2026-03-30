@@ -12,7 +12,7 @@ export default function RoleProtectedRoute({ allowedRole, children }) {
     return <Navigate to="/" replace />;
   }
 
-  if (user.user_type !== allowedRole) {
+  if (allowedRole && user.user_type !== allowedRole) {
     // Logged in as another role - redirect to unauthorized page
     return <Navigate to="/unauthorized" replace />;
   }

@@ -10,6 +10,13 @@ const resolveHref = (url) => {
   return `${base}/${path}`;
 };
 
+const getJoinCallUrl = (payload = {}) => payload.join_url || payload.join_path || "";
+const resolveJoinHref = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return url;
+};
+
 const formatDuration = (value) => {
   const duration = Number(value);
   if (!Number.isFinite(duration) || duration <= 0) return "";
@@ -37,6 +44,9 @@ function ChatMessageItem({ message, currentConversation, currentUserId }) {
     const isCallEvent = event === "call_started" || event === "call_ended";
 
     if (isCallEvent) {
+      const joinUrl = resolveJoinHref(getJoinCallUrl(payload));
+      const recordingUrl = resolveHref(getRecordingAccessUrl(message));
+      const recordingStatus = String(payload.recording_status || "").toLowerCase();
       const icon =
         callType === "audio" ? (
           <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -63,6 +73,42 @@ function ChatMessageItem({ message, currentConversation, currentUserId }) {
               <span>{label}</span>
             </div>
             {title ? <div className="mt-1 text-xs opacity-90">{title}</div> : null}
+            {event === "call_started" && joinUrl ? (
+              <div className="mt-3">
+                <a
+                  href={joinUrl}
+                  className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    alignsToStarter
+                      ? "bg-[#0d99c9] text-white hover:bg-[#007bb0]"
+                      : "bg-white text-[#0a6f97] hover:bg-[#f5fbfe]"
+                  }`}
+                >
+                  Join call
+                </a>
+              </div>
+            ) : null}
+            {event === "call_ended" ? (
+              <div className="mt-3">
+                {recordingUrl && recordingStatus !== "errored" ? (
+                  <a
+                    href={recordingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      alignsToStarter
+                        ? "bg-[#0d99c9] text-white hover:bg-[#007bb0]"
+                        : "bg-white text-[#0a6f97] hover:bg-[#f5fbfe]"
+                    }`}
+                  >
+                    View recording
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-current opacity-80">
+                    {recordingStatus === "errored" ? "Recording unavailable" : "Recording processing"}
+                  </span>
+                )}
+              </div>
+            ) : null}
             <span className="mt-1 block text-right text-xs opacity-70">{message.time}</span>
           </div>
         </div>
