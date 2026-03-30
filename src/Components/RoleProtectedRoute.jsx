@@ -12,7 +12,13 @@ export default function RoleProtectedRoute({ allowedRole, children }) {
     return <Navigate to="/" replace />;
   }
 
-  if (user.user_type !== allowedRole) {
+  const allowedRoles = Array.isArray(allowedRole)
+    ? allowedRole
+    : allowedRole
+      ? [allowedRole]
+      : null;
+
+  if (allowedRoles && !allowedRoles.includes(user.user_type)) {
     // Logged in as another role - redirect to unauthorized page
     return <Navigate to="/unauthorized" replace />;
   }

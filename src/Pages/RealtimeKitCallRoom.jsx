@@ -1,23 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { RealtimeKitProvider, useRealtimeKitClient } from "@cloudflare/realtimekit-react";
 import { RtkMeeting } from "@cloudflare/realtimekit-react-ui";
 import { BASE_URL, getAuthHeaders } from "../Redux/config";
+import { useAuth } from "../Context/AuthContext";
 
-const resolveStartPath = (pathname) =>
-  pathname.startsWith("/careproviders/")
-    ? "/careproviders/dashboard/message"
-    : "/careseekers/dashboard/message";
+const resolveStartPath = (pathname, userType) => {
+  if (pathname.startsWith("/careproviders/") || userType === "provider") {
+    return "/careproviders/dashboard/message";
+  }
+  return "/careseekers/dashboard/message";
+};
 
 function RealtimeKitCallRoom() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id: bookingId } = useParams();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const modeParam = searchParams.get("mode");
+  const autoJoin = searchParams.get("autojoin") === "1";
   const initialMode = modeParam === "audio" || modeParam === "video" ? modeParam : "video";
   const initialTitle = (searchParams.get("title") || "").trim();
-  const backPath = `${resolveStartPath(location.pathname)}/${bookingId}`;
+  const backPath = `${resolveStartPath(location.pathname, user?.user_type)}/${bookingId}`;
+  const autoJoinAttemptedRef = useRef(false);
 
   const [meeting, initMeeting] = useRealtimeKitClient();
   const [title, setTitle] = useState(initialTitle);
@@ -32,6 +38,10 @@ function RealtimeKitCallRoom() {
   useEffect(() => {
     setTitle(initialTitle);
   }, [initialTitle]);
+
+  useEffect(() => {
+    autoJoinAttemptedRef.current = false;
+  }, [bookingId, initialMode, initialTitle, autoJoin]);
 
   const startCall = async () => {
     const trimmedTitle = title.trim();
@@ -82,7 +92,32 @@ function RealtimeKitCallRoom() {
     }
   };
 
+  useEffect(() => {
+    if (!autoJoin || joined || joining || error || autoJoinAttemptedRef.current) {
+      return;
+    }
+    if (!title.trim()) {
+      return;
+    }
+    autoJoinAttemptedRef.current = true;
+    startCall();
+  }, [autoJoin, error, joined, joining, title]);
+
   if (!joined) {
+    if (autoJoin && (joining || !autoJoinAttemptedRef.current)) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-[#f3fafc] px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#dbeef5] border-t-[#0d99c9]" />
+            <h1 className="mt-4 text-lg font-semibold text-gray-900">Joining call</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Connecting you to {initialMode === "audio" ? "the audio call" : "the video call"}.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f3fafc] px-4">
         <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
