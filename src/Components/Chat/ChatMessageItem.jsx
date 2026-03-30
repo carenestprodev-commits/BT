@@ -14,7 +14,7 @@ const getJoinCallUrl = (payload = {}) => payload.join_url || payload.join_path |
 const resolveJoinHref = (url) => {
   if (!url) return "";
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  return url;
+  return url.startsWith("/") ? url : `/${url}`;
 };
 
 const formatDuration = (value) => {
