@@ -375,11 +375,13 @@ function Settings() {
         if (!res.ok) throw new Error("Failed to fetch plans");
 
         const data = await res.json();
-        console.log(data);
-        const verificationPlans = (data || []).filter((p) =>
-          (p.name || "").toLowerCase().includes("verification"),
+        const verificationPlans = (data || []).filter(
+          (p) => p.plan_kind === "verification" && p.audience === "provider",
         );
-        setPlans(verificationPlans.length ? verificationPlans : data || []);
+        if (!verificationPlans.length) {
+          throw new Error("Provider verification plan is not configured");
+        }
+        setPlans(verificationPlans);
         setShowPlanModal(true); // open plan modal
       } catch (e) {
         setMessage({ type: "error", text: e.message });
@@ -577,17 +579,19 @@ function Settings() {
 
     return (
       <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl max-w-md w-full p-6">
-          <h2 className="text-xl font-semibold mb-4">Choose a Plan</h2>
+        <div className="bg-white rounded-xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
+          <h2 className="text-xl font-semibold mb-4 text-slate-900">
+            Choose a Plan
+          </h2>
 
           <div className="space-y-4">
             {plans.map((plan) => (
               <div
                 key={plan.id}
-                className="border rounded-lg p-4 hover:border-[#0093d1] cursor-pointer"
+                className="border border-slate-200 rounded-lg p-4 hover:border-[#0093d1] cursor-pointer bg-white text-slate-900 transition-colors"
                 onClick={() => onSelect(plan)}
               >
-                <h3 className="font-semibold">{plan.name}</h3>
+                <h3 className="font-semibold text-slate-900">{plan.name}</h3>
                 <p className="text-[#0093d1] font-bold">
                   {formatCurrencyAmount(
                     plan.localized_price ?? plan.localizedPrice ?? plan.price,
@@ -601,7 +605,7 @@ function Settings() {
 
           <button
             onClick={onClose}
-            className="mt-6 w-full bg-gray-100 py-2 rounded-lg"
+            className="mt-6 w-full bg-gray-100 py-2 rounded-lg text-slate-700 hover:bg-gray-200 transition-colors"
           >
             Cancel
           </button>
