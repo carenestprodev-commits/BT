@@ -20,6 +20,7 @@ import { IoMdClose } from "react-icons/io";
  * @param {function} onCancel - Callback when user chooses to cancel
  * @param {boolean} isLoading - Optional: loading state for proceed button
  * @param {boolean} isVerified - Whether the user is already verified
+ * @param {boolean} isSubscribed - Provider: verification fee paid (awaiting admin). Ignored for seekers.
  */
 export default function VerificationCheckModal({
   isOpen,
@@ -29,11 +30,15 @@ export default function VerificationCheckModal({
   onProceed,
   onCancel,
   isLoading = false,
-  isVerified = false, // NEW: Add this prop
+  isVerified = false,
+  isSubscribed = false,
 }) {
   const navigate = useNavigate();
 
   if (!isOpen) return null;
+
+  const pendingProviderReview =
+    userType === "provider" && !isVerified && isSubscribed;
 
   // Get context-specific messages
   const getMessages = () => {
@@ -102,25 +107,26 @@ export default function VerificationCheckModal({
       : "/careseekers/dashboard/setting";
 
   const handleProceedClick = () => {
-    // ✅ FIXED: Check verification status first
     if (isVerified) {
-      // User is verified → proceed with the action (e.g., apply for job)
       if (onProceed) {
         onProceed();
       }
-      // Close modal after action
       if (onCancel) {
         onCancel();
       }
-    } else {
-      // User is NOT verified → redirect to settings for verification
-      navigate(settingRoute, {
-        state: { activeTab: "verify" },
-      });
-      // Close modal after navigation
+      return;
+    }
+    if (pendingProviderReview) {
       if (onCancel) {
         onCancel();
       }
+      return;
+    }
+    navigate(settingRoute, {
+      state: { activeTab: "verify" },
+    });
+    if (onCancel) {
+      onCancel();
     }
   };
 
@@ -137,9 +143,22 @@ export default function VerificationCheckModal({
 
         {/* Header */}
         <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-          {msg.title}
+          {pendingProviderReview ? "Verification in progress" : msg.title}
         </h2>
-        <p className="text-gray-500 text-sm mb-6">{msg.subtitle}</p>
+        <p className="text-gray-500 text-sm mb-6">
+          {pendingProviderReview
+            ? "We received your verification payment. Your documents are being reviewed."
+            : msg.subtitle}
+        </p>
+        {pendingProviderReview && (
+          <div
+            className="mb-4 p-3 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 text-sm"
+            role="status"
+          >
+            You will be able to apply for jobs after an administrator approves
+            your verification.
+          </div>
+        )}
 
         {/* User Info */}
         {user && (
@@ -165,28 +184,31 @@ export default function VerificationCheckModal({
           </div>
         )}
 
-        {/* Verification Info */}
-        <p className="text-gray-600 text-sm mb-4">{msg.description}</p>
+        {!pendingProviderReview && (
+          <>
+            <p className="text-gray-600 text-sm mb-4">{msg.description}</p>
 
-        <div className="mb-6">
-          <p className="font-semibold text-gray-800 text-sm mb-3">
-            Verification helps us:
-          </p>
-          <div className="space-y-2.5">
-            <div className="flex items-start gap-2.5">
-              <AiOutlineCheckCircle className="w-5 h-5 text-cyan-500 flex-shrink-0 mt-0.5" />
-              <span className="text-gray-600 text-sm">{msg.benefit1}</span>
+            <div className="mb-6">
+              <p className="font-semibold text-gray-800 text-sm mb-3">
+                Verification helps us:
+              </p>
+              <div className="space-y-2.5">
+                <div className="flex items-start gap-2.5">
+                  <AiOutlineCheckCircle className="w-5 h-5 text-cyan-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-600 text-sm">{msg.benefit1}</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <AiOutlineCheckCircle className="w-5 h-5 text-cyan-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-600 text-sm">{msg.benefit2}</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <AiOutlineCheckCircle className="w-5 h-5 text-cyan-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-600 text-sm">{msg.benefit3}</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-start gap-2.5">
-              <AiOutlineCheckCircle className="w-5 h-5 text-cyan-500 flex-shrink-0 mt-0.5" />
-              <span className="text-gray-600 text-sm">{msg.benefit2}</span>
-            </div>
-            <div className="flex items-start gap-2.5">
-              <AiOutlineCheckCircle className="w-5 h-5 text-cyan-500 flex-shrink-0 mt-0.5" />
-              <span className="text-gray-600 text-sm">{msg.benefit3}</span>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
 
         {/* Action Buttons */}
         <div className="space-y-3">
@@ -197,15 +219,21 @@ export default function VerificationCheckModal({
               isLoading ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
-            {isLoading ? "Processing..." : msg.buttonText}
+            {isLoading
+              ? "Processing..."
+              : pendingProviderReview
+                ? "Got it"
+                : msg.buttonText}
           </button>
-          <button
-            onClick={onCancel}
-            disabled={isLoading}
-            className="w-full bg-white text-gray-600 py-3.5 rounded-lg font-semibold border border-gray-300 hover:bg-gray-50 transition-colors"
-          >
-            {msg.skipText}
-          </button>
+          {!pendingProviderReview && (
+            <button
+              onClick={onCancel}
+              disabled={isLoading}
+              className="w-full bg-white text-gray-600 py-3.5 rounded-lg font-semibold border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              {msg.skipText}
+            </button>
+          )}
         </div>
       </div>
     </div>

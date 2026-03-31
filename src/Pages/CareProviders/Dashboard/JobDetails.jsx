@@ -358,6 +358,7 @@ function JobDetails() {
         onCancel={handleVerificationCancel}
         isLoading={bookingLoading}
         isVerified={currentUser?.is_verified || false}
+        isSubscribed={currentUser?.is_subscribed || false}
       />
     </div>
   );

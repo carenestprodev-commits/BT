@@ -336,6 +336,21 @@ function Settings() {
 
   const saveSettings = async () => {
     if (activeTab === "verify") {
+      if (profile?.is_verified) {
+        setMessage({
+          type: "success",
+          text: "Your identity is already verified.",
+        });
+        return;
+      }
+      if (profile?.is_subscribed && !profile?.is_verified) {
+        setMessage({
+          type: "success",
+          text:
+            "We have received your verification payment. Your documents are under review.",
+        });
+        return;
+      }
       if (!uploadedFiles.uploadedPhoto || !uploadedFiles.uploadedId) {
         setMessage({
           type: "error",
@@ -361,7 +376,10 @@ function Settings() {
 
         const data = await res.json();
         console.log(data);
-        setPlans(data);
+        const verificationPlans = (data || []).filter((p) =>
+          (p.name || "").toLowerCase().includes("verification"),
+        );
+        setPlans(verificationPlans.length ? verificationPlans : data || []);
         setShowPlanModal(true); // open plan modal
       } catch (e) {
         setMessage({ type: "error", text: e.message });
@@ -779,6 +797,23 @@ function Settings() {
             {/* Verify Identity Tab */}
             {activeTab === "verify" && (
               <div className="p-3 sm:p-6 md:p-8 overflow-hidden">
+                {profile?.is_verified && (
+                  <div
+                    className="mb-4 p-4 rounded-lg bg-green-50 text-green-800 border border-green-200 text-sm"
+                    role="status"
+                  >
+                    Your identity is verified.
+                  </div>
+                )}
+                {profile?.is_subscribed && !profile?.is_verified && (
+                  <div
+                    className="mb-4 p-4 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 text-sm"
+                    role="status"
+                  >
+                    Verification payment received. Your documents are pending
+                    admin review.
+                  </div>
+                )}
                 <div className="mb-6 sm:mb-8">
                   <p className="text-xs sm:text-sm text-gray-500 mb-4">
                     Update photo of yourself
@@ -1074,7 +1109,11 @@ function Settings() {
                   </button>
                   <button
                     onClick={saveSettings}
-                    disabled={loading}
+                    disabled={
+                      loading ||
+                      profile?.is_verified ||
+                      (profile?.is_subscribed && !profile?.is_verified)
+                    }
                     className="px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-500 text-white font-medium hover:bg-blue-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                   >
                     {loading ? "Submitting..." : "Get Verified"}
