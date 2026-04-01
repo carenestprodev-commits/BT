@@ -1,31 +1,33 @@
-/* eslint-disable no-unused-vars */
-const API_URL = import.meta.env.VITE_API_BASE_URL;
+import tokenService from "../utils/tokenService";
+
+const withAuthHeaders = (options, token) => ({
+  ...options,
+  headers: {
+    ...(options.headers || {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  },
+});
 
 export async function fetchWithAuth(url, options = {}) {
-  const token = localStorage.getItem("access");
+  const accessToken = tokenService.getAccessToken();
+  let response = await fetch(url, withAuthHeaders(options, accessToken));
 
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...(options.headers || {}),
-      Authorization: token ? `Bearer ${token}` : "",
-    },
-  });
+  if (response.status !== 401 || !accessToken) {
+    return response;
+  }
 
-  // 🚨 TOKEN EXPIRED OR INVALID
-  if (response.status === 401 && token) {
-    console.warn("Token expired. Logging out.");
-    logout();
+  const refreshedToken = await tokenService.refreshToken();
+  if (!refreshedToken) {
+    await tokenService.logout();
+    throw new Error("Session expired");
+  }
+
+  response = await fetch(url, withAuthHeaders(options, refreshedToken));
+
+  if (response.status === 401) {
+    await tokenService.logout();
     throw new Error("Session expired");
   }
 
   return response;
-}
-
-function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-
-  // hard redirect to clear state
-  window.location.href = "/";
 }

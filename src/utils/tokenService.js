@@ -1,23 +1,101 @@
-/**
- * Token Management Service
- * Handles token refresh and authentication
- */
-
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+const storages = [localStorage, sessionStorage];
+
+const readKey = (key) => {
+  for (const storage of storages) {
+    const value = storage.getItem(key);
+    if (value) {
+      return value;
+    }
+  }
+  return null;
+};
+
+const readJson = (key) => {
+  const value = readKey(key);
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+const getAuthStorage = () => {
+  for (const storage of storages) {
+    if (
+      storage.getItem("refresh") ||
+      storage.getItem("refreshToken") ||
+      storage.getItem("access") ||
+      storage.getItem("accessToken")
+    ) {
+      return storage;
+    }
+  }
+  return localStorage;
+};
+
+const clearAuthStorage = () => {
+  for (const storage of storages) {
+    storage.removeItem("access");
+    storage.removeItem("refresh");
+    storage.removeItem("accessToken");
+    storage.removeItem("refreshToken");
+    storage.removeItem("access_token");
+    storage.removeItem("refresh_token");
+    storage.removeItem("user");
+    storage.removeItem("rememberMe");
+  }
+
+  localStorage.removeItem("seeker_user");
+  localStorage.removeItem("provider_user");
+  localStorage.removeItem("seeker_register_response");
+  localStorage.removeItem("provider_register_response");
+  localStorage.removeItem("is_subscribed");
+  localStorage.removeItem("just_logged_in");
+  localStorage.removeItem("subscription_modal_shown");
+};
+
+const setSession = ({ access, refresh, user }) => {
+  const storage = getAuthStorage();
+
+  if (access) {
+    storage.setItem("access", access);
+    storage.setItem("accessToken", access);
+  }
+
+  if (refresh) {
+    storage.setItem("refresh", refresh);
+    storage.setItem("refreshToken", refresh);
+  }
+
+  if (user) {
+    storage.setItem("user", JSON.stringify(user));
+  }
+};
+
 export const tokenService = {
-  /**
-   * Refresh the access token using refresh token
-   */
+  getAccessToken: () => readKey("access") || readKey("accessToken"),
+
+  getRefreshToken: () => readKey("refresh") || readKey("refreshToken"),
+
+  getUser: () => readJson("user"),
+
+  setSession,
+
+  clearAuthStorage,
+
   refreshToken: async () => {
+    const refreshToken = tokenService.getRefreshToken();
+    if (!refreshToken) {
+      return null;
+    }
+
     try {
-      const refreshToken =
-        localStorage.getItem("refreshToken") || localStorage.getItem("refresh");
-
-      if (!refreshToken) {
-        throw new Error("No refresh token available");
-      }
-
       const response = await fetch(`${BASE_URL}/api/auth/token/refresh/`, {
         method: "POST",
         headers: {
@@ -29,63 +107,39 @@ export const tokenService = {
       });
 
       if (!response.ok) {
-        throw new Error("Token refresh failed");
+        return null;
       }
 
       const data = await response.json();
+      if (!data.access) {
+        return null;
+      }
 
-      // Store the new access token
-      localStorage.setItem("accessToken", data.access);
-      localStorage.setItem("access", data.access);
-
+      setSession({ access: data.access });
       return data.access;
-    } catch (error) {
-      console.error("Token refresh error:", error);
-      // Clear tokens and redirect to login
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("access");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("refresh");
-
-      // Redirect to login
-      window.location.href = "/login";
+    } catch {
       return null;
     }
   },
 
-  /**
-   * Get valid access token (refresh if needed)
-   */
-  getValidToken: async () => {
-    let accessToken =
-      localStorage.getItem("accessToken") || localStorage.getItem("access");
+  logout: async () => {
+    const refreshToken = tokenService.getRefreshToken();
 
-    if (!accessToken) {
-      throw new Error("No access token available");
+    if (refreshToken) {
+      try {
+        await fetch(`${BASE_URL}/api/auth/logout/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            refresh: refreshToken,
+          }),
+        });
+      } catch {}
     }
 
-    // Check if token is expired (optional - you can decode JWT to check)
-    // For now, we'll try to use it and refresh on 401
-    return accessToken;
-  },
-
-  /**
-   * Check if user is authenticated
-   */
-  isAuthenticated: () => {
-    const accessToken =
-      localStorage.getItem("accessToken") || localStorage.getItem("access");
-    return !!accessToken;
-  },
-
-  /**
-   * Logout user
-   */
-  logout: () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("access");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("refresh");
+    clearAuthStorage();
     window.location.href = "/login";
   },
 };
