@@ -18,8 +18,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (user) {
       tokenService.setSession({ user });
-    } else {
-      tokenService.clearAuthStorage();
     }
   }, [user]);
 
