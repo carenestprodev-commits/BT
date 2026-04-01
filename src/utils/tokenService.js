@@ -12,6 +12,19 @@ const readKey = (key) => {
   return null;
 };
 
+const readJson = (key) => {
+  const value = readKey(key);
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
 const getAuthStorage = () => {
   for (const storage of storages) {
     if (
@@ -69,6 +82,8 @@ export const tokenService = {
   getAccessToken: () => readKey("access") || readKey("accessToken"),
 
   getRefreshToken: () => readKey("refresh") || readKey("refreshToken"),
+
+  getUser: () => readJson("user"),
 
   setSession,
 

@@ -11,16 +11,7 @@ export const fetchUserProfile = createAsyncThunk(
         return rejectWithValue("No access token");
       }
 
-      let userType = "provider";
-      try {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-          const user = JSON.parse(userStr);
-          userType = user.user_type || "provider";
-        }
-      } catch {
-        userType = "provider";
-      }
+      const userType = tokenService.getUser()?.user_type || "provider";
 
       const endpoint = `${BASE_URL}/api/${userType}/profile/personal-info/`;
       const res = await fetchWithAuth(endpoint, {
