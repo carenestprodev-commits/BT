@@ -9,9 +9,9 @@ import {
 } from "../../../Redux/CareSeekerAuth";
 import { useAuth } from "../../../Context/AuthContext";
 import {
-  isValidProfilePhoto,
-  uploadProfilePhoto,
-} from "./uploadProfilePhoto";
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
 
 function CareProvidersNearYou() {
   const [showSubscribePopup, setShowSubscribePopup] = React.useState(false);
@@ -37,6 +37,7 @@ function CareProvidersNearYou() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { setUser } = useAuth();
+  const defaultCurrency = getUserCurrencyInfo();
 
   const isValidEmail = (value) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || "");
@@ -206,6 +207,18 @@ function CareProvidersNearYou() {
     Quarterly: { rate: 13, hours: 32, fee: 7, total: 416 },
     Monthly: { rate: 13, hours: 32, fee: 7, total: 416 },
   };
+  const formatPlanPrice = (plan) =>
+    formatCurrencyAmount(
+      paymentDetails[plan]?.total ?? 0,
+      defaultCurrency.currencyCode,
+      defaultCurrency.currencySymbol,
+    );
+  const formatRate = (plan) =>
+    formatCurrencyAmount(
+      paymentDetails[plan]?.rate ?? 0,
+      defaultCurrency.currencyCode,
+      defaultCurrency.currencySymbol,
+    );
 
   return (
     <>
@@ -514,7 +527,7 @@ function CareProvidersNearYou() {
                   <div className="p-2 text-center border-r border-gray-200">
                     <div className="text-xs text-gray-500">Rate</div>
                     <div className="font-semibold text-sm text-gray-700">
-                      $135/hr
+                      {formatRate("Monthly")}/hr
                     </div>
                   </div>
                   <div className="p-2 text-center">
@@ -578,7 +591,7 @@ function CareProvidersNearYou() {
               >
                 <div className="text-lg font-bold text-gray-800 mb-1">Free</div>
                 <div className="text-2xl font-bold text-gray-800 mb-1">
-                  $00.00
+                  {formatPlanPrice("Free")}
                 </div>
                 <button className="bg-gray-100 text-gray-500 text-xs px-3 py-1 rounded mt-2">
                   Limited
@@ -594,8 +607,12 @@ function CareProvidersNearYou() {
                 }}
               >
                 <div className="text-lg font-bold mb-1">Quarterly</div>
-                <div className="text-2xl font-bold mb-1">$68.99</div>
-                <div className="text-xs mb-1">($12.22/mo)</div>
+                <div className="text-2xl font-bold mb-1">
+                  {formatPlanPrice("Quarterly")}
+                </div>
+                <div className="text-xs mb-1">
+                  ({formatRate("Quarterly")}/hr)
+                </div>
                 <button className="bg-white text-[#0093d1] text-xs px-3 py-1 rounded mt-2">
                   32% off
                 </button>
@@ -613,7 +630,7 @@ function CareProvidersNearYou() {
                   Monthly
                 </div>
                 <div className="text-2xl font-bold text-gray-800 mb-1">
-                  $23.99
+                  {formatPlanPrice("Monthly")}
                 </div>
                 <button className="bg-blue-50 text-[#0093d1] text-xs px-3 py-1 rounded mt-2">
                   10% off
@@ -647,7 +664,7 @@ function CareProvidersNearYou() {
             <div className="w-full bg-gray-50 rounded-xl p-6 mb-6">
               <div className="flex justify-between mb-2 text-gray-700">
                 <span>Rate per hour</span>
-                <span>${paymentDetails[selectedPlan]?.rate ?? 13}</span>
+                <span>{formatRate(selectedPlan)}/hr</span>
               </div>
               <div className="flex justify-between mb-2 text-gray-700">
                 <span>Total hours</span>
@@ -660,7 +677,7 @@ function CareProvidersNearYou() {
               <hr className="my-2" />
               <div className="flex justify-between font-bold text-gray-800 text-lg">
                 <span>Total Amount</span>
-                <span>${paymentDetails[selectedPlan]?.total ?? 416}.00</span>
+                <span>{formatPlanPrice(selectedPlan)}</span>
               </div>
             </div>
             <Link to="/careseekers/dashboard/careproviders">

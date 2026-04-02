@@ -9,6 +9,10 @@ import {
   postReview,
 } from "../../../Redux/CareProviderRequest";
 import { BASE_URL } from "../../../Redux/config";
+import {
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
 
 function RequestDetails() {
   const navigate = useNavigate();
@@ -20,6 +24,13 @@ function RequestDetails() {
     (s) => s.careProviderRequests || { current: null }
   );
   const [submitting, setSubmitting] = useState(false);
+  const defaultCurrency = getUserCurrencyInfo();
+  const rateDisplay =
+    current?.localized_rate_per_hour ?? current?.rate_per_hour ?? null;
+  const rateCurrencyCode =
+    current?.display_currency_code || defaultCurrency.currencyCode;
+  const rateCurrencySymbol =
+    current?.display_currency_symbol || defaultCurrency.currencySymbol;
 
   useEffect(() => {
     if (id) dispatch(fetchRequestById({ id, status: "closed" }));
@@ -74,7 +85,15 @@ function RequestDetails() {
           </div>
           <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
             <span className="text-gray-500 text-xs mb-1">Rate</span>
-            <span className="text-gray-800 font-semibold text-lg">$135/hr</span>
+            <span className="text-gray-800 font-semibold text-lg">
+              {rateDisplay
+                ? `${formatCurrencyAmount(
+                    rateDisplay,
+                    rateCurrencyCode,
+                    rateCurrencySymbol,
+                  )}/hr`
+                : "Rate not set"}
+            </span>
           </div>
           <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
             <span className="text-gray-500 text-xs mb-1">Rating</span>
@@ -139,10 +158,12 @@ function RequestDetails() {
             </div>
             <div className="mb-2">
               <strong>Rate per hour:</strong>{" "}
-              {current
-                ? current.rate_per_hour
-                  ? `$${current.rate_per_hour}`
-                  : ""
+              {rateDisplay
+                ? formatCurrencyAmount(
+                    rateDisplay,
+                    rateCurrencyCode,
+                    rateCurrencySymbol,
+                  )
                 : ""}
             </div>
             <div className="mb-2">

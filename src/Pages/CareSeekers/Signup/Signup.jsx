@@ -77,8 +77,8 @@ function Signup() {
     repeatDays: [],
     startTime: "",
     endTime: "",
-    hourlyRateStart: 80,
-    hourlyRateEnd: 1230,
+    hourlyRateStart: "",
+    hourlyRateEnd: "",
 
     // Summary
     messageToProvider: "",

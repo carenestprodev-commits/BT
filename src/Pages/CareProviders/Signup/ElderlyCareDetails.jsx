@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { useState } from "react";
 import { saveStep } from "../../../Redux/CareProviderAuth";
 import { reverseGeocode } from "../../../Redux/Location";
+import { getHourlyRateConfig } from "../../../constants/hourlyRates";
 import mappopup from "../../../../public/mappopup.png";
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -211,6 +212,7 @@ function ElderlyCareDetails({
     "Zambia",
     "Zimbabwe",
   ]);
+  const hourlyRateConfig = getHourlyRateConfig(formData.country);
 
   const [stateOptions, setStateOptions] = useState([
     "Abia",
@@ -823,7 +825,7 @@ function ElderlyCareDetails({
             onChange={(e) => updateFormData("hourlyRate", e.target.value)}
           />
           <p className="text-sm text-green-600 mt-1">
-            Average hourly rate is ₦900 - ₦1,200
+            {hourlyRateConfig.description}
           </p>
           {errors.hourlyRate && (
             <p className="text-sm text-red-600 mt-1">{errors.hourlyRate}</p>

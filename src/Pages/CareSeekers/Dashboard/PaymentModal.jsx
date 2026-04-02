@@ -5,7 +5,10 @@ import { FaLock } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { initiateProviderSubscription } from "../../../Redux/ProviderPayment";
 import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
-import { formatCurrencyAmount } from "../../../utils/countryHelper";
+import {
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -17,6 +20,7 @@ const PaymentModal = ({
 }) => {
   const dispatch = useDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
+  const defaultCurrency = getUserCurrencyInfo();
   const {
     initiating,
     authorizationUrl,
@@ -73,7 +77,7 @@ const PaymentModal = ({
       const result = await dispatch(
         initiateProviderSubscription({
           planType: selectedPlan.id,
-          amount: plan.price,
+          amount: selectedPlan.price,
         }),
       ).unwrap();
 
@@ -139,8 +143,8 @@ const PaymentModal = ({
   // Calculate display price and currency values
   const displayPrice =
     localizedPrice !== null ? localizedPrice : selectedPlan.price;
-  const displayCurrency = currencyCode || "NGN";
-  const displaySymbol = currencySymbol || "₦";
+  const displayCurrency = currencyCode || defaultCurrency.currencyCode;
+  const displaySymbol = currencySymbol || defaultCurrency.currencySymbol;
 
   const amount = parseFloat(displayPrice || 0);
   const displayAmount = formatCurrencyAmount(

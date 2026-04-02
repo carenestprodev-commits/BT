@@ -1,23 +1,34 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
+import { getHourlyRateConfig } from "../../../constants/hourlyRates";
 
 export default function DualRangeSlider({
-  valueStart = 900,
-  valueEnd = 1200,
-  minValue = 900,
-  maxValue = 1200,
+  valueStart,
+  valueEnd,
+  minValue,
+  maxValue,
   onChange,
-  currencySymbol = "₦",
+  countryCode = "NG",
 }) {
+  const config = getHourlyRateConfig(countryCode);
+  const defaultMinValue = minValue ?? config.minRate;
+  const defaultMaxValue = maxValue ?? config.maxRate;
+  const defaultValueStart = valueStart ?? defaultMinValue;
+  const defaultValueEnd = valueEnd ?? defaultMaxValue;
   const clamp = (v, min, max) => Math.max(min, Math.min(v, max));
 
-  const [start, setStart] = useState(valueStart);
-  const [end, setEnd] = useState(valueEnd);
+  const [start, setStart] = useState(defaultValueStart);
+  const [end, setEnd] = useState(defaultValueEnd);
   const [isDragging, setIsDragging] = useState(null);
 
   const sliderRef = useRef(null);
   const startRef = useRef(null);
   const endRef = useRef(null);
+
+  useEffect(() => {
+    setStart(defaultValueStart);
+    setEnd(defaultValueEnd);
+  }, [defaultValueStart, defaultValueEnd]);
 
   useEffect(() => {
     if (onChange) {
@@ -29,9 +40,9 @@ export default function DualRangeSlider({
   }, [start, end]);
 
   const getPercent = (value) =>
-    ((value - minValue) / (maxValue - minValue)) * 100;
+    ((value - defaultMinValue) / (defaultMaxValue - defaultMinValue)) * 100;
 
-  const formatValue = (v) => `${currencySymbol}${v}`;
+  const formatValue = (v) => `${config.symbol}${v}`;
 
   const getClientX = (e) => (e.touches ? e.touches[0].clientX : e.clientX);
 
@@ -41,8 +52,10 @@ export default function DualRangeSlider({
     const rect = sliderRef.current.getBoundingClientRect();
     const percent = (getClientX(e) - rect.left) / rect.width;
 
-    let value = Math.round(minValue + percent * (maxValue - minValue));
-    value = clamp(value, minValue, maxValue);
+    let value = Math.round(
+      defaultMinValue + percent * (defaultMaxValue - defaultMinValue),
+    );
+    value = clamp(value, defaultMinValue, defaultMaxValue);
 
     if (isDragging === "start") {
       setStart(Math.min(value, end));
@@ -78,21 +91,21 @@ export default function DualRangeSlider({
 
     if (type === "start") {
       if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-        setStart((prev) => clamp(prev + step, minValue, end));
+        setStart((prev) => clamp(prev + step, defaultMinValue, end));
       }
 
       if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-        setStart((prev) => clamp(prev - step, minValue, end));
+        setStart((prev) => clamp(prev - step, defaultMinValue, end));
       }
     }
 
     if (type === "end") {
       if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-        setEnd((prev) => clamp(prev + step, start, maxValue));
+        setEnd((prev) => clamp(prev + step, start, defaultMaxValue));
       }
 
       if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-        setEnd((prev) => clamp(prev - step, start, maxValue));
+        setEnd((prev) => clamp(prev - step, start, defaultMaxValue));
       }
     }
   };
@@ -101,8 +114,8 @@ export default function DualRangeSlider({
     <div className="bg-white border border-gray-200 rounded-lg p-4">
       {/* FIXED MOBILE LAYOUT */}
       <div className="flex justify-between mb-3 text-sm text-gray-500">
-        <span>{formatValue(minValue)}</span>
-        <span>{formatValue(maxValue)}</span>
+        <span>{formatValue(defaultMinValue)}</span>
+        <span>{formatValue(defaultMaxValue)}</span>
       </div>
 
       <div

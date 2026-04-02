@@ -28,7 +28,10 @@ import {
   toDisplayMessage,
 } from "../../../lib/chatMessages";
 import { getCurrentUserIdFromProfile } from "../../../lib/currentUser";
-import { formatCurrencyAmount } from "../../../utils/countryHelper";
+import {
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
 import { useNotifications } from "../../../Context/NotificationContext";
 
 // Helper functions
@@ -543,6 +546,7 @@ function Message() {
     isFallbackPrice,
   } = useSelector((state) => state.startActivity);
   const { notifications, isDegraded } = useNotifications();
+  const defaultCurrency = getUserCurrencyInfo();
 
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
@@ -608,8 +612,8 @@ function Message() {
   const displayHours = totalHours === "" ? 0 : Number(totalHours);
   const calculatedSubtotal = RATE_PER_HOUR * displayHours;
   const calculatedTotal = calculatedSubtotal + SERVICE_FEE;
-  const uiCurrencyCode = currencyCode || "USD";
-  const uiCurrencySymbol = currencySymbol || "$";
+  const uiCurrencyCode = currencyCode || defaultCurrency.currencyCode;
+  const uiCurrencySymbol = currencySymbol || defaultCurrency.currencySymbol;
   const displayPerHourRate = localizedPerHourRate ?? RATE_PER_HOUR;
   const displaySubtotal =
     localizedSubtotal ?? displayPerHourRate * displayHours;

@@ -3,7 +3,7 @@
  * Handles user country detection and localization
  */
 
-const FALLBACK_COUNTRY_ALIASES = {
+export const COUNTRY_NAME_TO_ISO2 = {
   nigeria: "NG",
   "united states": "US",
   usa: "US",
@@ -15,6 +15,18 @@ const FALLBACK_COUNTRY_ALIASES = {
   canada: "CA",
   australia: "AU",
   india: "IN",
+};
+
+export const COUNTRY_TO_CURRENCY = {
+  NG: "NGN",
+  US: "USD",
+  GB: "GBP",
+  GH: "GHS",
+  KE: "KES",
+  ZA: "ZAR",
+  CA: "CAD",
+  AU: "AUD",
+  IN: "INR",
 };
 
 let countryNameToIsoCache = null;
@@ -77,7 +89,7 @@ const buildCountryNameCache = () => {
     if (key && code) countryNameToIsoCache.set(key, code.toUpperCase());
   };
 
-  Object.entries(FALLBACK_COUNTRY_ALIASES).forEach(([name, code]) =>
+  Object.entries(COUNTRY_NAME_TO_ISO2).forEach(([name, code]) =>
     add(name, code),
   );
 
@@ -110,6 +122,17 @@ export const getIso2FromCountryName = async (countryName) => {
 
   const cache = buildCountryNameCache();
   return cache.get(normalized) || null;
+};
+
+export const resolveCountryIso2Sync = (input) => {
+  const iso2 = resolveCountryIso2(input);
+  if (iso2) return iso2;
+  return COUNTRY_NAME_TO_ISO2[normalizeCountryInput(input)] || null;
+};
+
+export const getCurrencyCodeForCountry = (countryInput) => {
+  const countryIso2 = resolveCountryIso2Sync(countryInput);
+  return COUNTRY_TO_CURRENCY[countryIso2] || null;
 };
 
 /**
@@ -222,6 +245,19 @@ export const getCurrencySymbol = (currencyCode) => {
   return symbols[currencyCode] || currencyCode;
 };
 
+export const getCurrencyInfoForCountry = (countryInput) => {
+  const countryIso2 = resolveCountryIso2Sync(countryInput) || "NG";
+  const currencyCode = COUNTRY_TO_CURRENCY[countryIso2] || "NGN";
+  return {
+    countryIso2,
+    currencyCode,
+    currencySymbol: getCurrencySymbol(currencyCode),
+  };
+};
+
+export const getUserCurrencyInfo = () =>
+  getCurrencyInfoForCountry(getUserCountry());
+
 /**
  * Validate if error response contains gateway availability info
  * @param {Error|Object} error - Error object
@@ -240,9 +276,13 @@ export default {
   getUserCountry,
   resolveCountryIso2,
   getIso2FromCountryName,
+  resolveCountryIso2Sync,
   getCountryFromIP,
   detectUserCountry,
+  getCurrencyCodeForCountry,
   formatCurrencyAmount,
   getCurrencySymbol,
+  getCurrencyInfoForCountry,
+  getUserCurrencyInfo,
   isGatewayAvailabilityError,
 };

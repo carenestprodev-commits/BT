@@ -6,6 +6,7 @@ import {
   buildPayloadFromSteps,
 } from "../../../Redux/CareSeekerAuth";
 import DualRangeSlider from "./DualRangeSlider";
+import { getHourlyRateConfig } from "../../../constants/hourlyRates";
 
 function ChildTimeDetails({
   formData,
@@ -18,6 +19,9 @@ function ChildTimeDetails({
   const dispatch = useDispatch();
   const onboardingSteps = useSelector((state) => state.careSeeker.steps);
   const [errors, setErrors] = useState({});
+  const hourlyRateConfig = getHourlyRateConfig(
+    formData.country || onboardingSteps?.location?.country,
+  );
   return (
     <div className="w-full max-w-3xl mx-auto bg-white p-4 lg:p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
       <div className="flex items-center mb-6">
@@ -298,11 +302,11 @@ function ChildTimeDetails({
           </label>
           <div className="bg-green-100 text-green-700 text-sm p-2 rounded mb-4">
             <span className="inline-flex items-center">
-              <span className="mr-1">ℹ️</span> Average hourly rate is ₦900 -
-              ₦1,200
+              <span className="mr-1">ℹ️</span> {hourlyRateConfig.description}
             </span>
           </div>
           <DualRangeSlider
+            countryCode={hourlyRateConfig.countryCode}
             valueStart={formData.hourlyRateStart}
             valueEnd={formData.hourlyRateEnd}
             onChange={(v) => {
@@ -316,11 +320,11 @@ function ChildTimeDetails({
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">
-                Min Rate (₦)
+                Min Rate ({hourlyRateConfig.symbol})
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                  ₦
+                  {hourlyRateConfig.symbol}
                 </span>
                 <input
                   type="number"
@@ -340,11 +344,11 @@ function ChildTimeDetails({
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">
-                Max Rate (₦)
+                Max Rate ({hourlyRateConfig.symbol})
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                  ₦
+                  {hourlyRateConfig.symbol}
                 </span>
                 <input
                   type="number"
@@ -445,10 +449,10 @@ function ChildTimeDetails({
             endTime: formData.endTime,
             priceMin: formData.hourlyRateStart
               ? Number(formData.hourlyRateStart).toFixed(2)
-              : "900",
+              : String(hourlyRateConfig.minRate),
             priceMax: formData.hourlyRateEnd
               ? Number(formData.hourlyRateEnd).toFixed(2)
-              : "1200",
+              : String(hourlyRateConfig.maxRate),
           };
 
           dispatch(

@@ -9,6 +9,9 @@ import { NotificationProvider } from "./Context/NotificationContext";
 
 import { RouterProvider } from "react-router-dom";
 import { router } from "./Routes/router";
+import { loadHourlyRatePolicies } from "./constants/hourlyRates";
+
+loadHourlyRatePolicies();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

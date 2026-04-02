@@ -6,6 +6,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { FaStar } from "react-icons/fa";
 import { fetchConversations } from "../../../Redux/Messenger";
 import { BASE_URL, getAuthHeaders } from "../../../Redux/config";
+import {
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
 
 const resolveImage = (url) => {
   if (!url)
@@ -30,6 +34,7 @@ function MessageDetails() {
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const defaultCurrency = getUserCurrencyInfo();
 
   // Load conversations so we can pull real data
   useEffect(() => {
@@ -88,7 +93,14 @@ function MessageDetails() {
       : startDate || "Date not available";
 
   const hourlyRate = currentConversation?.hourly_rate
-    ? `$${currentConversation.hourly_rate}/hr`
+    ? `${formatCurrencyAmount(
+        currentConversation.localized_rate_per_hour ??
+          currentConversation.hourly_rate,
+        currentConversation.display_currency_code ||
+          defaultCurrency.currencyCode,
+        currentConversation.display_currency_symbol ||
+          defaultCurrency.currencySymbol,
+      )}/hr`
     : "Rate not set";
 
   // Submit feedback + rating to the backend
