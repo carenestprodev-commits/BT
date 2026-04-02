@@ -8,6 +8,10 @@ import {
   saveStep,
 } from "../../../Redux/CareProviderAuth";
 import { useAuth } from "../../../Context/AuthContext";
+import {
+  isValidProfilePhoto,
+  uploadProfilePhoto,
+} from "../../CareSeekers/Signup/uploadProfilePhoto";
 
 function EmailPassword({ formData, updateFormData, handleBack }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,6 +19,10 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [signupComplete, setSignupComplete] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const dispatch = useDispatch();
   const providerState = useSelector((state) => state.careProvider) || null;
   const navigate = useNavigate();
@@ -28,6 +36,26 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
+    let registered = signupComplete;
+
+    if (!profilePhoto || !isValidProfilePhoto(profilePhoto)) {
+      alert("Please upload a JPG/JPEG/PNG photo. HEIC is not supported.");
+      return;
+    }
+
+    if (registered) {
+      setIsSubmitting(true);
+      setUploadError("");
+      try {
+        await uploadProfilePhoto(profilePhoto);
+        navigate("/careproviders/dashboard");
+      } catch (err) {
+        setUploadError(err.message || "Photo upload failed");
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
 
     /// validate again before submit
     if (!isValidEmail(email)) {
@@ -51,6 +79,9 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
       alert("Please accept the Terms of Use and Privacy Policy to continue");
       return;
     }
+
+    setIsSubmitting(true);
+    setUploadError("");
 
     // Read provider onboarding steps from Redux (preferred) and fall back to localStorage
     let steps = (providerState && providerState.steps) || {};
@@ -296,11 +327,10 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
               resultAction.error.message ||
               JSON.stringify(resultAction.error)),
         );
+        return;
       } else {
         const res = resultAction.payload;
-        alert(res.message || "Account created");
 
-        // Set user in AuthContext
         if (res?.user) {
           setUser({
             ...res.user,
@@ -309,12 +339,20 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
           });
         }
 
+        registered = true;
+        setSignupComplete(true);
+        await uploadProfilePhoto(profilePhoto);
+        alert(res.message || "Account created");
         navigate("/careproviders/dashboard");
-        // Optionally clear onboarding
-        // dispatch(clearOnboarding())
       }
     } catch (err) {
-      alert("Registration failed: " + err.message);
+      if (registered) {
+        setUploadError(err.message || "Photo upload failed");
+      } else {
+        alert("Registration failed: " + err.message);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -347,9 +385,32 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
         <p className="text-gray-500 text-sm mt-1 mb-4 lg:mb-6">
           Welcome back, Please enter your signup details
         </p>
+        <div className="mb-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Profile photo
+          </label>
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+            onChange={(e) => {
+              setProfilePhoto(e.target.files?.[0] || null);
+              setUploadError("");
+            }}
+            className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-[#0093d1] file:px-4 file:py-2 file:text-white hover:file:bg-[#007bb0]"
+          />
+          <p className="mt-2 text-xs text-gray-500">JPG or PNG only.</p>
+          {profilePhoto && (
+            <p className="mt-2 text-sm text-gray-700 truncate">
+              Selected: {profilePhoto.name}
+            </p>
+          )}
+          {uploadError && (
+            <p className="mt-2 text-sm text-red-500">{uploadError}</p>
+          )}
+        </div>
 
         {/* Form */}
-        <form className="space-y-4">
+        <form className="space-y-4" onSubmit={handleSignUp}>
           {/* Email */}
           <div>
             <label className="block text-sm font-medium  mb-1 text-gray-700">
@@ -567,15 +628,23 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
           {/* Sign Up Button */}
           <button
             type="submit"
-            onClick={handleSignUp}
             disabled={
+              isSubmitting ||
               !isValidEmail(email) ||
               !isStrongPassword(password) ||
-              password !== password2
+              password !== password2 ||
+              !profilePhoto ||
+              !isValidProfilePhoto(profilePhoto)
             }
             className="w-full bg-[#0093d1] text-white font-medium py-2 rounded-md hover:bg-[#007bb0] transition disabled:opacity-60"
           >
-            Sign Up
+            {isSubmitting
+              ? signupComplete
+                ? "Uploading Photo..."
+                : "Signing Up..."
+              : signupComplete
+                ? "Retry Photo Upload"
+                : "Sign Up"}
           </button>
         </form>
       </div>
