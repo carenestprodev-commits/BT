@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
-import { getHourlyRateConfig } from "../../../constants/hourlyRates";
+import { useHourlyRateConfig } from "../../../constants/hourlyRates";
 
 export default function DualRangeSlider({
   valueStart,
@@ -10,7 +10,7 @@ export default function DualRangeSlider({
   onChange,
   countryCode = "NG",
 }) {
-  const config = getHourlyRateConfig(countryCode);
+  const config = useHourlyRateConfig(countryCode);
   const defaultMinValue = minValue ?? config.minRate;
   const defaultMaxValue = maxValue ?? config.maxRate;
   const defaultValueStart = valueStart ?? defaultMinValue;

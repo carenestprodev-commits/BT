@@ -1,11 +1,12 @@
+import { useSyncExternalStore } from "react";
 import { BASE_URL } from "../Redux/config";
 import {
   getCurrencyInfoForCountry,
   resolveCountryIso2Sync,
 } from "../utils/countryHelper";
 
-const SUPPORTED_COUNTRIES = ["NG", "US", "GB", "GH", "KE"];
 const hourlyRateCache = {};
+const hourlyRateListeners = new Set();
 const DEFAULT_COUNTRY_CODE = "NG";
 const DEFAULT_HOURLY_RATE_POLICY = {
   country_name: "Nigeria",
@@ -49,30 +50,32 @@ const DEFAULT_HOURLY_RATE_CONFIG = toHourlyRateConfig(
   DEFAULT_COUNTRY_CODE,
 );
 
-export const loadHourlyRatePolicies = async (
-  countries = SUPPORTED_COUNTRIES,
-) => {
-  const uniqueCountries = [...new Set(countries.map(normalizeCountryCode))];
-  const responses = await Promise.all(
-    uniqueCountries.map(async (countryCode) => {
-      try {
-        const response = await fetch(
-          `${BASE_URL}/api/payments/hourly-rate-policy/?country=${encodeURIComponent(countryCode)}`,
-        );
-        if (!response.ok) return null;
-        const policy = await response.json();
-        return [countryCode, policy];
-      } catch {
-        return null;
-      }
-    }),
-  );
+const notifyHourlyRateListeners = () => {
+  hourlyRateListeners.forEach((listener) => listener());
+};
 
-  responses.forEach((entry) => {
-    if (!entry) return;
-    const [countryCode, policy] = entry;
-    hourlyRateCache[countryCode] = toHourlyRateConfig(policy, countryCode);
-  });
+export const loadHourlyRatePolicies = async () => {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/api/payments/hourly-rate-policies/`,
+    );
+    if (!response.ok) return;
+
+    const policies = await response.json();
+    Object.keys(hourlyRateCache).forEach((key) => delete hourlyRateCache[key]);
+
+    policies.forEach((policy) => {
+      const countryCode = normalizeCountryCode(
+        policy.country_code || policy.countryCode,
+      );
+      if (!countryCode) return;
+      hourlyRateCache[countryCode] = toHourlyRateConfig(policy, countryCode);
+    });
+
+    notifyHourlyRateListeners();
+  } catch {
+    return;
+  }
 };
 
 /**
@@ -82,6 +85,16 @@ export const getHourlyRateConfig = (countryInput = "NG") => {
   const countryCode = normalizeCountryCode(countryInput);
   return hourlyRateCache[countryCode] || DEFAULT_HOURLY_RATE_CONFIG;
 };
+
+export const useHourlyRateConfig = (countryInput = "NG") =>
+  useSyncExternalStore(
+    (listener) => {
+      hourlyRateListeners.add(listener);
+      return () => hourlyRateListeners.delete(listener);
+    },
+    () => getHourlyRateConfig(countryInput),
+    () => getHourlyRateConfig(countryInput),
+  );
 
 export const getHourlyRateDescription = (countryCode = "NG") =>
   getHourlyRateConfig(countryCode).description;

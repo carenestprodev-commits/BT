@@ -17,7 +17,7 @@ import {
   detectUserCountry,
   formatCurrencyAmount,
 } from "../../../utils/countryHelper";
-import { getHourlyRateConfig } from "../../../constants/hourlyRates";
+import { useHourlyRateConfig } from "../../../constants/hourlyRates";
 import {
   COUNTRY_OPTIONS,
   STATE_OPTIONS,
@@ -72,7 +72,7 @@ function Settings() {
   };
 
   const [formData, setFormData] = useState(emptyForm);
-  const hourlyRateConfig = getHourlyRateConfig(formData.country);
+  const hourlyRateConfig = useHourlyRateConfig(formData.country);
   const [originalFormData, setOriginalFormData] = useState(emptyForm);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);

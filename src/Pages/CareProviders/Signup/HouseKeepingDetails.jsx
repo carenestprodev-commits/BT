@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import { useState } from "react";
 import { saveStep } from "../../../Redux/CareProviderAuth";
 import { reverseGeocode } from "../../../Redux/Location";
-import { getHourlyRateConfig } from "../../../constants/hourlyRates";
+import { useHourlyRateConfig } from "../../../constants/hourlyRates";
 import mappopup from "../../../../public/mappopup.png";
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -212,7 +212,7 @@ function HouseKeepingDetails({
     "Zambia",
     "Zimbabwe",
   ]);
-  const hourlyRateConfig = getHourlyRateConfig(formData.country);
+  const hourlyRateConfig = useHourlyRateConfig(formData.country);
 
   const [stateOptions, setStateOptions] = useState([
     "Abia",

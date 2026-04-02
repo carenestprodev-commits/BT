@@ -6,7 +6,7 @@ import {
   buildPayloadFromSteps,
 } from "../../../Redux/CareSeekerAuth";
 import DualRangeSlider from "./DualRangeSlider";
-import { getHourlyRateConfig } from "../../../constants/hourlyRates";
+import { useHourlyRateConfig } from "../../../constants/hourlyRates";
 
 function ChildTimeDetails({
   formData,
@@ -19,7 +19,7 @@ function ChildTimeDetails({
   const dispatch = useDispatch();
   const onboardingSteps = useSelector((state) => state.careSeeker.steps);
   const [errors, setErrors] = useState({});
-  const hourlyRateConfig = getHourlyRateConfig(
+  const hourlyRateConfig = useHourlyRateConfig(
     formData.country || onboardingSteps?.location?.country,
   );
   return (
