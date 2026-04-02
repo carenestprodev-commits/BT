@@ -19,6 +19,10 @@ import {
   fetchActivityById,
   deleteActivity,
 } from "../../Redux/AdminActivities";
+import {
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../utils/countryHelper";
 
 // Redux-provided data will populate stats and activities
 
@@ -38,6 +42,7 @@ function Activities() {
   const [sortBy, setSortBy] = useState({ key: "date", dir: "desc" });
   const [alert, setAlert] = useState(null);
   const alertTimer = useRef(null);
+  const defaultCurrency = getUserCurrencyInfo();
 
   useEffect(() => {
     dispatch(fetchActivitiesStats());
@@ -487,7 +492,15 @@ function Activities() {
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-500">Payment Rate</span>
-                <span className="text-right">53,589.00</span>
+                <span className="text-right">
+                  {editRow.paymentRate
+                    ? formatCurrencyAmount(
+                        editRow.paymentRate,
+                        defaultCurrency.currencyCode,
+                        defaultCurrency.currencySymbol,
+                      )
+                    : "N/A"}
+                </span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-slate-500">Status</span>

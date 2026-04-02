@@ -3,6 +3,10 @@ import React from "react";
 import Girl from "../../../../public/girl.svg";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import {
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
 
 function CareProvidersNearYou() {
   const [showSubscribePopup, setShowSubscribePopup] = React.useState(false);
@@ -11,12 +15,19 @@ function CareProvidersNearYou() {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const defaultCurrency = getUserCurrencyInfo();
 
   const paymentDetails = {
     Free: { rate: 0, hours: 0, fee: 0, total: 0 },
     Quarterly: { rate: 13, hours: 32, fee: 7, total: 416 },
     Monthly: { rate: 13, hours: 32, fee: 7, total: 416 },
   };
+  const formatPlanPrice = (plan) =>
+    formatCurrencyAmount(
+      paymentDetails[plan]?.total ?? 0,
+      defaultCurrency.currencyCode,
+      defaultCurrency.currencySymbol,
+    );
 
   return (
     <>
@@ -82,7 +93,12 @@ function CareProvidersNearYou() {
                   <div className="p-2 text-center border-r">
                     <div className="text-xs text-gray-500">Rate</div>
                     <div className="font-semibold text-blue-400">
-                      Rate shown after localization
+                      {formatCurrencyAmount(
+                        paymentDetails.Monthly.rate,
+                        defaultCurrency.currencyCode,
+                        defaultCurrency.currencySymbol,
+                      )}
+                      /hr
                     </div>
                   </div>
                   <div className="p-2 text-center">
@@ -135,7 +151,7 @@ function CareProvidersNearYou() {
                 }}
               >
                 <h3 className="font-bold text-blue-400">Quarterly</h3>
-                <p className="text-blue-400">Localized pricing</p>
+                <p className="text-blue-400">{formatPlanPrice("Quarterly")}</p>
               </div>
 
               <div
@@ -146,7 +162,7 @@ function CareProvidersNearYou() {
                 }}
               >
                 <h3 className="font-bold text-blue-400">Monthly</h3>
-                <p className="text-blue-400">Localized pricing</p>
+                <p className="text-blue-400">{formatPlanPrice("Monthly")}</p>
               </div>
             </div>
           </div>
@@ -172,7 +188,7 @@ function CareProvidersNearYou() {
               <div className="flex justify-between">
                 <span className="text-gray-500">Total</span>
                 <span className="text-gray-500">
-                  {paymentDetails[selectedPlan]?.total}.00
+                  {formatPlanPrice(selectedPlan)}
                 </span>
               </div>
             </div>

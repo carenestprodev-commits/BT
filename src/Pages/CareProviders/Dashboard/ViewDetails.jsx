@@ -1,11 +1,27 @@
 /* eslint-disable react/no-unescaped-entities */
-/* eslint-disable no-unused-vars */
-import React from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import Sidebar from "./Sidebar";
+import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
+import {
+  formatCurrencyAmount,
+  getCurrencyInfoForCountry,
+} from "../../../utils/countryHelper";
 
 function ViewDetails() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { profile } = useSelector(
+    (s) => s.providerSettings || { profile: null },
+  );
+
+  useEffect(() => {
+    dispatch(fetchProviderProfile());
+  }, [dispatch]);
+
+  const currencyInfo = getCurrencyInfoForCountry(profile?.country || "NG");
+  const hourlyRate = profile?.hourly_rate;
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
       <Sidebar active="Home" />
@@ -47,7 +63,13 @@ function ViewDetails() {
           <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-center">
             <span className="text-xs text-gray-500">Rate</span>
             <span className="font-semibold text-gray-800 text-lg">
-              Rate shown after localization
+              {hourlyRate
+                ? formatCurrencyAmount(
+                    hourlyRate,
+                    currencyInfo.currencyCode,
+                    currencyInfo.currencySymbol,
+                  )
+                : "N/A"}
             </span>
           </div>
           <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-center">
