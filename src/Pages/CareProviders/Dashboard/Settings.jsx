@@ -17,6 +17,7 @@ import {
   detectUserCountry,
   formatCurrencyAmount,
 } from "../../../utils/countryHelper";
+import { getHourlyRateConfig } from "../../../constants/hourlyRates";
 import {
   COUNTRY_OPTIONS,
   STATE_OPTIONS,
@@ -71,6 +72,7 @@ function Settings() {
   };
 
   const [formData, setFormData] = useState(emptyForm);
+  const hourlyRateConfig = getHourlyRateConfig(formData.country);
   const [originalFormData, setOriginalFormData] = useState(emptyForm);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -1754,13 +1756,21 @@ function Settings() {
                         className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
                       >
                         <option value="">Select rate</option>
-                        <option>₦1000</option>
-                        <option>₦900</option>
-                        <option>₦800</option>
+                        <option>
+                          {hourlyRateConfig.symbol}
+                          {hourlyRateConfig.minRate}
+                        </option>
+                        <option>
+                          {hourlyRateConfig.symbol}
+                          {hourlyRateConfig.averageHourlyRate}
+                        </option>
+                        <option>
+                          {hourlyRateConfig.symbol}
+                          {hourlyRateConfig.maxRate}
+                        </option>
                       </select>
                       <p className="text-xs sm:text-sm text-green-600 mt-2">
-                        Average hourly rate is ₦900-₦1,200 depending on
-                        experience and services offered
+                        {hourlyRateConfig.description}
                       </p>
                     </div>
                     <div>

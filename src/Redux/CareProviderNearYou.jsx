@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL } from "./config";
+import { getUserCurrencyInfo } from "../utils/countryHelper";
 
 export const fetchProviders = createAsyncThunk(
   "careProviderNearYou/fetchProviders",
@@ -7,7 +8,12 @@ export const fetchProviders = createAsyncThunk(
     try {
       const access = localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetch(`${BASE_URL}/api/browse-providers/`, { headers });
+      const { countryIso2 } = getUserCurrencyInfo();
+      const url = new URL(`${BASE_URL}/api/browse-providers/`);
+      if (countryIso2) {
+        url.searchParams.set("country", countryIso2);
+      }
+      const res = await fetch(url.toString(), { headers });
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
       return Array.isArray(data)

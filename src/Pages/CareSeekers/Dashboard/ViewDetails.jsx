@@ -9,12 +9,17 @@ import {
   clearProviderDetails,
 } from "../../../Redux/ProvidersDetails";
 import { BASE_URL } from "../../../Redux/config";
+import {
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
 
 function ViewDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const defaultCurrency = getUserCurrencyInfo();
 
   // Check plan from localStorage
   const plan =
@@ -144,7 +149,15 @@ function ViewDetails() {
               <div className="bg-white border border-gray-200 rounded-lg px-3 sm:px-6 py-2 sm:py-3 flex flex-col items-center">
                 <span className="text-xs text-gray-500 text-center">Rate</span>
                 <span className="font-semibold text-gray-800 text-sm sm:text-lg mt-1 line-clamp-1">
-                  {details?.hourly_rate ? `₦${details.hourly_rate}` : "N/A"}
+                  {details?.hourly_rate
+                    ? formatCurrencyAmount(
+                        details.localized_hourly_rate ?? details.hourly_rate,
+                        details.display_currency_code ||
+                          defaultCurrency.currencyCode,
+                        details.display_currency_symbol ||
+                          defaultCurrency.currencySymbol,
+                      )
+                    : "N/A"}
                 </span>
               </div>
               <div className="bg-white border border-gray-200 rounded-lg px-3 sm:px-6 py-2 sm:py-3 flex flex-col items-center">

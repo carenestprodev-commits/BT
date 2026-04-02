@@ -6,6 +6,7 @@ import {
   buildPayloadFromSteps,
 } from "../../../Redux/CareSeekerAuth";
 import DualRangeSlider from "./DualRangeSlider";
+import { getHourlyRateConfig } from "../../../constants/hourlyRates";
 
 function ChildTimeDetails({
   formData,
@@ -18,6 +19,9 @@ function ChildTimeDetails({
   const dispatch = useDispatch();
   const onboardingSteps = useSelector((state) => state.careSeeker.steps);
   const [errors, setErrors] = useState({});
+  const hourlyRateConfig = getHourlyRateConfig(
+    formData.country || onboardingSteps?.location?.country,
+  );
   return (
     <div className="w-full max-w-3xl mx-auto bg-white p-4 lg:p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
       <div className="flex items-center mb-6">
@@ -299,10 +303,11 @@ function ChildTimeDetails({
           <div className="bg-green-100 text-green-700 text-sm p-2 rounded mb-4">
             <span className="inline-flex items-center">
               <span className="mr-1">ℹ️</span>
-              Average hourly rate is ₦1000
+              {hourlyRateConfig.description}
             </span>
           </div>
           <DualRangeSlider
+            countryCode={hourlyRateConfig.countryCode}
             valueStart={formData.hourlyRateStart}
             valueEnd={formData.hourlyRateEnd}
             onChange={(v) => {

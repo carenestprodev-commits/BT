@@ -46,7 +46,9 @@ function ViewDetails() {
           </div>
           <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-center">
             <span className="text-xs text-gray-500">Rate</span>
-            <span className="font-semibold text-gray-800 text-lg">$135/hr</span>
+            <span className="font-semibold text-gray-800 text-lg">
+              Rate shown after localization
+            </span>
           </div>
           <div className="bg-white border border-gray-200 rounded-lg px-6 py-3 flex flex-col items-center">
             <span className="text-xs text-gray-500">Rating</span>

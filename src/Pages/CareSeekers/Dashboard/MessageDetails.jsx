@@ -29,7 +29,10 @@ import { BASE_URL } from "../../../Redux/config";
 import ChatMessageItem from "../../../Components/Chat/ChatMessageItem";
 import { toDisplayMessage } from "../../../lib/chatMessages";
 import { getCurrentUserIdFromProfile } from "../../../lib/currentUser";
-import { formatCurrencyAmount } from "../../../utils/countryHelper";
+import {
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 
 const resolveImage = (url) => {
@@ -159,6 +162,7 @@ function MessageDetails() {
   const [messageCount, setMessageCount] = useState(0);
   const [showVerification, setShowVerification] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const defaultCurrency = getUserCurrencyInfo();
 
   const chatBodyRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -200,8 +204,8 @@ function MessageDetails() {
   const subtotal = perHourRate * displayHours;
   const serviceFee = serviceFeeFlat;
   const calculatedTotal = subtotal + serviceFee;
-  const uiCurrencyCode = currencyCode || "USD";
-  const uiCurrencySymbol = currencySymbol || "$";
+  const uiCurrencyCode = currencyCode || defaultCurrency.currencyCode;
+  const uiCurrencySymbol = currencySymbol || defaultCurrency.currencySymbol;
   const displayPerHourRate = localizedPerHourRate ?? perHourRate;
   const displaySubtotal = localizedSubtotal ?? subtotal;
   const displayServiceFee = localizedServiceFee ?? serviceFee;
@@ -211,6 +215,7 @@ function MessageDetails() {
     currentConversation?.booking ||
     currentConversation?.booking_id ||
     currentConversation?.id;
+  const currentUserId = getCurrentUserIdFromProfile(currentUser);
 
   useEffect(() => {
     if (!showPayment || !bookingId) return;
@@ -322,7 +327,6 @@ function MessageDetails() {
 
   // Message display processing
   const displayMessages = useMemo(() => {
-    const currentUserId = getCurrentUserIdFromProfile(currentUser);
     return currentMessages.map((message) =>
       toDisplayMessage(message, currentUserId),
     );

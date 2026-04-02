@@ -450,7 +450,7 @@ function CareProvidersNearYou() {
                   <div className="p-2 text-center border-r border-gray-200">
                     <div className="text-xs text-gray-500">Rate</div>
                     <div className="font-semibold text-sm text-gray-700">
-                      $135/hr
+                      Rate shown after localization
                     </div>
                   </div>
                   <div className="p-2 text-center">

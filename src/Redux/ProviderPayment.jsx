@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import paystackService from "../utils/paystackService.js";
+import { getUserCurrencyInfo } from "../utils/countryHelper";
 
 /**
  * Async thunk to initiate provider subscription payment
@@ -46,6 +47,8 @@ export const verifyProviderPayment = createAsyncThunk(
   },
 );
 
+const paymentDefaults = getUserCurrencyInfo();
+
 const initialState = {
   // Subscription payment state
   initiating: false,
@@ -56,8 +59,8 @@ const initialState = {
 
   // Localized pricing fields
   localizedPrice: null,
-  currencyCode: "NGN",
-  currencySymbol: "₦",
+  currencyCode: paymentDefaults.currencyCode,
+  currencySymbol: paymentDefaults.currencySymbol,
   countryUsed: null,
   isFallbackPrice: false,
 
@@ -86,8 +89,8 @@ const providerPaymentSlice = createSlice({
       state.reference = null;
       state.accessCode = null;
       state.localizedPrice = null;
-      state.currencyCode = "NGN";
-      state.currencySymbol = "₦";
+      state.currencyCode = paymentDefaults.currencyCode;
+      state.currencySymbol = paymentDefaults.currencySymbol;
       state.countryUsed = null;
       state.isFallbackPrice = false;
       state.gatewayError = null;
@@ -118,8 +121,10 @@ const providerPaymentSlice = createSlice({
         state.accessCode = action.payload.accessCode;
         // Store localized pricing fields
         state.localizedPrice = action.payload.localizedPrice;
-        state.currencyCode = action.payload.currencyCode || "NGN";
-        state.currencySymbol = action.payload.currencySymbol || "₦";
+        state.currencyCode =
+          action.payload.currencyCode || paymentDefaults.currencyCode;
+        state.currencySymbol =
+          action.payload.currencySymbol || paymentDefaults.currencySymbol;
         state.countryUsed = action.payload.countryUsed;
         state.isFallbackPrice = action.payload.isFallbackPrice || false;
         state.gatewayError = null;

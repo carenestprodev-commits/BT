@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
-import { getSliderRange } from "../../../constants/hourlyRates";
+import { getHourlyRateConfig } from "../../../constants/hourlyRates";
 
 export default function DualRangeSlider({
   valueStart,
@@ -11,14 +11,13 @@ export default function DualRangeSlider({
   countryCode = "NG",
   onChange,
 }) {
-  // Get country-specific slider range
-  const [minRate, maxRate] = getSliderRange(countryCode);
+  const config = getHourlyRateConfig(countryCode);
 
   // Use provided values or defaults from config
-  const defaultStart = valueStart ?? minRate;
-  const defaultEnd = valueEnd ?? maxRate;
-  const defaultMin = minValue ?? minRate;
-  const defaultMax = maxValue ?? maxRate;
+  const defaultStart = valueStart ?? config.minRate;
+  const defaultEnd = valueEnd ?? config.maxRate;
+  const defaultMin = minValue ?? config.minRate;
+  const defaultMax = maxValue ?? config.maxRate;
   const [start, setStart] = useState(defaultStart);
   const [end, setEnd] = useState(defaultEnd);
   const [isDragging, setIsDragging] = useState(null);
@@ -78,8 +77,8 @@ export default function DualRangeSlider({
     <div>
       <div className="bg-white border border-gray-200 rounded-lg p-4 font-sfpro">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 lg:gap-0 mb-2">
-          <span className="text-sm text-gray-500">₦{defaultMin}</span>
-          <span className="text-sm text-gray-500">₦{defaultMax}</span>
+          <span className="text-sm text-gray-500">{config.symbol}{defaultMin}</span>
+          <span className="text-sm text-gray-500">{config.symbol}{defaultMax}</span>
         </div>
         <div
           ref={sliderRef}
@@ -130,8 +129,8 @@ export default function DualRangeSlider({
           />
         </div>
         <div className="flex justify-between mt-2 dark: text-blue-500">
-          <span className="text-lg font-semibold">₦{start}</span>
-          <span className="text-lg font-semibold">₦{end}</span>
+          <span className="text-lg font-semibold">{config.symbol}{start}</span>
+          <span className="text-lg font-semibold">{config.symbol}{end}</span>
         </div>
       </div>
     </div>

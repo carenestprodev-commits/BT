@@ -81,7 +81,9 @@ function CareProvidersNearYou() {
                   </div>
                   <div className="p-2 text-center border-r">
                     <div className="text-xs text-gray-500">Rate</div>
-                    <div className="font-semibold text-blue-400">₦3000/hr</div>
+                    <div className="font-semibold text-blue-400">
+                      Rate shown after localization
+                    </div>
                   </div>
                   <div className="p-2 text-center">
                     <div className="text-xs text-gray-500">Rating</div>
@@ -133,7 +135,7 @@ function CareProvidersNearYou() {
                 }}
               >
                 <h3 className="font-bold text-blue-400">Quarterly</h3>
-                <p className="text-blue-400">₦12,000</p>
+                <p className="text-blue-400">Localized pricing</p>
               </div>
 
               <div
@@ -144,7 +146,7 @@ function CareProvidersNearYou() {
                 }}
               >
                 <h3 className="font-bold text-blue-400">Monthly</h3>
-                <p className="text-blue-400">₦5,000</p>
+                <p className="text-blue-400">Localized pricing</p>
               </div>
             </div>
           </div>
@@ -170,7 +172,7 @@ function CareProvidersNearYou() {
               <div className="flex justify-between">
                 <span className="text-gray-500">Total</span>
                 <span className="text-gray-500">
-                  ₦{paymentDetails[selectedPlan]?.total}.00
+                  {paymentDetails[selectedPlan]?.total}.00
                 </span>
               </div>
             </div>

@@ -8,6 +8,7 @@ import tokenService from "./tokenService";
 import { fetchWithAuth } from "../lib/fetchWithAuth";
 import {
   getUserCountry,
+  getUserCurrencyInfo,
   detectUserCountry,
   resolveCountryIso2,
   getIso2FromCountryName,
@@ -130,14 +131,16 @@ export const paystackService = {
     }
 
     // Extract localized pricing fields from response
+    const userCurrency = getUserCurrencyInfo();
+
     return {
       authorizationUrl,
       reference: data.reference,
       accessCode: data.access_code,
       // Localized pricing fields
       localizedPrice: data.localized_price || data.amount,
-      currencyCode: data.currency_code || "NGN",
-      currencySymbol: data.currency_symbol || "₦",
+      currencyCode: data.currency_code || userCurrency.currencyCode,
+      currencySymbol: data.currency_symbol || userCurrency.currencySymbol,
       countryUsed: data.country_used || country,
       isFallbackPrice: data.is_fallback_price || false,
       raw: data,
@@ -187,6 +190,7 @@ export const paystackService = {
     });
 
     const data = await response.json();
+    const userCurrency = getUserCurrencyInfo();
 
     if (!response.ok) {
       let message = data.message || "Checkout initiation failed";
@@ -211,8 +215,8 @@ export const paystackService = {
       accessCode: data.access_code,
       // Localized pricing fields
       localizedPrice: data.localized_price || data.amount,
-      currencyCode: data.currency_code || "NGN",
-      currencySymbol: data.currency_symbol || "₦",
+      currencyCode: data.currency_code || userCurrency.currencyCode,
+      currencySymbol: data.currency_symbol || userCurrency.currencySymbol,
       countryUsed: data.country_used || country,
       isFallbackPrice: data.is_fallback_price || false,
       raw: data,

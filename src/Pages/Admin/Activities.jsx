@@ -487,7 +487,7 @@ function Activities() {
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-500">Payment Rate</span>
-                <span className="text-right">₦53,589.00</span>
+                <span className="text-right">53,589.00</span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-slate-500">Status</span>

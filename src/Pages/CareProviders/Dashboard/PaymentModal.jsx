@@ -3,12 +3,16 @@ import React, { useState, useEffect } from "react";
 import { IoMdClose } from "react-icons/io";
 import { useDispatch, useSelector } from "react-redux";
 import { initiateProviderSubscription } from "../../../Redux/ProviderPayment";
-import { formatCurrencyAmount } from "../../../utils/countryHelper";
+import {
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
 
 const PaymentModal = ({ isOpen, onClose, selectedPlan, plan }) => {
   const dispatch = useDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
   const activePlan = selectedPlan || plan;
+  const defaultCurrency = getUserCurrencyInfo();
 
   // Redux slice for payment
   const {
@@ -55,8 +59,8 @@ const PaymentModal = ({ isOpen, onClose, selectedPlan, plan }) => {
   // Use localized price if available, otherwise use plan price
   const displayPrice =
     localizedPrice !== null ? localizedPrice : activePlan.price;
-  const displayCurrency = currencyCode || "NGN";
-  const displaySymbol = currencySymbol || "₦";
+  const displayCurrency = currencyCode || defaultCurrency.currencyCode;
+  const displaySymbol = currencySymbol || defaultCurrency.currencySymbol;
 
   const displayAmount = formatCurrencyAmount(
     displayPrice,
@@ -146,7 +150,7 @@ const PaymentModal = ({ isOpen, onClose, selectedPlan, plan }) => {
           {/* Payment Info */}
           <div className="mb-6 bg-gray-50 rounded-lg p-4">
             <h3 className="text-gray-800 font-semibold text-sm mb-3">
-              What's included:
+              What&apos;s included:
             </h3>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-600">
               <li className="flex items-start">
@@ -222,8 +226,8 @@ const PaymentModal = ({ isOpen, onClose, selectedPlan, plan }) => {
             </div>
 
             <p className="text-xs text-center text-gray-500 pt-2">
-              By clicking "Proceed to Payment", you agree to our Terms and
-              Conditions
+              By clicking &quot;Proceed to Payment&quot;, you agree to our Terms
+              and Conditions
             </p>
           </div>
         </div>

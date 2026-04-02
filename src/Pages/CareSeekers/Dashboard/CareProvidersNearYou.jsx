@@ -6,11 +6,16 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchProviders } from "../../../Redux/CareProviderNearYou";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import { AuthContext } from "../../../Context/AuthContext";
+import {
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
 
 function CareProvidersNearYou() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useContext(AuthContext);
+  const defaultCurrency = getUserCurrencyInfo();
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [selectedProviderId, setSelectedProviderId] = useState(null);
 
@@ -147,7 +152,12 @@ function CareProvidersNearYou() {
                           Rate
                         </div>
                         <div className="font-bold text-sm text-gray-700">
-                          ₦{p.hourly_rate ?? 0}/hr
+                          {formatCurrencyAmount(
+                            p.localized_hourly_rate ?? p.hourly_rate ?? 0,
+                            p.display_currency_code || defaultCurrency.currencyCode,
+                            p.display_currency_symbol || defaultCurrency.currencySymbol,
+                          )}
+                          /hr
                         </div>
                       </div>
                       <div className="p-3 text-left">
