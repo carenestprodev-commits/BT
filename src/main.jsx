@@ -11,7 +11,7 @@ import { RouterProvider } from "react-router-dom";
 import { router } from "./Routes/router";
 import { loadHourlyRatePolicies } from "./constants/hourlyRates";
 
-loadHourlyRatePolicies();
+void loadHourlyRatePolicies();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
