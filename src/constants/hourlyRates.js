@@ -7,14 +7,14 @@ import {
 
 const hourlyRateCache = {};
 const hourlyRateListeners = new Set();
-const DEFAULT_COUNTRY_CODE = "NG";
+const DEFAULT_COUNTRY_CODE = "";
 const DEFAULT_HOURLY_RATE_POLICY = {
-  country_name: "Nigeria",
-  currency_code: "NGN",
-  currency_symbol: "₦",
-  min_rate: 900,
-  max_rate: 1200,
-  average_rate: 1000,
+  country_name: "",
+  currency_code: "",
+  currency_symbol: "",
+  min_rate: 0,
+  max_rate: 0,
+  average_rate: 0,
 };
 
 const normalizeCountryCode = (countryInput = "NG") =>
@@ -81,12 +81,12 @@ export const loadHourlyRatePolicies = async () => {
 /**
  * Get hourly rate config for a country.
  */
-export const getHourlyRateConfig = (countryInput = "NG") => {
+export const getHourlyRateConfig = (countryInput = "") => {
   const countryCode = normalizeCountryCode(countryInput);
   return hourlyRateCache[countryCode] || DEFAULT_HOURLY_RATE_CONFIG;
 };
 
-export const useHourlyRateConfig = (countryInput = "NG") =>
+export const useHourlyRateConfig = (countryInput = "") =>
   useSyncExternalStore(
     (listener) => {
       hourlyRateListeners.add(listener);
@@ -96,10 +96,10 @@ export const useHourlyRateConfig = (countryInput = "NG") =>
     () => getHourlyRateConfig(countryInput),
   );
 
-export const getHourlyRateDescription = (countryCode = "NG") =>
+export const getHourlyRateDescription = (countryCode = "") =>
   getHourlyRateConfig(countryCode).description;
 
-export const getSliderRange = (countryCode = "NG") => {
+export const getSliderRange = (countryCode = "") => {
   const config = getHourlyRateConfig(countryCode);
   return [config.minRate, config.maxRate, config.averageHourlyRate];
 };
