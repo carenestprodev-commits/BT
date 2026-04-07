@@ -55,6 +55,7 @@ import BookingService from "../Pages/CareSeekers/BookingaService/Signup";
 
 // Import role protection components
 import RoleProtectedRoute from "../Components/RoleProtectedRoute";
+import AdminProtectedRoute from "../Components/AdminProtectedRoute";
 import PreventOtherLogin from "../Components/PreventOtherLogin";
 import AlreadyLoggedIn from "../Pages/AlreadyLoggedIn";
 
@@ -442,10 +443,14 @@ export const router = createBrowserRouter([
     path: "/admin/login",
     element: <AdminLoginPage />,
   },
-  // Admin routes
+  // Admin routes - protected
   {
     path: "/admin",
-    element: <AdminLayout />,
+    element: (
+      <AdminProtectedRoute>
+        <AdminLayout />
+      </AdminProtectedRoute>
+    ),
     children: [
       { index: true, element: <Users /> },
       { path: "users", element: <Users /> },

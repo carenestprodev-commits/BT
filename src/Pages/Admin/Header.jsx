@@ -1,6 +1,8 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 function Header({ title = "Admin", onToggleSidebar }) {
+  const navigate = useNavigate();
   const today = new Date();
   const formatted = today.toLocaleDateString("en-GB", {
     weekday: "long",
@@ -8,6 +10,16 @@ function Header({ title = "Admin", onToggleSidebar }) {
     month: "short",
     year: "numeric",
   });
+
+  const handleLogout = () => {
+    // Clear all auth data
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("user");
+
+    // Redirect to admin login
+    navigate("/admin/login");
+  };
 
   return (
     <header className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 bg-white border-b border-gray-200 shadow-sm font-sfpro">
@@ -36,11 +48,20 @@ function Header({ title = "Admin", onToggleSidebar }) {
         <h1 className="text-lg text-black">{title}</h1>
       </div>
 
-      <div className="flex items-center space-x-2 text-[11px] text-gray-600 bg-white border border-gray-200 rounded-md px-3 py-2">
-        <span>{formatted}</span>
-        <span role="img" aria-label="calendar">
-          📅
-        </span>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center space-x-2 text-[11px] text-gray-600 bg-white border border-gray-200 rounded-md px-3 py-2">
+          <span>{formatted}</span>
+          <span role="img" aria-label="calendar">
+            📅
+          </span>
+        </div>
+
+        <button
+          onClick={handleLogout}
+          className="text-sm px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+        >
+          Logout
+        </button>
       </div>
     </header>
   );
