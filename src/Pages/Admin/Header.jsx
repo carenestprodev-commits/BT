@@ -2,9 +2,11 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../../Redux/config";
 import tokenService from "../../utils/tokenService";
+import { useAuth } from "../../Context/AuthContext";
 
 function Header({ title = "Admin", onToggleSidebar }) {
   const navigate = useNavigate();
+  const { logout: clearAuthContext } = useAuth();
   const today = new Date();
   const formatted = today.toLocaleDateString("en-GB", {
     weekday: "long",
@@ -33,6 +35,9 @@ function Header({ title = "Admin", onToggleSidebar }) {
     } finally {
       // Clear ALL auth data using tokenService
       tokenService.clearAuthStorage();
+
+      // Clear AuthContext state so route guards immediately reflect logout
+      clearAuthContext();
 
       // Redirect to admin login
       navigate("/admin/login");

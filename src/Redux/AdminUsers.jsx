@@ -451,6 +451,7 @@ const slice = createSlice({
     suspendError: null,
     documentsLoading: false,
     documentsError: null,
+    lastFetchType: null, // Track which fetch was last initiated
   },
   reducers: {
     clearAdminUsers(state) {
@@ -488,14 +489,20 @@ const slice = createSlice({
       .addCase(fetchAllUsers.pending, (state) => {
         state.usersLoading = true;
         state.usersError = null;
+        state.lastFetchType = "all";
       })
       .addCase(fetchAllUsers.fulfilled, (state, action) => {
-        state.usersLoading = false;
-        state.users = action.payload;
+        // Only update if this is still the expected fetch type
+        if (state.lastFetchType === "all") {
+          state.usersLoading = false;
+          state.users = action.payload;
+        }
       })
       .addCase(fetchAllUsers.rejected, (state, action) => {
-        state.usersLoading = false;
-        state.usersError = action.payload || action.error;
+        if (state.lastFetchType === "all") {
+          state.usersLoading = false;
+          state.usersError = action.payload || action.error;
+        }
       })
 
       .addCase(fetchUserById.pending, (state) => {
@@ -571,42 +578,60 @@ const slice = createSlice({
       .addCase(fetchProviders.pending, (state) => {
         state.usersLoading = true;
         state.usersError = null;
+        state.lastFetchType = "providers";
       })
       .addCase(fetchProviders.fulfilled, (state, action) => {
-        state.usersLoading = false;
-        state.users = action.payload;
+        // Only update if this is still the expected fetch type
+        if (state.lastFetchType === "providers") {
+          state.usersLoading = false;
+          state.users = action.payload;
+        }
       })
       .addCase(fetchProviders.rejected, (state, action) => {
-        state.usersLoading = false;
-        state.usersError = action.payload || action.error;
+        if (state.lastFetchType === "providers") {
+          state.usersLoading = false;
+          state.usersError = action.payload || action.error;
+        }
       })
 
       // Handlers for fetchSeekers
       .addCase(fetchSeekers.pending, (state) => {
         state.usersLoading = true;
         state.usersError = null;
+        state.lastFetchType = "seekers";
       })
       .addCase(fetchSeekers.fulfilled, (state, action) => {
-        state.usersLoading = false;
-        state.users = action.payload;
+        // Only update if this is still the expected fetch type
+        if (state.lastFetchType === "seekers") {
+          state.usersLoading = false;
+          state.users = action.payload;
+        }
       })
       .addCase(fetchSeekers.rejected, (state, action) => {
-        state.usersLoading = false;
-        state.usersError = action.payload || action.error;
+        if (state.lastFetchType === "seekers") {
+          state.usersLoading = false;
+          state.usersError = action.payload || action.error;
+        }
       })
 
       // Handlers for fetchNewSignups
       .addCase(fetchNewSignups.pending, (state) => {
         state.usersLoading = true;
         state.usersError = null;
+        state.lastFetchType = "signups";
       })
       .addCase(fetchNewSignups.fulfilled, (state, action) => {
-        state.usersLoading = false;
-        state.users = action.payload;
+        // Only update if this is still the expected fetch type
+        if (state.lastFetchType === "signups") {
+          state.usersLoading = false;
+          state.users = action.payload;
+        }
       })
       .addCase(fetchNewSignups.rejected, (state, action) => {
-        state.usersLoading = false;
-        state.usersError = action.payload || action.error;
+        if (state.lastFetchType === "signups") {
+          state.usersLoading = false;
+          state.usersError = action.payload || action.error;
+        }
       })
 
       // Handlers for verifyProvider
