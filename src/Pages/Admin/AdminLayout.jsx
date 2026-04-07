@@ -3,6 +3,7 @@ import { Outlet, useLocation, Navigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { useState } from "react";
+import tokenService from "../../utils/tokenService";
 
 function AdminLayout() {
   const location = useLocation();
@@ -23,8 +24,9 @@ function AdminLayout() {
   const pageTitle = titleMap[path] || "Admin";
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const access =
-    typeof window !== "undefined" ? localStorage.getItem("access") : null;
+  const access = tokenService.getAccessToken();
+  const user = tokenService.getUser();
+
   console.log("AdminLayout check - Access token:", access);
 
   if (!access) {
@@ -32,7 +34,18 @@ function AdminLayout() {
     return <Navigate to="/admin/login" replace />;
   }
 
-  console.log("Access token found, rendering admin layout");
+  // Check if user is admin or staff
+  if (user) {
+    if (user.user_type !== "admin" && !user.is_staff) {
+      console.log("User is not admin, redirecting to /admin/login");
+      return <Navigate to="/admin/login" replace />;
+    }
+  } else {
+    console.log("No user data found, redirecting to /admin/login");
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  console.log("Admin user verified, rendering admin layout");
 
   return (
     <div className="flex h-screen flex-col md:flex-row bg-[#f5f7f9] font-sfpro">

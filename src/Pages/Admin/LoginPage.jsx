@@ -1,61 +1,66 @@
 import { useState, useEffect } from "react";
 import CareLogo from "../../../public/CareLogo.png";
 import { Link, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { loginUser } from "../../Redux/Login";
-import formatAuthError from "../../utils/formatAuthError";
+import tokenService from "../../utils/tokenService";
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
-  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await dispatch(loginUser({ email, password }));
+    setError(null);
 
-    // Debug what we got back
-    console.log("Login result:", result);
+    try {
+      // Call the admin-specific login endpoint
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/login/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    // Small delay to ensure localStorage is written
-    setTimeout(() => {
-      const access = localStorage.getItem("access");
-      console.log("Access in localStorage after delay:", access);
-      console.log(
-        "User in localStorage after delay:",
-        localStorage.getItem("user"),
-      );
+      const data = await res.json();
 
-      if (access) {
-        console.log("Access token found, redirecting to /admin");
-        navigate("/admin");
+      if (!res.ok) {
+        // Handle error responses
+        if (res.status === 403) {
+          setError("You are not authorized to access admin login");
+        } else if (res.status === 401) {
+          setError("Invalid email or password");
+        } else {
+          setError(data.error || "Login failed. Please try again.");
+        }
         return;
       }
 
-      const raw = formatAuthError(result);
-      if (/user type|wrong user|incorrect user|not authorized/i.test(raw)) {
-        setError("Wrong user type — please login through the correct portal");
-      } else if (/network error/i.test(raw)) {
-        setError("Network error — please check your connection");
-      } else if (
-        /401|invalid credentials|credentials|unauthorized/i.test(raw)
-      ) {
-        setError("Wrong credentials — please check your email and password");
-      } else {
-        setError(raw);
-      }
-    }, 100);
+      // Store tokens and admin user data using tokenService
+      tokenService.setSession({
+        access: data.access,
+        refresh: data.refresh,
+        user: data.admin,
+      });
+
+      console.log("Admin login successful, redirecting to /admin");
+      navigate("/admin");
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Network error — please check your connection");
+    }
   };
 
   useEffect(() => {
-    const access = localStorage.getItem("access");
-    console.log("useEffect check - Access token:", access);
-    if (access) {
-      console.log("Access token found on mount, redirecting to /admin");
-      navigate("/admin");
+    const access = tokenService.getAccessToken();
+    const user = tokenService.getUser();
+
+    if (access && user) {
+      // Check if user is admin or staff
+      if (user.user_type === "admin" || user.is_staff) {
+        console.log("Admin user already logged in, redirecting to /admin");
+        navigate("/admin");
+      }
     }
   }, [navigate]);
 
