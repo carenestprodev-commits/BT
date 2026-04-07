@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { BASE_URL } from "../../Redux/config";
 
 function Header({ title = "Admin", onToggleSidebar }) {
   const navigate = useNavigate();
@@ -11,14 +12,32 @@ function Header({ title = "Admin", onToggleSidebar }) {
     year: "numeric",
   });
 
-  const handleLogout = () => {
-    // Clear all auth data
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    try {
+      const refresh = localStorage.getItem("refresh");
 
-    // Redirect to admin login
-    navigate("/admin/login");
+      // Call backend to blacklist the refresh token
+      if (refresh) {
+        await fetch(`${BASE_URL}/api/admin/logout/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ refresh }),
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Continue with client-side logout even if backend call fails
+    } finally {
+      // Clear all auth data
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      localStorage.removeItem("user");
+
+      // Redirect to admin login
+      navigate("/admin/login");
+    }
   };
 
   return (

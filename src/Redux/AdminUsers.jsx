@@ -38,6 +38,63 @@ export const fetchAllUsers = createAsyncThunk(
   },
 );
 
+export const fetchProviders = createAsyncThunk(
+  "adminUsers/fetchProviders",
+  async (_, { rejectWithValue }) => {
+    try {
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
+      const headers = access ? { Authorization: `Bearer ${access}` } : {};
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/providers/`, {
+        headers,
+      });
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return rejectWithValue({ error: "Network error" });
+    }
+  },
+);
+
+export const fetchSeekers = createAsyncThunk(
+  "adminUsers/fetchSeekers",
+  async (_, { rejectWithValue }) => {
+    try {
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
+      const headers = access ? { Authorization: `Bearer ${access}` } : {};
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/seekers/`, {
+        headers,
+      });
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return rejectWithValue({ error: "Network error" });
+    }
+  },
+);
+
+export const fetchNewSignups = createAsyncThunk(
+  "adminUsers/fetchNewSignups",
+  async (_, { rejectWithValue }) => {
+    try {
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
+      const headers = access ? { Authorization: `Bearer ${access}` } : {};
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/new-signups/`, {
+        headers,
+      });
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return rejectWithValue({ error: "Network error" });
+    }
+  },
+);
+
 export const fetchUserById = createAsyncThunk(
   "adminUsers/fetchUserById",
   async (id, { rejectWithValue }) => {
@@ -87,9 +144,9 @@ export const suspendUser = createAsyncThunk(
         localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access
         ? {
-            Authorization: `Bearer ${access}`,
-            "Content-Type": "application/json",
-          }
+          Authorization: `Bearer ${access}`,
+          "Content-Type": "application/json",
+        }
         : { "Content-Type": "application/json" };
       const res = await fetchWithAuth(
         `${BASE_URL}/api/admin/users/${id}/suspend/`,
@@ -112,9 +169,9 @@ export const activateUser = createAsyncThunk(
         localStorage.getItem("accessToken") || localStorage.getItem("access");
       const headers = access
         ? {
-            Authorization: `Bearer ${access}`,
-            "Content-Type": "application/json",
-          }
+          Authorization: `Bearer ${access}`,
+          "Content-Type": "application/json",
+        }
         : { "Content-Type": "application/json" };
       const res = await fetchWithAuth(
         `${BASE_URL}/api/admin/users/${id}/activate/`,
@@ -122,6 +179,39 @@ export const activateUser = createAsyncThunk(
       );
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
+      return { id, data };
+    } catch {
+      return rejectWithValue({ error: "Network error" });
+    }
+  },
+);
+
+export const verifyProvider = createAsyncThunk(
+  "adminUsers/verifyProvider",
+  async (id, { rejectWithValue, dispatch }) => {
+    try {
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
+      const headers = access
+        ? {
+          Authorization: `Bearer ${access}`,
+          "Content-Type": "application/json",
+        }
+        : { "Content-Type": "application/json" };
+      const res = await fetchWithAuth(
+        `${BASE_URL}/api/admin/users/providers/${id}/verify/`,
+        { method: "POST", headers },
+      );
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data);
+
+      // Refresh the user list
+      try {
+        dispatch(fetchAllUsers());
+      } catch {
+        /* ignore refresh error */
+      }
+
       return { id, data };
     } catch {
       return rejectWithValue({ error: "Network error" });
@@ -477,6 +567,67 @@ const slice = createSlice({
         state.suspendError = action.payload || action.error;
       })
 
+      // Handlers for fetchProviders
+      .addCase(fetchProviders.pending, (state) => {
+        state.usersLoading = true;
+        state.usersError = null;
+      })
+      .addCase(fetchProviders.fulfilled, (state, action) => {
+        state.usersLoading = false;
+        state.users = action.payload;
+      })
+      .addCase(fetchProviders.rejected, (state, action) => {
+        state.usersLoading = false;
+        state.usersError = action.payload || action.error;
+      })
+
+      // Handlers for fetchSeekers
+      .addCase(fetchSeekers.pending, (state) => {
+        state.usersLoading = true;
+        state.usersError = null;
+      })
+      .addCase(fetchSeekers.fulfilled, (state, action) => {
+        state.usersLoading = false;
+        state.users = action.payload;
+      })
+      .addCase(fetchSeekers.rejected, (state, action) => {
+        state.usersLoading = false;
+        state.usersError = action.payload || action.error;
+      })
+
+      // Handlers for fetchNewSignups
+      .addCase(fetchNewSignups.pending, (state) => {
+        state.usersLoading = true;
+        state.usersError = null;
+      })
+      .addCase(fetchNewSignups.fulfilled, (state, action) => {
+        state.usersLoading = false;
+        state.users = action.payload;
+      })
+      .addCase(fetchNewSignups.rejected, (state, action) => {
+        state.usersLoading = false;
+        state.usersError = action.payload || action.error;
+      })
+
+      // Handlers for verifyProvider
+      .addCase(verifyProvider.pending, (state) => {
+        state.suspendLoading = true;
+        state.suspendError = null;
+      })
+      .addCase(verifyProvider.fulfilled, (state, action) => {
+        state.suspendLoading = false;
+        const id = action.payload?.id;
+        if (id != null) {
+          state.users = state.users.map((u) =>
+            u.id === id ? { ...u, is_verified: true } : u,
+          );
+        }
+      })
+      .addCase(verifyProvider.rejected, (state, action) => {
+        state.suspendLoading = false;
+        state.suspendError = action.payload || action.error;
+      })
+
       // ✅ NEW: Mark Documents Received handlers
       .addCase(markDocumentsReceived.pending, (state) => {
         state.documentsLoading = true;
@@ -489,10 +640,10 @@ const slice = createSlice({
           state.users = state.users.map((u) =>
             u.id === userId
               ? {
-                  ...u,
-                  verification_status: "documents_received",
-                  documents_received: true,
-                }
+                ...u,
+                verification_status: "documents_received",
+                documents_received: true,
+              }
               : u,
           );
         }
@@ -513,10 +664,10 @@ const slice = createSlice({
           state.users = state.users.map((u) =>
             u.id === id
               ? {
-                  ...u,
-                  is_verified: true,
-                  verification_status: "approved",
-                }
+                ...u,
+                is_verified: true,
+                verification_status: "approved",
+              }
               : u,
           );
         }

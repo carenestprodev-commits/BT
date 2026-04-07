@@ -18,12 +18,16 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAdminStats,
   fetchAllUsers,
+  fetchProviders,
+  fetchSeekers,
+  fetchNewSignups,
   fetchUserById,
   deleteUser,
   suspendUser,
   activateUser,
   approveUser,
   markDocumentsReceived,
+  verifyProvider,
 } from "../../Redux/AdminUsers";
 import { updateUserVerification } from "../../Redux/Login";
 
@@ -68,6 +72,25 @@ function Users() {
     dispatch(fetchAdminStats());
     dispatch(fetchAllUsers());
   }, [dispatch]);
+
+  // Fetch appropriate user list when activeStat changes
+  useEffect(() => {
+    switch (activeStat) {
+      case "providers":
+        dispatch(fetchProviders());
+        break;
+      case "seekers":
+        dispatch(fetchSeekers());
+        break;
+      case "signups":
+        dispatch(fetchNewSignups());
+        break;
+      case "all":
+      default:
+        dispatch(fetchAllUsers());
+        break;
+    }
+  }, [activeStat, dispatch]);
 
   const { currentUser } = useSelector(
     (s) => s.adminUsers || { currentUser: null },
@@ -165,10 +188,12 @@ function Users() {
   const filtered = useMemo(() => {
     let data = [...rows];
 
-    if (activeStat === "providers")
-      data = data.filter((r) => r.userType === "Care Provider");
-    if (activeStat === "seekers")
-      data = data.filter((r) => r.userType === "Care seeker");
+    // No need to filter by user type anymore - backend handles it
+    // if (activeStat === "providers")
+    //   data = data.filter((r) => r.userType === "Care Provider");
+    // if (activeStat === "seekers")
+    //   data = data.filter((r) => r.userType === "Care seeker");
+
     if (query.trim()) {
       const q = query.toLowerCase();
       data = data.filter(
@@ -258,11 +283,10 @@ function Users() {
       {/* Alert */}
       {alert && (
         <div
-          className={`mb-4 px-4 py-3 rounded-md ${
-            alert.type === "success"
-              ? "bg-green-50 border border-green-200 text-green-800"
-              : "bg-red-50 border border-red-200 text-red-800"
-          }`}
+          className={`mb-4 px-4 py-3 rounded-md ${alert.type === "success"
+            ? "bg-green-50 border border-green-200 text-green-800"
+            : "bg-red-50 border border-red-200 text-red-800"
+            }`}
           role="alert"
         >
           <div className="flex items-start justify-between gap-3">
@@ -291,24 +315,21 @@ function Users() {
             <div
               key={s.key}
               onClick={() => setActiveStat(s.key)}
-              className={`p-4 rounded-lg cursor-pointer flex flex-col justify-between ${
-                isActive ? "bg-[#0e2f43] text-white" : "bg-white text-black"
-              } border`}
+              className={`p-4 rounded-lg cursor-pointer flex flex-col justify-between ${isActive ? "bg-[#0e2f43] text-white" : "bg-white text-black"
+                } border`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex flex-col items-start">
                   <div
-                    className={`w-8 h-8 flex items-center justify-center mb-2 rounded-full ${
-                      isActive ? "bg-white/10" : "bg-slate-100"
-                    }`}
+                    className={`w-8 h-8 flex items-center justify-center mb-2 rounded-full ${isActive ? "bg-white/10" : "bg-slate-100"
+                      }`}
                   >
                     {(() => {
                       const Icon = s.icon || CubeIcon;
                       return (
                         <Icon
-                          className={`w-5 h-5 ${
-                            isActive ? "text-white" : "text-black"
-                          }`}
+                          className={`w-5 h-5 ${isActive ? "text-white" : "text-black"
+                            }`}
                         />
                       );
                     })()}
@@ -316,9 +337,8 @@ function Users() {
                   <div className="text-sm font-medium">{s.label}</div>
                 </div>
                 <div
-                  className={`ml-auto text-2xl font-semibold ${
-                    isActive ? "text-white" : "text-black"
-                  }`}
+                  className={`ml-auto text-2xl font-semibold ${isActive ? "text-white" : "text-black"
+                    }`}
                 >
                   {s.value.toLocaleString()}
                 </div>
@@ -755,9 +775,9 @@ function Users() {
                 {typeof suspendError === "string"
                   ? suspendError
                   : suspendError?.detail ||
-                    suspendError?.error ||
-                    suspendError?.message ||
-                    "Action failed"}
+                  suspendError?.error ||
+                  suspendError?.message ||
+                  "Action failed"}
               </div>
             )}
 
