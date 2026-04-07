@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../../Redux/config";
+import tokenService from "../../utils/tokenService";
 
 function Header({ title = "Admin", onToggleSidebar }) {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ function Header({ title = "Admin", onToggleSidebar }) {
 
   const handleLogout = async () => {
     try {
-      const refresh = localStorage.getItem("refresh");
+      const refresh = tokenService.getRefreshToken();
 
       // Call backend to blacklist the refresh token
       if (refresh) {
@@ -30,10 +31,8 @@ function Header({ title = "Admin", onToggleSidebar }) {
       console.error("Logout error:", error);
       // Continue with client-side logout even if backend call fails
     } finally {
-      // Clear all auth data
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("user");
+      // Clear ALL auth data using tokenService
+      tokenService.clearAuthStorage();
 
       // Redirect to admin login
       navigate("/admin/login");

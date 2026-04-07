@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import CareLogo from "../../../public/CareLogo.png";
 import { Link, useNavigate } from "react-router-dom";
+import tokenService from "../../utils/tokenService";
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -35,10 +36,12 @@ function LoginPage() {
         return;
       }
 
-      // Store tokens and admin user data
-      if (data.access) localStorage.setItem("access", data.access);
-      if (data.refresh) localStorage.setItem("refresh", data.refresh);
-      if (data.admin) localStorage.setItem("user", JSON.stringify(data.admin));
+      // Store tokens and admin user data using tokenService
+      tokenService.setSession({
+        access: data.access,
+        refresh: data.refresh,
+        user: data.admin,
+      });
 
       console.log("Admin login successful, redirecting to /admin");
       navigate("/admin");
@@ -49,19 +52,14 @@ function LoginPage() {
   };
 
   useEffect(() => {
-    const access = localStorage.getItem("access");
-    const userStr = localStorage.getItem("user");
+    const access = tokenService.getAccessToken();
+    const user = tokenService.getUser();
 
-    if (access && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        // Check if user is admin or staff
-        if (user.user_type === "admin" || user.is_staff) {
-          console.log("Admin user already logged in, redirecting to /admin");
-          navigate("/admin");
-        }
-      } catch (err) {
-        console.error("Error parsing user data:", err);
+    if (access && user) {
+      // Check if user is admin or staff
+      if (user.user_type === "admin" || user.is_staff) {
+        console.log("Admin user already logged in, redirecting to /admin");
+        navigate("/admin");
       }
     }
   }, [navigate]);

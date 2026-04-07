@@ -3,6 +3,7 @@ import { Outlet, useLocation, Navigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { useState } from "react";
+import tokenService from "../../utils/tokenService";
 
 function AdminLayout() {
   const location = useLocation();
@@ -23,10 +24,8 @@ function AdminLayout() {
   const pageTitle = titleMap[path] || "Admin";
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const access =
-    typeof window !== "undefined" ? localStorage.getItem("access") : null;
-  const userStr =
-    typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const access = tokenService.getAccessToken();
+  const user = tokenService.getUser();
 
   console.log("AdminLayout check - Access token:", access);
 
@@ -36,15 +35,9 @@ function AdminLayout() {
   }
 
   // Check if user is admin or staff
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr);
-      if (user.user_type !== "admin" && !user.is_staff) {
-        console.log("User is not admin, redirecting to /admin/login");
-        return <Navigate to="/admin/login" replace />;
-      }
-    } catch (err) {
-      console.error("Error parsing user data:", err);
+  if (user) {
+    if (user.user_type !== "admin" && !user.is_staff) {
+      console.log("User is not admin, redirecting to /admin/login");
       return <Navigate to="/admin/login" replace />;
     }
   } else {
