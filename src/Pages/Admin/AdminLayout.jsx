@@ -36,7 +36,7 @@ function AdminLayout() {
 
   // Check if user is admin or staff
   if (user) {
-    if (user.user_type !== "admin" && !user.is_staff) {
+    if (!user.is_staff) {
       console.log("User is not admin, redirecting to /admin/login");
       return <Navigate to="/admin/login" replace />;
     }

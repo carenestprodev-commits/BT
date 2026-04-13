@@ -7,8 +7,8 @@ export default function PreventOtherLogin({ role, children }) {
   const { user } = useAuth();
 
   if (user) {
-    if (user.user_type === role) {
-      // Already logged in as this role → send to dashboard
+    if (user.user_type === role || user.is_staff) {
+      // Already logged in as this role (or admin) → send to dashboard
       const dashboardPath =
         role === "provider"
           ? "/careproviders/dashboard"
