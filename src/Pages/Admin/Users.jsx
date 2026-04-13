@@ -9,8 +9,10 @@ import {
   FaFileAlt,
   FaCheck,
   FaFileExport,
+  FaEnvelope,
 } from "react-icons/fa";
 import DataExportModal from "../../Components/Admin/DataExportModal";
+import SendEmailModal from "../../Components/Admin/SendEmailModal";
 import CubeIcon from "../../../public/3dcube.svg?react";
 import CubeIconGreen from "../../../public/3dcubeGreen.svg?react";
 import CubeIconPink from "../../../public/3dcubePink.svg?react";
@@ -71,13 +73,18 @@ function Users() {
   // Selection states
   const [selectedIds, setSelectedIds] = useState([]);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [profileStatusFilter, setProfileStatusFilter] = useState("All");
   const { suspendLoading, suspendError, documentsLoading, documentsError } =
     useSelector((s) => s.adminUsers || {});
 
   useEffect(() => {
+    setSelectedIds([]); // Clear selection when switching tabs
     dispatch(fetchAdminStats());
-    dispatch(fetchAllUsers());
-  }, [dispatch]);
+    if (activeStat === "all") {
+      dispatch(fetchAllUsers());
+    }
+  }, [dispatch, activeStat]);
 
   // Fetch appropriate user list when activeStat changes
   useEffect(() => {
@@ -154,6 +161,7 @@ function Users() {
         is_verified: u.is_verified ?? false,
         verification_status: u.verification_status || "pending",
         documents_received: u.documents_received ?? false,
+        is_profile_complete: u.is_profile_complete ?? false,
       }));
       setRows(mapped);
     }
@@ -194,12 +202,6 @@ function Users() {
   const filtered = useMemo(() => {
     let data = [...rows];
 
-    // No need to filter by user type anymore - backend handles it
-    // if (activeStat === "providers")
-    //   data = data.filter((r) => r.userType === "Care Provider");
-    // if (activeStat === "seekers")
-    //   data = data.filter((r) => r.userType === "Care seeker");
-
     if (query.trim()) {
       const q = query.toLowerCase();
       data = data.filter(
@@ -209,6 +211,11 @@ function Users() {
     }
     if (locationFilter !== "All") {
       data = data.filter((r) => r.email.includes(locationFilter.toLowerCase()));
+    }
+    if (profileStatusFilter === "Complete") {
+      data = data.filter((r) => r.is_profile_complete);
+    } else if (profileStatusFilter === "Incomplete") {
+      data = data.filter((r) => !r.is_profile_complete);
     }
 
     data.sort((a, b) => {
@@ -926,6 +933,27 @@ function Users() {
             <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
           </div>
 
+          <div className="relative">
+            <select
+              value={profileStatusFilter}
+              onChange={(e) => setProfileStatusFilter(e.target.value)}
+              className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8 min-w-[150px]"
+            >
+              <option value="All">Profile Status</option>
+              <option value="Complete">Completed Profile</option>
+              <option value="Incomplete">Incomplete Profile</option>
+            </select>
+            <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
+          </div>
+
+          <button
+            onClick={() => setShowEmailModal(true)}
+            className="px-4 py-2 border border-[#0b93c6] text-[#0b93c6] rounded-md flex items-center justify-center gap-2 text-sm font-medium hover:bg-blue-50 transition-all"
+          >
+            <FaEnvelope />
+            Send Email
+          </button>
+          
           <button
             onClick={() => setShowExportModal(true)}
             className="px-4 py-2 bg-[#0b93c6] text-white rounded-md flex items-center justify-center gap-2 text-sm font-medium shadow-sm hover:bg-[#0a82b0] active:scale-[0.98] transition-all"
@@ -1047,6 +1075,16 @@ function Users() {
                           )}
                           <li
                             onClick={() => {
+                              setSelectedIds([r.id]);
+                              setShowEmailModal(true);
+                              setOpenMenuId(null);
+                            }}
+                            className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
+                          >
+                            Send Email
+                          </li>
+                          <li
+                            onClick={() => {
                               setDeleteRow(r);
                               setOpenMenuId(null);
                             }}
@@ -1079,6 +1117,15 @@ function Users() {
       data={filtered}
       selectedIds={selectedIds}
       activeStat={activeStat}
+    />
+    <SendEmailModal
+      isOpen={showEmailModal}
+      onClose={() => setShowEmailModal(false)}
+      selectedUsers={rows.filter(r => selectedIds.includes(r.id))}
+      onEmailSent={(msg) => {
+        setAlert({ type: 'success', text: `✅ ${msg}` });
+        setTimeout(() => setAlert(null), 5000);
+      }}
     />
     </>
   );
