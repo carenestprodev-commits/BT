@@ -8,7 +8,9 @@ import {
   FaChevronDown,
   FaFileAlt,
   FaCheck,
+  FaFileExport,
 } from "react-icons/fa";
+import DataExportModal from "../../Components/Admin/DataExportModal";
 import CubeIcon from "../../../public/3dcube.svg?react";
 import CubeIconGreen from "../../../public/3dcubeGreen.svg?react";
 import CubeIconPink from "../../../public/3dcubePink.svg?react";
@@ -65,6 +67,10 @@ function Users() {
   });
   const [alert, setAlert] = useState(null);
   const alertTimerRef = useRef(null);
+
+  // Selection states
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [showExportModal, setShowExportModal] = useState(false);
   const { suspendLoading, suspendError, documentsLoading, documentsError } =
     useSelector((s) => s.adminUsers || {});
 
@@ -229,31 +235,22 @@ function Users() {
     );
   }
 
-  function downloadCSV() {
-    const csv = [
-      ["Name", "User Type", "Email", "Phone", "Onboarding Date", "Last Login"],
-      ...filtered.map((r) => [
-        r.name,
-        r.userType,
-        r.email,
-        r.phone,
-        r.onboard,
-        r.lastLogin,
-      ]),
-    ]
-      .map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
-      )
-      .join("\n");
+  // Selection helpers
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filtered.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filtered.map((r) => r.id));
+    }
+  };
 
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "users.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+  const toggleSelectRow = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  };
+
+  // Removed redundant downloadCSV function - handled by DataExportModal
 
   // Helper function to get verification status badge
   const getVerificationBadge = (row) => {
@@ -279,6 +276,7 @@ function Users() {
   };
 
   return (
+    <>
     <div className="p-4 sm:p-6 text-black bg-white font-sfpro">
       {/* Alert */}
       {alert && (
@@ -929,11 +927,11 @@ function Users() {
           </div>
 
           <button
-            onClick={downloadCSV}
-            className="px-3 py-2 border rounded-md flex items-center justify-center"
-            aria-label="download"
+            onClick={() => setShowExportModal(true)}
+            className="px-4 py-2 bg-[#0b93c6] text-white rounded-md flex items-center justify-center gap-2 text-sm font-medium shadow-sm hover:bg-[#0a82b0] active:scale-[0.98] transition-all"
           >
-            <FaDownload className="text-slate-600" />
+            <FaFileExport />
+            Export Data
           </button>
         </div>
       </div>
@@ -944,7 +942,15 @@ function Users() {
           <thead className="bg-slate-50 text-slate-500 text-xs">
             <tr>
               <th className="p-3">
-                <input type="checkbox" />
+                <input
+                  type="checkbox"
+                  checked={
+                    filtered.length > 0 &&
+                    selectedIds.length === filtered.length
+                  }
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
+                />
               </th>
               <th
                 className="p-3 text-left cursor-pointer"
@@ -972,7 +978,12 @@ function Users() {
                 className="border-b last:border-b-0 hover:bg-slate-50"
               >
                 <td className="p-3">
-                  <input type="checkbox" />
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(r.id)}
+                    onChange={() => toggleSelectRow(r.id)}
+                    className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
+                  />
                 </td>
                 <td className="p-3 flex items-center gap-3">
                   <img
@@ -1061,6 +1072,15 @@ function Users() {
         </table>
       </div>
     </div>
+    
+    <DataExportModal
+      isOpen={showExportModal}
+      onClose={() => setShowExportModal(false)}
+      data={filtered}
+      selectedIds={selectedIds}
+      activeStat={activeStat}
+    />
+    </>
   );
 }
 
