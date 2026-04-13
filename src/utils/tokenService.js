@@ -139,8 +139,19 @@ export const tokenService = {
       } catch {}
     }
 
+    const user = tokenService.getUser();
+    const isStaff = user?.is_staff;
+    const role = user?.user_type || user?.userType;
+
     clearAuthStorage();
-    window.location.href = "/login";
+    
+    if (isStaff) {
+      window.location.href = "/admin/login";
+    } else if (role === "provider") {
+      window.location.href = "/careproviders/login";
+    } else {
+      window.location.href = "/careseekers/login";
+    }
   },
 };
 

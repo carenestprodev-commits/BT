@@ -142,7 +142,7 @@ function Users() {
       const mapped = users.map((u) => ({
         id: u.id,
         name: u.full_name || `User ${u.id}`,
-        userType: u.user_type === "provider" ? "Care Provider" : "Care seeker",
+        userType: u.user_type === "provider" ? "Care Provider" : u.is_staff ? "Admin" : "Care seeker",
         email: u.email,
         phone: u.phone_number || "",
         onboard: u.date_joined ? dayjs(u.date_joined).format("DD-MM-YYYY") : "",

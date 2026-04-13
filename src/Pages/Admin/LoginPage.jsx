@@ -57,7 +57,7 @@ function LoginPage() {
 
     if (access && user) {
       // Check if user is admin or staff
-      if (user.user_type === "admin" || user.is_staff) {
+      if (user.is_staff) {
         console.log("Admin user already logged in, redirecting to /admin");
         navigate("/admin");
       }

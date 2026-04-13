@@ -30,7 +30,9 @@ function LoginPage({ handleBack }) {
         const userData = result.payload.user;
         const userType = userData?.user_type || "seeker";
 
-        if (userType === "seeker") {
+        const isStaff = userData?.is_staff || result.payload?.is_staff;
+
+        if (userType === "seeker" || isStaff) {
           console.log("✅ Login successful, fetching fresh profile...");
 
           // ✅ CRITICAL FIX: Fetch fresh profile BEFORE navigation
@@ -47,7 +49,8 @@ function LoginPage({ handleBack }) {
               // Set user in AuthContext with fresh data
               setUser({
                 ...profileResult.payload,
-                user_type: "seeker",
+                user_type: userType,
+                is_staff: isStaff,
                 email: profileResult.payload?.email || email,
               });
             } else {
@@ -55,7 +58,8 @@ function LoginPage({ handleBack }) {
               // Fallback to login data if profile fetch fails
               setUser({
                 ...userData,
-                user_type: "seeker",
+                user_type: userType,
+                is_staff: isStaff,
                 email: userData?.email || email,
               });
             }

@@ -13,7 +13,7 @@ export default function AdminProtectedRoute({ children }) {
 
     if (user) {
         // Check if user is admin or staff
-        if (user.user_type !== "admin" && !user.is_staff) {
+        if (!user.is_staff) {
             // Not an admin - redirect to admin login
             return <Navigate to="/admin/login" replace />;
         }

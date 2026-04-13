@@ -18,7 +18,8 @@ export default function RoleProtectedRoute({ allowedRole, children }) {
       ? [allowedRole]
       : null;
 
-  if (allowedRoles && !allowedRoles.includes(user.user_type)) {
+  // Allow access if user is admin OR has the allowed role
+  if (allowedRoles && !allowedRoles.includes(user.user_type) && !user.is_staff) {
     // Logged in as another role - redirect to unauthorized page
     return <Navigate to="/unauthorized" replace />;
   }
