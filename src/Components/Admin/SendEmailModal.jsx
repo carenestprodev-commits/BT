@@ -3,6 +3,7 @@ import { FaTimes, FaPaperPlane, FaUserCircle, FaExclamationCircle } from 'react-
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import axios from 'axios';
+import { BASE_URL, getAuthHeaders } from '../../Redux/config';
 
 const SendEmailModal = ({ isOpen, onClose, selectedUsers, onEmailSent }) => {
   const [subject, setSubject] = useState('');
@@ -45,19 +46,13 @@ const SendEmailModal = ({ isOpen, onClose, selectedUsers, onEmailSent }) => {
 
     try {
       const userIds = selectedUsers.map(u => u.id);
-      
-      // Get the API base URL from environment or assume same origin
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      const accessToken = localStorage.getItem("accessToken") || localStorage.getItem("access");
 
-      await axios.post(`${API_URL}/api/admin/email-campaign/send/`, {
+      await axios.post(`${BASE_URL}/api/admin/email-campaign/send/`, {
         user_ids: userIds,
         subject: subject,
         content: content
       }, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
+        headers: getAuthHeaders()
       });
 
       onEmailSent(`Successfully queued email for ${recipientCount} recipients.`);
