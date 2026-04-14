@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { FaTimes, FaPaperPlane, FaUserCircle, FaExclamationCircle } from 'react-icons/fa';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -10,6 +10,22 @@ const SendEmailModal = ({ isOpen, onClose, selectedUsers, onEmailSent }) => {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(null);
 
+  // Reset form whenever the modal opens or closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSubject('');
+      setContent('');
+      setError(null);
+      setIsSending(false);
+    }
+  }, [isOpen]);
+
+  // Strip HTML tags to check if Quill editor is actually empty
+  const isContentEmpty = (html) => {
+    const text = html.replace(/<[^>]*>/g, '').trim();
+    return !text;
+  };
+
   const recipientCount = selectedUsers?.length || 0;
   const recipientNames = useMemo(() => {
     if (recipientCount === 0) return '';
@@ -19,7 +35,7 @@ const SendEmailModal = ({ isOpen, onClose, selectedUsers, onEmailSent }) => {
   }, [selectedUsers, recipientCount]);
 
   const handleSend = async () => {
-    if (!subject.trim() || !content.trim() || recipientCount === 0) {
+    if (!subject.trim() || isContentEmpty(content) || recipientCount === 0) {
       setError('Please provide a subject, content, and at least one recipient.');
       return;
     }
@@ -46,10 +62,7 @@ const SendEmailModal = ({ isOpen, onClose, selectedUsers, onEmailSent }) => {
 
       onEmailSent(`Successfully queued email for ${recipientCount} recipients.`);
       onClose();
-      // Reset form
-      setSubject('');
-      setContent('');
-    } catch (err) {
+      // Form reset is handled by the isOpen useEffect    } catch (err) {
       console.error('Failed to send email:', err);
       setError(err.response?.data?.error || 'Failed to send email campaign. Please try again.');
     } finally {
