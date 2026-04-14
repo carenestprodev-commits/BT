@@ -74,7 +74,9 @@ function Users() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [profileStatusFilter, setProfileStatusFilter] = useState("All");
+  const [profileStatusFilters, setProfileStatusFilters] = useState([]);
+  const [profileFilterOpen, setProfileFilterOpen] = useState(false);
+  const profileFilterRef = useRef(null);
   const { suspendLoading, suspendError, documentsLoading, documentsError } =
     useSelector((s) => s.adminUsers || {});
 
@@ -162,6 +164,7 @@ function Users() {
         verification_status: u.verification_status || "pending",
         documents_received: u.documents_received ?? false,
         is_profile_complete: u.is_profile_complete ?? false,
+        has_profile_picture: u.has_profile_picture ?? false,
       }));
       setRows(mapped);
     }
@@ -199,6 +202,29 @@ function Users() {
     },
   ];
 
+  // Close profile filter dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (profileFilterRef.current && !profileFilterRef.current.contains(e.target)) {
+        setProfileFilterOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const toggleProfileFilter = (value) => {
+    setProfileStatusFilters((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  };
+
+  const profileFilterOptions = [
+    { value: "Complete", label: "Completed Profile" },
+    { value: "Incomplete", label: "Incomplete Profile" },
+    { value: "NoPhoto", label: "No Profile Picture" },
+  ];
+
   const filtered = useMemo(() => {
     let data = [...rows];
 
@@ -212,10 +238,15 @@ function Users() {
     if (locationFilter !== "All") {
       data = data.filter((r) => r.email.includes(locationFilter.toLowerCase()));
     }
-    if (profileStatusFilter === "Complete") {
-      data = data.filter((r) => r.is_profile_complete);
-    } else if (profileStatusFilter === "Incomplete") {
-      data = data.filter((r) => !r.is_profile_complete);
+    if (profileStatusFilters.length > 0) {
+      data = data.filter((r) => {
+        return profileStatusFilters.some((f) => {
+          if (f === "Complete") return r.is_profile_complete;
+          if (f === "Incomplete") return !r.is_profile_complete;
+          if (f === "NoPhoto") return !r.has_profile_picture;
+          return true;
+        });
+      });
     }
 
     data.sort((a, b) => {
@@ -232,7 +263,7 @@ function Users() {
     });
 
     return data;
-  }, [rows, query, locationFilter, sortBy, activeStat]);
+  }, [rows, query, locationFilter, sortBy, activeStat, profileStatusFilters]);
 
   function toggleSort(key) {
     setSortBy((s) =>
@@ -933,17 +964,49 @@ function Users() {
             <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
           </div>
 
-          <div className="relative">
-            <select
-              value={profileStatusFilter}
-              onChange={(e) => setProfileStatusFilter(e.target.value)}
-              className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8 min-w-[150px]"
+          <div className="relative" ref={profileFilterRef}>
+            <button
+              type="button"
+              onClick={() => setProfileFilterOpen((o) => !o)}
+              className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8 min-w-[160px] flex items-center justify-between gap-2"
             >
-              <option value="All">Profile Status</option>
-              <option value="Complete">Completed Profile</option>
-              <option value="Incomplete">Incomplete Profile</option>
-            </select>
-            <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
+              <span>
+                {profileStatusFilters.length === 0
+                  ? "Profile Status"
+                  : profileStatusFilters.length === 1
+                  ? profileFilterOptions.find((o) => o.value === profileStatusFilters[0])?.label
+                  : `${profileStatusFilters.length} filters`}
+              </span>
+              <FaChevronDown className="text-slate-400 shrink-0" />
+            </button>
+
+            {profileFilterOpen && (
+              <div className="absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-md shadow-lg z-50 py-1">
+                {profileFilterOptions.map((opt) => (
+                  <label
+                    key={opt.value}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-black hover:bg-slate-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={profileStatusFilters.includes(opt.value)}
+                      onChange={() => toggleProfileFilter(opt.value)}
+                      className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+                {profileStatusFilters.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setProfileStatusFilters([])}
+                    className="w-full text-left px-3 py-2 text-xs text-[#0b93c6] hover:bg-slate-50 border-t border-slate-100 mt-1"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <button
