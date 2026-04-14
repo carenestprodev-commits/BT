@@ -121,6 +121,7 @@ const SendEmailModal = ({ isOpen, onClose, selectedUsers, onEmailSent }) => {
                 formats={formats}
                 className="flex-1 flex flex-col overflow-hidden"
                 placeholder="Write your email content here..."
+                style={{ color: '#111111' }}
               />
             </div>
           </div>

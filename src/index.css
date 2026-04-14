@@ -43,4 +43,7 @@
   }
 }
 
-
+/* Quill rich-text editor: force visible text color */
+.ql-editor {
+  color: #111111 !important;
+}
