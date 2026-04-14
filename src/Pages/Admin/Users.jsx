@@ -74,6 +74,7 @@ function Users() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [singleEmailUser, setSingleEmailUser] = useState(null);
   const [profileStatusFilters, setProfileStatusFilters] = useState([]);
   const [profileFilterOpen, setProfileFilterOpen] = useState(false);
   const profileFilterRef = useRef(null);
@@ -1138,7 +1139,7 @@ function Users() {
                           )}
                           <li
                             onClick={() => {
-                              setSelectedIds([r.id]);
+                              setSingleEmailUser(r);
                               setShowEmailModal(true);
                               setOpenMenuId(null);
                             }}
@@ -1183,8 +1184,11 @@ function Users() {
     />
     <SendEmailModal
       isOpen={showEmailModal}
-      onClose={() => setShowEmailModal(false)}
-      selectedUsers={rows.filter(r => selectedIds.includes(r.id))}
+      onClose={() => {
+        setShowEmailModal(false);
+        setSingleEmailUser(null);
+      }}
+      selectedUsers={singleEmailUser ? [singleEmailUser] : rows.filter(r => selectedIds.includes(r.id))}
       onEmailSent={(msg) => {
         setAlert({ type: 'success', text: `✅ ${msg}` });
         setTimeout(() => setAlert(null), 5000);
