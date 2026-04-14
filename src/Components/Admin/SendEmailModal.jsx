@@ -50,7 +50,7 @@ const SendEmailModal = ({ isOpen, onClose, selectedUsers, onEmailSent }) => {
       const API_URL = import.meta.env.VITE_API_URL || '';
       const accessToken = localStorage.getItem("accessToken") || localStorage.getItem("access");
 
-      await axios.post(`${API_URL}/api/admin/users/send-email/`, {
+      await axios.post(`${API_URL}/api/admin/email-campaign/send/`, {
         user_ids: userIds,
         subject: subject,
         content: content
@@ -62,7 +62,8 @@ const SendEmailModal = ({ isOpen, onClose, selectedUsers, onEmailSent }) => {
 
       onEmailSent(`Successfully queued email for ${recipientCount} recipients.`);
       onClose();
-      // Form reset is handled by the isOpen useEffect    } catch (err) {
+      // Form reset is handled by the isOpen useEffect
+    } catch (err) {
       console.error('Failed to send email:', err);
       setError(err.response?.data?.error || 'Failed to send email campaign. Please try again.');
     } finally {
