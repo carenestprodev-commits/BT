@@ -10,13 +10,20 @@ import {
   FaCheck,
   FaFileExport,
   FaEnvelope,
+  FaClock,
+  FaComments,
 } from "react-icons/fa";
 import DataExportModal from "../../Components/Admin/DataExportModal";
 import SendEmailModal from "../../Components/Admin/SendEmailModal";
+import BulkProfileChecker from "../../Components/Admin/BulkProfileChecker";
+import MessageTemplatesModal from "../../Components/Admin/MessageTemplatesModal";
+import UserTimelineModal from "../../Components/Admin/UserTimelineModal";
+import ProfileCompletionChecklist from "../../Components/Admin/ProfileCompletionChecklist";
 import CubeIcon from "../../../public/3dcube.svg?react";
 import CubeIconGreen from "../../../public/3dcubeGreen.svg?react";
 import CubeIconPink from "../../../public/3dcubePink.svg?react";
 import CubeIconOrange from "../../../public/3dcubeOrange.svg?react";
+import CubeIconBlue from "../../../public/3dcube.svg?react";
 import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -34,6 +41,7 @@ import {
   verifyProvider,
 } from "../../Redux/AdminUsers";
 import { updateUserVerification } from "../../Redux/Login";
+import { BASE_URL } from "../../Redux/config";
 
 function Users() {
   const dispatch = useDispatch();
@@ -81,13 +89,36 @@ function Users() {
   const { suspendLoading, suspendError, documentsLoading, documentsError } =
     useSelector((s) => s.adminUsers || {});
 
+  // New feature states
+  const [showBulkChecker, setShowBulkChecker] = useState(false);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [selectedUserForTemplate, setSelectedUserForTemplate] = useState(null);
+  const [selectedUserForTimeline, setSelectedUserForTimeline] = useState(null);
+  const [enhancedStats, setEnhancedStats] = useState(null);
+
   useEffect(() => {
     setSelectedIds([]); // Clear selection when switching tabs
     dispatch(fetchAdminStats());
+    fetchEnhancedStats(); // Fetch enhanced stats with profile completion metrics
     if (activeStat === "all") {
       dispatch(fetchAllUsers());
     }
   }, [dispatch, activeStat]);
+
+  const fetchEnhancedStats = async () => {
+    try {
+      const access = localStorage.getItem("accessToken") || localStorage.getItem("access");
+      const headers = access ? { Authorization: `Bearer ${access}` } : {};
+      const res = await fetch(`${BASE_URL}/api/admin/stats/enhanced/`, { headers });
+      const data = await res.json();
+      if (res.ok) {
+        setEnhancedStats(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch enhanced stats:", err);
+    }
+  };
 
   // Fetch appropriate user list when activeStat changes
   useEffect(() => {
@@ -177,8 +208,11 @@ function Users() {
       providers: stats?.total_providers ?? 0,
       seekers: stats?.total_seekers ?? 0,
       signups: stats?.new_sign_ups ?? 0,
+      incomplete: enhancedStats?.incomplete_profiles ?? 0,
+      pendingDocs: enhancedStats?.profiles_pending_docs ?? 0,
+      awaitingVerification: enhancedStats?.profiles_awaiting_verification ?? 0,
     }),
-    [stats],
+    [stats, enhancedStats],
   );
 
   const statsConfig = [
@@ -200,6 +234,31 @@ function Users() {
       label: "New Sign Ups",
       value: statsCounts.signups,
       icon: CubeIconOrange,
+    },
+  ];
+
+  // Feature 3: Profile Completion Stats Cards
+  const profileStatsConfig = [
+    {
+      key: "incomplete",
+      label: "Incomplete Profiles",
+      value: statsCounts.incomplete,
+      icon: CubeIconBlue,
+      color: "red"
+    },
+    {
+      key: "pendingDocs",
+      label: "Pending Documents",
+      value: statsCounts.pendingDocs,
+      icon: CubeIconOrange,
+      color: "yellow"
+    },
+    {
+      key: "awaitingVerification",
+      label: "Awaiting Verification",
+      value: statsCounts.awaitingVerification,
+      icon: CubeIconGreen,
+      color: "blue"
     },
   ];
 
@@ -316,567 +375,559 @@ function Users() {
 
   return (
     <>
-    <div className="p-4 sm:p-6 text-black bg-white font-sfpro">
-      {/* Alert */}
-      {alert && (
-        <div
-          className={`mb-4 px-4 py-3 rounded-md ${alert.type === "success"
-            ? "bg-green-50 border border-green-200 text-green-800"
-            : "bg-red-50 border border-red-200 text-red-800"
-            }`}
-          role="alert"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="text-sm">{alert.text}</div>
-            <button
-              onClick={() => {
-                setAlert(null);
-                if (alertTimerRef.current) {
-                  clearTimeout(alertTimerRef.current);
-                  alertTimerRef.current = null;
-                }
-              }}
-              className="text-sm font-medium"
-            >
-              Close
-            </button>
+      <div className="p-4 sm:p-6 text-black bg-white font-sfpro">
+        {/* Alert */}
+        {alert && (
+          <div
+            className={`mb-4 px-4 py-3 rounded-md ${alert.type === "success"
+              ? "bg-green-50 border border-green-200 text-green-800"
+              : "bg-red-50 border border-red-200 text-red-800"
+              }`}
+            role="alert"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="text-sm">{alert.text}</div>
+              <button
+                onClick={() => {
+                  setAlert(null);
+                  if (alertTimerRef.current) {
+                    clearTimeout(alertTimerRef.current);
+                    alertTimerRef.current = null;
+                  }
+                }}
+                className="text-sm font-medium"
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {statsConfig.map((s) => {
-          const isActive = activeStat === s.key;
-          return (
-            <div
-              key={s.key}
-              onClick={() => setActiveStat(s.key)}
-              className={`p-4 rounded-lg cursor-pointer flex flex-col justify-between ${isActive ? "bg-[#0e2f43] text-white" : "bg-white text-black"
-                } border`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col items-start">
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {statsConfig.map((s) => {
+            const isActive = activeStat === s.key;
+            return (
+              <div
+                key={s.key}
+                onClick={() => setActiveStat(s.key)}
+                className={`p-4 rounded-lg cursor-pointer flex flex-col justify-between ${isActive ? "bg-[#0e2f43] text-white" : "bg-white text-black"
+                  } border`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col items-start">
+                    <div
+                      className={`w-8 h-8 flex items-center justify-center mb-2 rounded-full ${isActive ? "bg-white/10" : "bg-slate-100"
+                        }`}
+                    >
+                      {(() => {
+                        const Icon = s.icon || CubeIcon;
+                        return (
+                          <Icon
+                            className={`w-5 h-5 ${isActive ? "text-white" : "text-black"
+                              }`}
+                          />
+                        );
+                      })()}
+                    </div>
+                    <div className="text-sm font-medium">{s.label}</div>
+                  </div>
                   <div
-                    className={`w-8 h-8 flex items-center justify-center mb-2 rounded-full ${isActive ? "bg-white/10" : "bg-slate-100"
+                    className={`ml-auto text-2xl font-semibold ${isActive ? "text-white" : "text-black"
                       }`}
                   >
+                    {s.value.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Feature 3: Profile Completion Stats */}
+        {enhancedStats && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            {profileStatsConfig.map((s) => (
+              <div
+                key={s.key}
+                className={`p-4 rounded-lg border ${s.color === 'red' ? 'bg-red-50 border-red-200' :
+                  s.color === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
+                    'bg-blue-50 border-blue-200'
+                  }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col items-start">
+                    <div className="text-sm font-medium text-gray-700">{s.label}</div>
+                    <div className="text-2xl font-semibold text-gray-900 mt-1">
+                      {s.value.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className={`w-10 h-10 flex items-center justify-center rounded-full ${s.color === 'red' ? 'bg-red-100' :
+                    s.color === 'yellow' ? 'bg-yellow-100' :
+                      'bg-blue-100'
+                    }`}>
                     {(() => {
                       const Icon = s.icon || CubeIcon;
-                      return (
-                        <Icon
-                          className={`w-5 h-5 ${isActive ? "text-white" : "text-black"
-                            }`}
-                        />
-                      );
+                      return <Icon className="w-5 h-5 text-gray-700" />;
                     })()}
                   </div>
-                  <div className="text-sm font-medium">{s.label}</div>
                 </div>
-                <div
-                  className={`ml-auto text-2xl font-semibold ${isActive ? "text-white" : "text-black"
-                    }`}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Feature 1: Bulk Profile Checker Button */}
+        <div className="mb-4 flex gap-3">
+          <button
+            onClick={() => setShowBulkChecker(true)}
+            className="px-4 py-2.5 bg-gradient-to-r from-[#0b93c6] to-[#0a82b0] text-white rounded-md flex items-center justify-center gap-2 text-sm font-medium shadow-sm hover:shadow-md active:scale-[0.98] transition-all"
+          >
+            <FaSearch />
+            Bulk Profile Checker
+          </button>
+          <div className="text-xs text-gray-500 flex items-center">
+            <span>✨ Check multiple provider profiles at once</span>
+          </div>
+        </div>
+
+        {/* Documents Received Modal */}
+        {showDocumentsModal && selectedUserForDocs && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Mark Documents Received</h3>
+                <button
+                  className="text-gray-500"
+                  onClick={() => setShowDocumentsModal(false)}
                 >
-                  {s.value.toLocaleString()}
+                  &times;
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Mark physical documents as received for{" "}
+                <strong>{selectedUserForDocs.name}</strong>
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date Documents Received
+                  </label>
+                  <input
+                    type="date"
+                    value={documentsData.received_date}
+                    onChange={(e) =>
+                      setDocumentsData({
+                        ...documentsData,
+                        received_date: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Notes (Optional)
+                  </label>
+                  <textarea
+                    placeholder="e.g., Received NIN, Driver's License, Proof of Address"
+                    value={documentsData.notes}
+                    onChange={(e) =>
+                      setDocumentsData({
+                        ...documentsData,
+                        notes: e.target.value,
+                      })
+                    }
+                    rows="3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white text-sm"
+                  />
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
 
-      {/* Documents Received Modal */}
-      {showDocumentsModal && selectedUserForDocs && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium">Mark Documents Received</h3>
-              <button
-                className="text-gray-500"
-                onClick={() => setShowDocumentsModal(false)}
-              >
-                &times;
-              </button>
-            </div>
+              {documentsError && (
+                <div className="text-red-600 text-sm mt-4">
+                  {typeof documentsError === "string"
+                    ? documentsError
+                    : documentsError?.error || "Action failed"}
+                </div>
+              )}
 
-            <p className="text-sm text-gray-600 mb-4">
-              Mark physical documents as received for{" "}
-              <strong>{selectedUserForDocs.name}</strong>
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date Documents Received
-                </label>
-                <input
-                  type="date"
-                  value={documentsData.received_date}
-                  onChange={(e) =>
-                    setDocumentsData({
-                      ...documentsData,
-                      received_date: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (Optional)
-                </label>
-                <textarea
-                  placeholder="e.g., Received NIN, Driver's License, Proof of Address"
-                  value={documentsData.notes}
-                  onChange={(e) =>
-                    setDocumentsData({
-                      ...documentsData,
-                      notes: e.target.value,
-                    })
-                  }
-                  rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white text-sm"
-                />
-              </div>
-            </div>
-
-            {documentsError && (
-              <div className="text-red-600 text-sm mt-4">
-                {typeof documentsError === "string"
-                  ? documentsError
-                  : documentsError?.error || "Action failed"}
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md"
-                onClick={() => {
-                  setShowDocumentsModal(false);
-                  setSelectedUserForDocs(null);
-                  setDocumentsData({
-                    received_date: new Date().toISOString().split("T")[0],
-                    notes: "",
-                  });
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-[#0b93c6] text-white rounded-md disabled:opacity-50"
-                onClick={async () => {
-                  try {
-                    await dispatch(
-                      markDocumentsReceived({
-                        userId: selectedUserForDocs.id,
-                        documentDetails: documentsData,
-                      }),
-                    ).unwrap();
-
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md"
+                  onClick={() => {
                     setShowDocumentsModal(false);
                     setSelectedUserForDocs(null);
                     setDocumentsData({
                       received_date: new Date().toISOString().split("T")[0],
                       notes: "",
                     });
-
-                    if (alertTimerRef.current) {
-                      clearTimeout(alertTimerRef.current);
-                      alertTimerRef.current = null;
-                    }
-                    setAlert({
-                      type: "success",
-                      text: "✅ Documents marked as received! Admin can now approve this user.",
-                    });
-                    alertTimerRef.current = setTimeout(
-                      () => setAlert(null),
-                      5000,
-                    );
-                  } catch (error) {
-                    console.error("Mark documents failed:", error);
-                    if (alertTimerRef.current) {
-                      clearTimeout(alertTimerRef.current);
-                      alertTimerRef.current = null;
-                    }
-                    setAlert({
-                      type: "error",
-                      text:
-                        error?.error || "Failed to mark documents as received",
-                    });
-                    alertTimerRef.current = setTimeout(
-                      () => setAlert(null),
-                      5000,
-                    );
-                  }
-                }}
-                disabled={documentsLoading}
-              >
-                {documentsLoading ? "Marking..." : "Mark Received"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit / Details Modal */}
-      {editRow && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-24">
-          <div
-            className="absolute inset-0 bg-black/30"
-            onClick={() => setEditRow(null)}
-          />
-          <div className="relative bg-white w-[380px] rounded-lg shadow-lg p-6 z-50 max-h-[80vh] flex flex-col">
-            <button
-              className="absolute right-3 top-3 text-slate-500 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"
-              onClick={() => setEditRow(null)}
-            >
-              ✕
-            </button>
-            <h3 className="text-lg font-medium mb-4">Details</h3>
-            <div className="space-y-3 text-sm text-slate-700 overflow-y-auto flex-1 pr-2">
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Name</span>
-                <span className="text-right">{editRow.name}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Status</span>
-                <span className="text-right">
-                  {getVerificationBadge(editRow)}
-                </span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Phone Number</span>
-                <span className="text-right">{editRow.phone}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Email</span>
-                <span className="text-right">{editRow.email}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">onboarding Date</span>
-                <span className="text-right">{editRow.onboard}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Request history</span>
-                <span className="text-right">{editRow.requestHistory}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">No of requests made</span>
-                <span className="text-right">{editRow.requestsMade}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Country</span>
-                <span className="text-right">{editRow.country}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">City</span>
-                <span className="text-right">{editRow.city}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Nationality</span>
-                <span className="text-right">{editRow.nationality}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Subscription status</span>
-                <span className="text-right">{editRow.subscriptionStatus}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Earnings</span>
-                <span className="text-right">{editRow.earnings}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="text-slate-500">last login</span>
-                <span className="text-right">{editRow.lastLogin}</span>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <button className="w-full bg-[#0b93c6] text-white py-2 rounded-md mb-3">
-                Message
-              </button>
-              <button
-                className="w-full border border-[#0b93c6] text-[#0b93c6] py-2 rounded-md"
-                onClick={async () => {
-                  if (!editRow?.id) return;
-                  try {
-                    if (editRow.is_suspend) {
-                      const payload = await dispatch(
-                        activateUser(editRow.id),
-                      ).unwrap();
-                      const message = payload?.data?.status || "User activated";
-                      setRows((prev) =>
-                        prev.map((r) =>
-                          r.id === editRow.id
-                            ? { ...r, subscriptionStatus: "Active" }
-                            : r,
-                        ),
-                      );
-                      setEditRow(null);
-                      if (alertTimerRef.current) {
-                        clearTimeout(alertTimerRef.current);
-                        alertTimerRef.current = null;
-                      }
-                      setAlert({ type: "success", text: message });
-                      alertTimerRef.current = setTimeout(
-                        () => setAlert(null),
-                        3000,
-                      );
-                    } else {
-                      const payload = await dispatch(
-                        suspendUser(editRow.id),
-                      ).unwrap();
-                      const message = payload?.data?.status || "User suspended";
-                      setRows((prev) =>
-                        prev.map((r) =>
-                          r.id === editRow.id
-                            ? { ...r, subscriptionStatus: "Suspended" }
-                            : r,
-                        ),
-                      );
-                      setEditRow(null);
-                      if (alertTimerRef.current) {
-                        clearTimeout(alertTimerRef.current);
-                        alertTimerRef.current = null;
-                      }
-                      setAlert({ type: "success", text: message });
-                      alertTimerRef.current = setTimeout(
-                        () => setAlert(null),
-                        3000,
-                      );
-                    }
-                  } catch (e) {
-                    console.error("Action failed", e);
-                    if (alertTimerRef.current) {
-                      clearTimeout(alertTimerRef.current);
-                      alertTimerRef.current = null;
-                    }
-                    setAlert({
-                      type: "error",
-                      text: "Failed to update user status",
-                    });
-                    alertTimerRef.current = setTimeout(
-                      () => setAlert(null),
-                      3000,
-                    );
-                  }
-                }}
-              >
-                {editRow.is_suspend ? "Activate" : "Suspend"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deleteRow && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/30"
-            onClick={() => setDeleteRow(null)}
-          />
-          <div className="relative bg-white w-[320px] rounded-lg shadow-lg p-5 z-50 text-center">
-            <button
-              className="absolute right-3 top-3 text-slate-400 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"
-              onClick={() => setDeleteRow(null)}
-            >
-              ✕
-            </button>
-            <h4 className="text-lg font-medium mb-2">Remove User</h4>
-            <p className="text-sm text-slate-600 mb-4">
-              Are you sure you want to remove this user?
-            </p>
-            <div className="flex items-center justify-center gap-3">
-              <button
-                className="px-4 py-2 bg-red-600 text-white rounded-md"
-                onClick={async () => {
-                  try {
-                    await dispatch(deleteUser(deleteRow.id)).unwrap();
-                    setRows(rows.filter((x) => x.id !== deleteRow.id));
-                  } catch (e) {
-                    console.error("Delete failed", e);
-                  } finally {
-                    setDeleteRow(null);
-                  }
-                }}
-              >
-                Delete
-              </button>
-              <button
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md"
-                onClick={() => setDeleteRow(null)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Manual Payment Modal */}
-      {showManualPaymentModal && selectedUserForPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium">
-                Mark Manual Payment - {selectedUserForPayment.name}
-              </h3>
-              <button
-                className="text-gray-500"
-                onClick={() => setShowManualPaymentModal(false)}
-              >
-                &times;
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Method
-                </label>
-                <select
-                  value={manualPaymentData.payment_method}
-                  onChange={(e) =>
-                    setManualPaymentData({
-                      ...manualPaymentData,
-                      payment_method: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                  }}
                 >
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cash">Cash</option>
-                  <option value="cheque">Cheque</option>
-                  <option value="mobile_money">Mobile Money</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 bg-[#0b93c6] text-white rounded-md disabled:opacity-50"
+                  onClick={async () => {
+                    try {
+                      await dispatch(
+                        markDocumentsReceived({
+                          userId: selectedUserForDocs.id,
+                          documentDetails: documentsData,
+                        }),
+                      ).unwrap();
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Date
-                </label>
-                <input
-                  type="date"
-                  value={manualPaymentData.payment_received_date}
-                  onChange={(e) =>
-                    setManualPaymentData({
-                      ...manualPaymentData,
-                      payment_received_date: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
-                />
-              </div>
+                      setShowDocumentsModal(false);
+                      setSelectedUserForDocs(null);
+                      setDocumentsData({
+                        received_date: new Date().toISOString().split("T")[0],
+                        notes: "",
+                      });
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Reference / Receipt Number
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., TXN123456 or Receipt #789"
-                  value={manualPaymentData.payment_reference}
-                  onChange={(e) =>
-                    setManualPaymentData({
-                      ...manualPaymentData,
-                      payment_reference: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
-                </label>
-                <textarea
-                  placeholder="Add any notes about this manual payment verification..."
-                  value={manualPaymentData.notes}
-                  onChange={(e) =>
-                    setManualPaymentData({
-                      ...manualPaymentData,
-                      notes: e.target.value,
-                    })
-                  }
-                  rows="4"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
-                />
+                      if (alertTimerRef.current) {
+                        clearTimeout(alertTimerRef.current);
+                        alertTimerRef.current = null;
+                      }
+                      setAlert({
+                        type: "success",
+                        text: "✅ Documents marked as received! Admin can now approve this user.",
+                      });
+                      alertTimerRef.current = setTimeout(
+                        () => setAlert(null),
+                        5000,
+                      );
+                    } catch (error) {
+                      console.error("Mark documents failed:", error);
+                      if (alertTimerRef.current) {
+                        clearTimeout(alertTimerRef.current);
+                        alertTimerRef.current = null;
+                      }
+                      setAlert({
+                        type: "error",
+                        text:
+                          error?.error || "Failed to mark documents as received",
+                      });
+                      alertTimerRef.current = setTimeout(
+                        () => setAlert(null),
+                        5000,
+                      );
+                    }
+                  }}
+                  disabled={documentsLoading}
+                >
+                  {documentsLoading ? "Marking..." : "Mark Received"}
+                </button>
               </div>
             </div>
+          </div>
+        )}
 
-            {suspendError && (
-              <div className="text-red-600 mt-4">
-                {typeof suspendError === "string"
-                  ? suspendError
-                  : suspendError?.detail ||
-                  suspendError?.error ||
-                  suspendError?.message ||
-                  "Action failed"}
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-end gap-2">
+        {/* Edit / Details Modal */}
+        {editRow && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-24">
+            <div
+              className="absolute inset-0 bg-black/30"
+              onClick={() => setEditRow(null)}
+            />
+            <div className="relative bg-white w-[380px] rounded-lg shadow-lg p-6 z-50 max-h-[80vh] flex flex-col">
               <button
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md"
-                onClick={() => {
-                  setShowManualPaymentModal(false);
-                  setSelectedUserForPayment(null);
-                  setManualPaymentData({
-                    payment_method: "bank_transfer",
-                    payment_received_date: "",
-                    payment_reference: "",
-                    notes: "",
-                  });
-                }}
+                className="absolute right-3 top-3 text-slate-500 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"
+                onClick={() => setEditRow(null)}
               >
-                Cancel
+                ✕
               </button>
-              <button
-                className="px-4 py-2 bg-[#0b93c6] text-white rounded-md disabled:opacity-50"
-                onClick={async () => {
-                  // Check if documents have been marked as received
-                  if (!selectedUserForPayment.documents_received) {
-                    setAlert({
-                      type: "error",
-                      text: "Documents must be marked as received before approval. Click 'Mark Documents' first.",
-                    });
-                    return;
-                  }
+              <h3 className="text-lg font-medium mb-4">Details</h3>
+              <div className="space-y-3 text-sm text-slate-700 overflow-y-auto flex-1 pr-2">
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">Name</span>
+                  <span className="text-right">{editRow.name}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">Status</span>
+                  <span className="text-right">
+                    {getVerificationBadge(editRow)}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">Phone Number</span>
+                  <span className="text-right">{editRow.phone}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">Email</span>
+                  <span className="text-right">{editRow.email}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">onboarding Date</span>
+                  <span className="text-right">{editRow.onboard}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">Request history</span>
+                  <span className="text-right">{editRow.requestHistory}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">No of requests made</span>
+                  <span className="text-right">{editRow.requestsMade}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">Country</span>
+                  <span className="text-right">{editRow.country}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">City</span>
+                  <span className="text-right">{editRow.city}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">Nationality</span>
+                  <span className="text-right">{editRow.nationality}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">Subscription status</span>
+                  <span className="text-right">{editRow.subscriptionStatus}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-slate-500">Earnings</span>
+                  <span className="text-right">{editRow.earnings}</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span className="text-slate-500">last login</span>
+                  <span className="text-right">{editRow.lastLogin}</span>
+                </div>
+              </div>
 
-                  try {
-                    const result = await dispatch(
-                      approveUser({
-                        id: selectedUserForPayment.id,
-                        manualPayment: {
-                          payment_verified_manually: true,
-                          manual_payment_method:
-                            manualPaymentData.payment_method,
-                          manual_payment_date:
-                            manualPaymentData.payment_received_date,
-                          manual_payment_reference:
-                            manualPaymentData.payment_reference,
-                          manual_payment_notes: manualPaymentData.notes,
-                        },
-                      }),
-                    ).unwrap();
-
-                    console.log("Approval result:", result);
-
-                    if (currentUserId === selectedUserForPayment.id) {
-                      if (result.updatedUser) {
-                        dispatch(
-                          updateUserVerification(
-                            result.updatedUser.is_verified || true,
+              <div className="mt-4">
+                <button className="w-full bg-[#0b93c6] text-white py-2 rounded-md mb-3">
+                  Message
+                </button>
+                <button
+                  className="w-full border border-[#0b93c6] text-[#0b93c6] py-2 rounded-md"
+                  onClick={async () => {
+                    if (!editRow?.id) return;
+                    try {
+                      if (editRow.is_suspend) {
+                        const payload = await dispatch(
+                          activateUser(editRow.id),
+                        ).unwrap();
+                        const message = payload?.data?.status || "User activated";
+                        setRows((prev) =>
+                          prev.map((r) =>
+                            r.id === editRow.id
+                              ? { ...r, subscriptionStatus: "Active" }
+                              : r,
                           ),
                         );
+                        setEditRow(null);
+                        if (alertTimerRef.current) {
+                          clearTimeout(alertTimerRef.current);
+                          alertTimerRef.current = null;
+                        }
+                        setAlert({ type: "success", text: message });
+                        alertTimerRef.current = setTimeout(
+                          () => setAlert(null),
+                          3000,
+                        );
                       } else {
-                        dispatch(updateUserVerification(true));
+                        const payload = await dispatch(
+                          suspendUser(editRow.id),
+                        ).unwrap();
+                        const message = payload?.data?.status || "User suspended";
+                        setRows((prev) =>
+                          prev.map((r) =>
+                            r.id === editRow.id
+                              ? { ...r, subscriptionStatus: "Suspended" }
+                              : r,
+                          ),
+                        );
+                        setEditRow(null);
+                        if (alertTimerRef.current) {
+                          clearTimeout(alertTimerRef.current);
+                          alertTimerRef.current = null;
+                        }
+                        setAlert({ type: "success", text: message });
+                        alertTimerRef.current = setTimeout(
+                          () => setAlert(null),
+                          3000,
+                        );
                       }
+                    } catch (e) {
+                      console.error("Action failed", e);
+                      if (alertTimerRef.current) {
+                        clearTimeout(alertTimerRef.current);
+                        alertTimerRef.current = null;
+                      }
+                      setAlert({
+                        type: "error",
+                        text: "Failed to update user status",
+                      });
+                      alertTimerRef.current = setTimeout(
+                        () => setAlert(null),
+                        3000,
+                      );
                     }
+                  }}
+                >
+                  {editRow.is_suspend ? "Activate" : "Suspend"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
+        {/* Delete Confirmation Modal */}
+        {deleteRow && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/30"
+              onClick={() => setDeleteRow(null)}
+            />
+            <div className="relative bg-white w-[320px] rounded-lg shadow-lg p-5 z-50 text-center">
+              <button
+                className="absolute right-3 top-3 text-slate-400 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"
+                onClick={() => setDeleteRow(null)}
+              >
+                ✕
+              </button>
+              <h4 className="text-lg font-medium mb-2">Remove User</h4>
+              <p className="text-sm text-slate-600 mb-4">
+                Are you sure you want to remove this user?
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  className="px-4 py-2 bg-red-600 text-white rounded-md"
+                  onClick={async () => {
+                    try {
+                      await dispatch(deleteUser(deleteRow.id)).unwrap();
+                      setRows(rows.filter((x) => x.id !== deleteRow.id));
+                    } catch (e) {
+                      console.error("Delete failed", e);
+                    } finally {
+                      setDeleteRow(null);
+                    }
+                  }}
+                >
+                  Delete
+                </button>
+                <button
+                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md"
+                  onClick={() => setDeleteRow(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Manual Payment Modal */}
+        {showManualPaymentModal && selectedUserForPayment && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">
+                  Mark Manual Payment - {selectedUserForPayment.name}
+                </h3>
+                <button
+                  className="text-gray-500"
+                  onClick={() => setShowManualPaymentModal(false)}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={manualPaymentData.payment_method}
+                    onChange={(e) =>
+                      setManualPaymentData({
+                        ...manualPaymentData,
+                        payment_method: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                  >
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cash">Cash</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="mobile_money">Mobile Money</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Date
+                  </label>
+                  <input
+                    type="date"
+                    value={manualPaymentData.payment_received_date}
+                    onChange={(e) =>
+                      setManualPaymentData({
+                        ...manualPaymentData,
+                        payment_received_date: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Reference / Receipt Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., TXN123456 or Receipt #789"
+                    value={manualPaymentData.payment_reference}
+                    onChange={(e) =>
+                      setManualPaymentData({
+                        ...manualPaymentData,
+                        payment_reference: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    placeholder="Add any notes about this manual payment verification..."
+                    value={manualPaymentData.notes}
+                    onChange={(e) =>
+                      setManualPaymentData({
+                        ...manualPaymentData,
+                        notes: e.target.value,
+                      })
+                    }
+                    rows="4"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                  />
+                </div>
+              </div>
+
+              {suspendError && (
+                <div className="text-red-600 mt-4">
+                  {typeof suspendError === "string"
+                    ? suspendError
+                    : suspendError?.detail ||
+                    suspendError?.error ||
+                    suspendError?.message ||
+                    "Action failed"}
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md"
+                  onClick={() => {
                     setShowManualPaymentModal(false);
                     setSelectedUserForPayment(null);
                     setManualPaymentData({
@@ -885,315 +936,416 @@ function Users() {
                       payment_reference: "",
                       notes: "",
                     });
-
-                    if (alertTimerRef.current) {
-                      clearTimeout(alertTimerRef.current);
-                      alertTimerRef.current = null;
-                    }
-                    setAlert({
-                      type: "success",
-                      text: `✅ User verified successfully! Their verification badge should appear immediately.`,
-                    });
-                    alertTimerRef.current = setTimeout(
-                      () => setAlert(null),
-                      7000,
-                    );
-                  } catch (error) {
-                    console.error("Approval failed:", error);
-                    if (alertTimerRef.current) {
-                      clearTimeout(alertTimerRef.current);
-                      alertTimerRef.current = null;
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 bg-[#0b93c6] text-white rounded-md disabled:opacity-50"
+                  onClick={async () => {
+                    // Check if documents have been marked as received
+                    if (!selectedUserForPayment.documents_received) {
+                      setAlert({
+                        type: "error",
+                        text: "Documents must be marked as received before approval. Click 'Mark Documents' first.",
+                      });
+                      return;
                     }
 
-                    let errorMessage = "Unknown error";
-                    if (error?.message) {
-                      errorMessage = error.message;
-                    } else if (typeof error === "string") {
-                      errorMessage = error;
-                    } else if (error?.detail) {
-                      errorMessage = error.detail;
-                    } else if (error?.error) {
-                      errorMessage = error.error;
-                    }
+                    try {
+                      const result = await dispatch(
+                        approveUser({
+                          id: selectedUserForPayment.id,
+                          manualPayment: {
+                            payment_verified_manually: true,
+                            manual_payment_method:
+                              manualPaymentData.payment_method,
+                            manual_payment_date:
+                              manualPaymentData.payment_received_date,
+                            manual_payment_reference:
+                              manualPaymentData.payment_reference,
+                            manual_payment_notes: manualPaymentData.notes,
+                          },
+                        }),
+                      ).unwrap();
 
-                    setAlert({
-                      type: "error",
-                      text: `Failed to verify user: ${errorMessage}`,
-                    });
-                    alertTimerRef.current = setTimeout(
-                      () => setAlert(null),
-                      5000,
-                    );
+                      console.log("Approval result:", result);
+
+                      if (currentUserId === selectedUserForPayment.id) {
+                        if (result.updatedUser) {
+                          dispatch(
+                            updateUserVerification(
+                              result.updatedUser.is_verified || true,
+                            ),
+                          );
+                        } else {
+                          dispatch(updateUserVerification(true));
+                        }
+                      }
+
+                      setShowManualPaymentModal(false);
+                      setSelectedUserForPayment(null);
+                      setManualPaymentData({
+                        payment_method: "bank_transfer",
+                        payment_received_date: "",
+                        payment_reference: "",
+                        notes: "",
+                      });
+
+                      if (alertTimerRef.current) {
+                        clearTimeout(alertTimerRef.current);
+                        alertTimerRef.current = null;
+                      }
+                      setAlert({
+                        type: "success",
+                        text: `✅ User verified successfully! Their verification badge should appear immediately.`,
+                      });
+                      alertTimerRef.current = setTimeout(
+                        () => setAlert(null),
+                        7000,
+                      );
+                    } catch (error) {
+                      console.error("Approval failed:", error);
+                      if (alertTimerRef.current) {
+                        clearTimeout(alertTimerRef.current);
+                        alertTimerRef.current = null;
+                      }
+
+                      let errorMessage = "Unknown error";
+                      if (error?.message) {
+                        errorMessage = error.message;
+                      } else if (typeof error === "string") {
+                        errorMessage = error;
+                      } else if (error?.detail) {
+                        errorMessage = error.detail;
+                      } else if (error?.error) {
+                        errorMessage = error.error;
+                      }
+
+                      setAlert({
+                        type: "error",
+                        text: `Failed to verify user: ${errorMessage}`,
+                      });
+                      alertTimerRef.current = setTimeout(
+                        () => setAlert(null),
+                        5000,
+                      );
+                    }
+                  }}
+                  disabled={
+                    suspendLoading || !manualPaymentData.payment_received_date
                   }
-                }}
-                disabled={
-                  suspendLoading || !manualPaymentData.payment_received_date
-                }
-              >
-                {suspendLoading ? "Approving..." : "Approve & Mark Paid"}
-              </button>
+                >
+                  {suspendLoading ? "Approving..." : "Approve & Mark Paid"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Controls */}
-      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4">
-        <div className="flex-1 w-full">
-          <div className="flex items-center bg-white rounded-md px-3 py-2 shadow-sm text-black">
-            <FaSearch className="text-slate-400 mr-2" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="search for users"
-              className="outline-none w-full text-sm bg-white text-black"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 mt-3 md:mt-0">
-          <div className="relative">
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
-            >
-              <option value="All">Filter by Location</option>
-              <option value="olivia">Lagos</option>
-              <option value="phoenix">Abuja</option>
-            </select>
-            <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
+        {/* Controls */}
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4">
+          <div className="flex-1 w-full">
+            <div className="flex items-center bg-white rounded-md px-3 py-2 shadow-sm text-black">
+              <FaSearch className="text-slate-400 mr-2" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="search for users"
+                className="outline-none w-full text-sm bg-white text-black"
+              />
+            </div>
           </div>
 
-          <div className="relative" ref={profileFilterRef}>
+          <div className="flex flex-wrap items-center gap-3 mt-3 md:mt-0">
+            <div className="relative">
+              <select
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
+              >
+                <option value="All">Filter by Location</option>
+                <option value="olivia">Lagos</option>
+                <option value="phoenix">Abuja</option>
+              </select>
+              <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
+            </div>
+
+            <div className="relative" ref={profileFilterRef}>
+              <button
+                type="button"
+                onClick={() => setProfileFilterOpen((o) => !o)}
+                className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8 min-w-[160px] flex items-center justify-between gap-2"
+              >
+                <span>
+                  {profileStatusFilters.length === 0
+                    ? "Profile Status"
+                    : profileStatusFilters.length === 1
+                      ? profileFilterOptions.find((o) => o.value === profileStatusFilters[0])?.label
+                      : `${profileStatusFilters.length} filters`}
+                </span>
+                <FaChevronDown className="text-slate-400 shrink-0" />
+              </button>
+
+              {profileFilterOpen && (
+                <div className="absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-md shadow-lg z-50 py-1">
+                  {profileFilterOptions.map((opt) => (
+                    <label
+                      key={opt.value}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-black hover:bg-slate-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={profileStatusFilters.includes(opt.value)}
+                        onChange={() => toggleProfileFilter(opt.value)}
+                        className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                  {profileStatusFilters.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setProfileStatusFilters([])}
+                      className="w-full text-left px-3 py-2 text-xs text-[#0b93c6] hover:bg-slate-50 border-t border-slate-100 mt-1"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             <button
-              type="button"
-              onClick={() => setProfileFilterOpen((o) => !o)}
-              className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8 min-w-[160px] flex items-center justify-between gap-2"
+              onClick={() => setShowEmailModal(true)}
+              className="px-4 py-2 border border-[#0b93c6] text-[#0b93c6] rounded-md flex items-center justify-center gap-2 text-sm font-medium hover:bg-blue-50 transition-all"
             >
-              <span>
-                {profileStatusFilters.length === 0
-                  ? "Profile Status"
-                  : profileStatusFilters.length === 1
-                  ? profileFilterOptions.find((o) => o.value === profileStatusFilters[0])?.label
-                  : `${profileStatusFilters.length} filters`}
-              </span>
-              <FaChevronDown className="text-slate-400 shrink-0" />
+              <FaEnvelope />
+              Send Email
             </button>
 
-            {profileFilterOpen && (
-              <div className="absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-md shadow-lg z-50 py-1">
-                {profileFilterOptions.map((opt) => (
-                  <label
-                    key={opt.value}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-black hover:bg-slate-50 cursor-pointer"
-                  >
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="px-4 py-2 bg-[#0b93c6] text-white rounded-md flex items-center justify-center gap-2 text-sm font-medium shadow-sm hover:bg-[#0a82b0] active:scale-[0.98] transition-all"
+            >
+              <FaFileExport />
+              Export Data
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-md shadow-sm overflow-x-auto text-black">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-slate-500 text-xs">
+              <tr>
+                <th className="p-3">
+                  <input
+                    type="checkbox"
+                    checked={
+                      filtered.length > 0 &&
+                      selectedIds.length === filtered.length
+                    }
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
+                  />
+                </th>
+                <th
+                  className="p-3 text-left cursor-pointer"
+                  onClick={() => toggleSort("name")}
+                >
+                  Name
+                </th>
+                <th className="p-3 text-left">User Type</th>
+                <th className="p-3 text-left">Email address</th>
+                <th className="p-3 text-left">Phone Number</th>
+                <th className="p-3 text-left">Verification Status</th>
+                <th
+                  className="p-3 text-left cursor-pointer"
+                  onClick={() => toggleSort("onboard")}
+                >
+                  onboarding Date
+                </th>
+                <th className="p-3"> </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => (
+                <tr
+                  key={r.id}
+                  className="border-b last:border-b-0 hover:bg-slate-50"
+                >
+                  <td className="p-3">
                     <input
                       type="checkbox"
-                      checked={profileStatusFilters.includes(opt.value)}
-                      onChange={() => toggleProfileFilter(opt.value)}
+                      checked={selectedIds.includes(r.id)}
+                      onChange={() => toggleSelectRow(r.id)}
                       className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
                     />
-                    {opt.label}
-                  </label>
-                ))}
-                {profileStatusFilters.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setProfileStatusFilters([])}
-                    className="w-full text-left px-3 py-2 text-xs text-[#0b93c6] hover:bg-slate-50 border-t border-slate-100 mt-1"
-                  >
-                    Clear filters
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={() => setShowEmailModal(true)}
-            className="px-4 py-2 border border-[#0b93c6] text-[#0b93c6] rounded-md flex items-center justify-center gap-2 text-sm font-medium hover:bg-blue-50 transition-all"
-          >
-            <FaEnvelope />
-            Send Email
-          </button>
-          
-          <button
-            onClick={() => setShowExportModal(true)}
-            className="px-4 py-2 bg-[#0b93c6] text-white rounded-md flex items-center justify-center gap-2 text-sm font-medium shadow-sm hover:bg-[#0a82b0] active:scale-[0.98] transition-all"
-          >
-            <FaFileExport />
-            Export Data
-          </button>
+                  </td>
+                  <td className="p-3 flex items-center gap-3">
+                    <img
+                      src={r.avatar}
+                      alt="avatar"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                    <div>
+                      <div className="font-medium">{r.name}</div>
+                    </div>
+                  </td>
+                  <td className="p-3">{r.userType}</td>
+                  <td className="p-3 text-slate-600">{r.email}</td>
+                  <td className="p-3">{r.phone}</td>
+                  <td className="p-3">{getVerificationBadge(r)}</td>
+                  <td className="p-3">{r.onboard}</td>
+                  <td className="p-3">
+                    <div className="relative inline-block">
+                      <button
+                        onClick={() =>
+                          setOpenMenuId(openMenuId === r.id ? null : r.id)
+                        }
+                        className="px-2 py-1 rounded hover:bg-gray-100 text-black"
+                      >
+                        •••
+                      </button>
+                      {openMenuId === r.id && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow z-10 text-sm">
+                          <ul>
+                            <li
+                              onClick={() => {
+                                setEditRow({ id: r.id, name: "Loading..." });
+                                dispatch(fetchUserById(r.id));
+                                setOpenMenuId(null);
+                              }}
+                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
+                            >
+                              View
+                            </li>
+                            <li
+                              onClick={() => {
+                                setSelectedUserForDocs(r);
+                                setShowDocumentsModal(true);
+                                setOpenMenuId(null);
+                              }}
+                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
+                            >
+                              Mark Documents
+                            </li>
+                            {r.documents_received && (
+                              <li
+                                onClick={() => {
+                                  setSelectedUserForPayment(r);
+                                  setShowManualPaymentModal(true);
+                                  setOpenMenuId(null);
+                                }}
+                                className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black font-medium text-blue-600"
+                              >
+                                Approve User
+                              </li>
+                            )}
+                            <li
+                              onClick={() => {
+                                setSingleEmailUser(r);
+                                setShowEmailModal(true);
+                                setOpenMenuId(null);
+                              }}
+                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
+                            >
+                              Send Email
+                            </li>
+                            <li
+                              onClick={() => {
+                                setSelectedUserForTemplate(r);
+                                setShowTemplatesModal(true);
+                                setOpenMenuId(null);
+                              }}
+                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black flex items-center gap-2"
+                            >
+                              <FaComments className="text-sm" />
+                              Quick Message
+                            </li>
+                            <li
+                              onClick={() => {
+                                setSelectedUserForTimeline(r.id);
+                                setShowTimelineModal(true);
+                                setOpenMenuId(null);
+                              }}
+                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black flex items-center gap-2"
+                            >
+                              <FaClock className="text-sm" />
+                              View Timeline
+                            </li>
+                            <li
+                              onClick={() => {
+                                setDeleteRow(r);
+                                setOpenMenuId(null);
+                              }}
+                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
+                            >
+                              Delete
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="p-6 text-center text-slate-400">
+                    No results
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-md shadow-sm overflow-x-auto text-black">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500 text-xs">
-            <tr>
-              <th className="p-3">
-                <input
-                  type="checkbox"
-                  checked={
-                    filtered.length > 0 &&
-                    selectedIds.length === filtered.length
-                  }
-                  onChange={toggleSelectAll}
-                  className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
-                />
-              </th>
-              <th
-                className="p-3 text-left cursor-pointer"
-                onClick={() => toggleSort("name")}
-              >
-                Name
-              </th>
-              <th className="p-3 text-left">User Type</th>
-              <th className="p-3 text-left">Email address</th>
-              <th className="p-3 text-left">Phone Number</th>
-              <th className="p-3 text-left">Verification Status</th>
-              <th
-                className="p-3 text-left cursor-pointer"
-                onClick={() => toggleSort("onboard")}
-              >
-                onboarding Date
-              </th>
-              <th className="p-3"> </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((r) => (
-              <tr
-                key={r.id}
-                className="border-b last:border-b-0 hover:bg-slate-50"
-              >
-                <td className="p-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.includes(r.id)}
-                    onChange={() => toggleSelectRow(r.id)}
-                    className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
-                  />
-                </td>
-                <td className="p-3 flex items-center gap-3">
-                  <img
-                    src={r.avatar}
-                    alt="avatar"
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                  <div>
-                    <div className="font-medium">{r.name}</div>
-                  </div>
-                </td>
-                <td className="p-3">{r.userType}</td>
-                <td className="p-3 text-slate-600">{r.email}</td>
-                <td className="p-3">{r.phone}</td>
-                <td className="p-3">{getVerificationBadge(r)}</td>
-                <td className="p-3">{r.onboard}</td>
-                <td className="p-3">
-                  <div className="relative inline-block">
-                    <button
-                      onClick={() =>
-                        setOpenMenuId(openMenuId === r.id ? null : r.id)
-                      }
-                      className="px-2 py-1 rounded hover:bg-gray-100 text-black"
-                    >
-                      •••
-                    </button>
-                    {openMenuId === r.id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow z-10 text-sm">
-                        <ul>
-                          <li
-                            onClick={() => {
-                              setEditRow({ id: r.id, name: "Loading..." });
-                              dispatch(fetchUserById(r.id));
-                              setOpenMenuId(null);
-                            }}
-                            className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
-                          >
-                            View
-                          </li>
-                          <li
-                            onClick={() => {
-                              setSelectedUserForDocs(r);
-                              setShowDocumentsModal(true);
-                              setOpenMenuId(null);
-                            }}
-                            className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
-                          >
-                            Mark Documents
-                          </li>
-                          {r.documents_received && (
-                            <li
-                              onClick={() => {
-                                setSelectedUserForPayment(r);
-                                setShowManualPaymentModal(true);
-                                setOpenMenuId(null);
-                              }}
-                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black font-medium text-blue-600"
-                            >
-                              Approve User
-                            </li>
-                          )}
-                          <li
-                            onClick={() => {
-                              setSingleEmailUser(r);
-                              setShowEmailModal(true);
-                              setOpenMenuId(null);
-                            }}
-                            className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
-                          >
-                            Send Email
-                          </li>
-                          <li
-                            onClick={() => {
-                              setDeleteRow(r);
-                              setOpenMenuId(null);
-                            }}
-                            className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
-                          >
-                            Delete
-                          </li>
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={9} className="p-6 text-center text-slate-400">
-                  No results
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    
-    <DataExportModal
-      isOpen={showExportModal}
-      onClose={() => setShowExportModal(false)}
-      data={filtered}
-      selectedIds={selectedIds}
-      activeStat={activeStat}
-    />
-    <SendEmailModal
-      isOpen={showEmailModal}
-      onClose={() => {
-        setShowEmailModal(false);
-        setSingleEmailUser(null);
-      }}
-      selectedUsers={singleEmailUser ? [singleEmailUser] : rows.filter(r => selectedIds.includes(r.id))}
-      onEmailSent={(msg) => {
-        setAlert({ type: 'success', text: `✅ ${msg}` });
-        setTimeout(() => setAlert(null), 5000);
-      }}
-    />
+      <DataExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        data={filtered}
+        selectedIds={selectedIds}
+        activeStat={activeStat}
+      />
+      <SendEmailModal
+        isOpen={showEmailModal}
+        onClose={() => {
+          setShowEmailModal(false);
+          setSingleEmailUser(null);
+        }}
+        selectedUsers={singleEmailUser ? [singleEmailUser] : rows.filter(r => selectedIds.includes(r.id))}
+        onEmailSent={(msg) => {
+          setAlert({ type: 'success', text: `✅ ${msg}` });
+          setTimeout(() => setAlert(null), 5000);
+        }}
+      />
+      <BulkProfileChecker
+        isOpen={showBulkChecker}
+        onClose={() => setShowBulkChecker(false)}
+      />
+      <MessageTemplatesModal
+        isOpen={showTemplatesModal}
+        onClose={() => {
+          setShowTemplatesModal(false);
+          setSelectedUserForTemplate(null);
+        }}
+        selectedUser={selectedUserForTemplate}
+        onMessageSent={(msg) => {
+          setAlert({ type: 'success', text: `✅ ${msg}` });
+          setTimeout(() => setAlert(null), 5000);
+        }}
+      />
+      <UserTimelineModal
+        isOpen={showTimelineModal}
+        onClose={() => {
+          setShowTimelineModal(false);
+          setSelectedUserForTimeline(null);
+        }}
+        userId={selectedUserForTimeline}
+      />
     </>
   );
 }
