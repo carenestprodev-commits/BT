@@ -1,5 +1,4 @@
 /* Feature 5: Profile Completion Checklist View */
-import React from 'react';
 import { FaCheckCircle, FaTimesCircle, FaExclamationCircle } from 'react-icons/fa';
 
 const ProfileCompletionChecklist = ({ user, profileData }) => {
@@ -66,9 +65,15 @@ const ProfileCompletionChecklist = ({ user, profileData }) => {
         }
     ];
 
-    const completedCount = checklistItems.filter(item => item.completed).length;
-    const totalCount = checklistItems.length;
-    const completionPercentage = Math.round((completedCount / totalCount) * 100);
+    // Only count required fields for completion percentage
+    const requiredItems = checklistItems.filter(item => item.required);
+    const completedRequiredCount = requiredItems.filter(item => item.completed).length;
+    const totalRequiredCount = requiredItems.length;
+    const completionPercentage = totalRequiredCount > 0
+        ? Math.round((completedRequiredCount / totalRequiredCount) * 100)
+        : 100;
+
+    const missingRequiredCount = totalRequiredCount - completedRequiredCount;
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
@@ -76,13 +81,13 @@ const ProfileCompletionChecklist = ({ user, profileData }) => {
                 <h4 className="font-semibold text-gray-900">Profile Completion</h4>
                 <div className="flex items-center gap-2">
                     <div className="text-sm font-medium text-gray-700">
-                        {completedCount}/{totalCount}
+                        {completedRequiredCount}/{totalRequiredCount} required
                     </div>
                     <div className={`px-2 py-1 rounded text-xs font-medium ${completionPercentage === 100
-                            ? 'bg-green-100 text-green-700'
-                            : completionPercentage >= 70
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : 'bg-red-100 text-red-700'
+                        ? 'bg-green-100 text-green-700'
+                        : completionPercentage >= 70
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-red-100 text-red-700'
                         }`}>
                         {completionPercentage}%
                     </div>
@@ -93,10 +98,10 @@ const ProfileCompletionChecklist = ({ user, profileData }) => {
             <div className="mb-4 bg-gray-200 rounded-full h-2 overflow-hidden">
                 <div
                     className={`h-full transition-all duration-500 ${completionPercentage === 100
-                            ? 'bg-green-500'
-                            : completionPercentage >= 70
-                                ? 'bg-yellow-500'
-                                : 'bg-red-500'
+                        ? 'bg-green-500'
+                        : completionPercentage >= 70
+                            ? 'bg-yellow-500'
+                            : 'bg-red-500'
                         }`}
                     style={{ width: `${completionPercentage}%` }}
                 ></div>
@@ -134,7 +139,15 @@ const ProfileCompletionChecklist = ({ user, profileData }) => {
             {completionPercentage < 100 && (
                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                     <p className="text-xs text-yellow-800">
-                        <strong>Missing {totalCount - completedCount} items.</strong> User needs to complete these before verification.
+                        <strong>Missing {missingRequiredCount} required item{missingRequiredCount !== 1 ? 's' : ''}.</strong> User needs to complete these before verification.
+                    </p>
+                </div>
+            )}
+
+            {completionPercentage === 100 && (
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <p className="text-xs text-green-800">
+                        <strong>✓ All required fields completed!</strong> Profile is ready for verification.
                     </p>
                 </div>
             )}
