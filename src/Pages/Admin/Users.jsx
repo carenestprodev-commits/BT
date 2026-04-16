@@ -39,6 +39,7 @@ import {
   approveUser,
   markDocumentsReceived,
   verifyProvider,
+  clearCurrentUser,
 } from "../../Redux/AdminUsers";
 import { updateUserVerification } from "../../Redux/Login";
 import { BASE_URL } from "../../Redux/config";
@@ -302,6 +303,7 @@ function Users() {
 
   const [activeStat, setActiveStat] = useState("all");
   const [editRow, setEditRow] = useState(null);
+  const [selectedUserId, setSelectedUserId] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
 
@@ -390,7 +392,7 @@ function Users() {
   );
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && currentUser.id === selectedUserId) {
       const u = currentUser;
       setEditRow({
         ...u,
@@ -421,10 +423,10 @@ function Users() {
         onboarding_details: u.onboarding_details || null,
       });
     }
-  }, [currentUser]);
+  }, [currentUser, selectedUserId]);
 
   const detailUser =
-    currentUser && editRow && currentUser.id === editRow.id
+    currentUser && currentUser.id === selectedUserId
       ? currentUser
       : editRow;
   const detailSections = detailUser
@@ -892,12 +894,20 @@ function Users() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6">
             <div
               className="absolute inset-0"
-              onClick={() => setEditRow(null)}
+              onClick={() => {
+                dispatch(clearCurrentUser());
+                setSelectedUserId(null);
+                setEditRow(null);
+              }}
             />
             <div className="relative z-50 flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
               <button
                 className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20"
-                onClick={() => setEditRow(null)}
+                onClick={() => {
+                  dispatch(clearCurrentUser());
+                  setSelectedUserId(null);
+                  setEditRow(null);
+                }}
               >
                 ✕
               </button>
@@ -1008,6 +1018,7 @@ function Users() {
                                 : r,
                             ),
                           );
+                          setSelectedUserId(null);
                           setEditRow(null);
                           if (alertTimerRef.current) {
                             clearTimeout(alertTimerRef.current);
@@ -1030,6 +1041,7 @@ function Users() {
                                 : r,
                             ),
                           );
+                          setSelectedUserId(null);
                           setEditRow(null);
                           if (alertTimerRef.current) {
                             clearTimeout(alertTimerRef.current);
@@ -1504,6 +1516,8 @@ function Users() {
                           <ul>
                             <li
                               onClick={() => {
+                                dispatch(clearCurrentUser());
+                                setSelectedUserId(r.id);
                                 setEditRow({
                                   ...r,
                                   is_suspend: r.subscriptionStatus !== "Active",
