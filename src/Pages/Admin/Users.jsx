@@ -43,6 +43,252 @@ import {
 import { updateUserVerification } from "../../Redux/Login";
 import { BASE_URL } from "../../Redux/config";
 
+const EMPTY_VALUE = "—";
+const SERVICE_CATEGORY_LABELS = {
+  childcare: "Childcare",
+  elderlycare: "Elderly Care",
+  tutoring: "Tutoring",
+  housekeeping: "Housekeeping",
+};
+
+const USER_TYPE_LABELS = {
+  provider: "Care Provider",
+  seeker: "Care Seeker",
+  admin: "Admin",
+};
+
+const humanizeKey = (value) =>
+  String(value || "")
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (ch) => ch.toUpperCase()) || EMPTY_VALUE;
+
+const formatText = (value) => {
+  if (value === null || value === undefined || value === "") return EMPTY_VALUE;
+  if (Array.isArray(value)) return value.length ? value.join(", ") : EMPTY_VALUE;
+  if (typeof value === "object") {
+    return Object.entries(value)
+      .map(([key, entryValue]) => `${humanizeKey(key)}: ${formatText(entryValue)}`)
+      .join(" • ") || EMPTY_VALUE;
+  }
+  return String(value);
+};
+
+const formatDate = (value) => (value ? dayjs(value).format("DD MMM YYYY") : EMPTY_VALUE);
+const formatDateTime = (value) =>
+  value ? dayjs(value).format("DD MMM YYYY, h:mm A") : EMPTY_VALUE;
+const formatCurrency = (value) => {
+  if (value === null || value === undefined || value === "") return EMPTY_VALUE;
+  const numeric = Number(value);
+  return Number.isNaN(numeric) ? String(value) : `₦${numeric.toLocaleString()}`;
+};
+
+const serviceCategoryLabel = (value) =>
+  SERVICE_CATEGORY_LABELS[String(value || "").toLowerCase()] || formatText(value);
+const userTypeLabel = (value) =>
+  USER_TYPE_LABELS[String(value || "").toLowerCase()] || formatText(value);
+
+const makeField = (label, value) => ({ label, value: formatText(value) });
+const makeSection = (title, items) => ({ title, items });
+
+const formatChildrenSummary = (children) => {
+  if (!Array.isArray(children) || children.length === 0) return EMPTY_VALUE;
+  return children
+    .map((child, index) => {
+      const age = child?.age || child?.birthDate || EMPTY_VALUE;
+      const gender = child?.gender || "";
+      return `Child ${index + 1}: ${age}${gender ? ` • ${gender}` : ""}`;
+    })
+    .join(" | ");
+};
+
+const buildProviderSections = (user) => {
+  const profile = user?.onboarding_details || {};
+  const verification = user?.verification || {};
+  const category = String(profile.service_category || "").toLowerCase();
+  const categoryItems = [];
+
+  if (category === "childcare") {
+    categoryItems.push(
+      makeField("Type of care provider", profile.category_specific_details?.type_of_care_provider),
+      makeField("Preferred option", profile.category_specific_details?.preferred_option),
+      makeField("Special preferences", profile.category_specific_details?.special_preferences),
+      makeField("Communication language", profile.category_specific_details?.communication_language),
+    );
+  } else if (category === "elderlycare") {
+    categoryItems.push(
+      makeField(
+        "Personality and interpersonal skills",
+        profile.category_specific_details?.personality_and_interpersonal_skills,
+      ),
+      makeField("Special preferences", profile.category_specific_details?.special_preferences),
+      makeField("Communication language", profile.category_specific_details?.communication_language),
+      makeField("Preferred option", profile.category_specific_details?.preferred_option),
+    );
+  } else if (category === "tutoring") {
+    categoryItems.push(
+      makeField("Tutoring services", profile.category_specific_details?.tutoring_services),
+      makeField(
+        "Experience level taught",
+        profile.category_specific_details?.experience_level_taught,
+      ),
+      makeField(
+        "Subjects experienced in",
+        profile.category_specific_details?.subjects_experienced_in,
+      ),
+    );
+  } else if (category === "housekeeping") {
+    categoryItems.push(
+      makeField("Housekeeping preference", profile.category_specific_details?.housekeeping_preference),
+      makeField("Services offered", profile.category_specific_details?.services_offered),
+    );
+  }
+
+  return [
+    makeSection("Identity", [
+      makeField("Full name", user?.full_name),
+      makeField("First name", profile.first_name),
+      makeField("Last name", profile.last_name),
+      makeField("Date of birth", formatDate(profile.date_of_birth)),
+      makeField("Email", user?.email),
+      makeField("Phone number", user?.phone_number || profile.phone_number),
+      makeField("User type", userTypeLabel(user?.user_type)),
+      makeField("Account status", user?.is_active ? "Active" : "Inactive"),
+      makeField("Joined", formatDateTime(user?.date_joined)),
+      makeField("Last login", formatDateTime(user?.last_login)),
+    ]),
+    makeSection("Location", [
+      makeField("Country", profile.country || user?.location_details?.country),
+      makeField("State", profile.state || user?.location_details?.state),
+      makeField("City", profile.city || user?.location_details?.city),
+      makeField("Zip code", profile.zip_code || user?.location_details?.zip_code),
+      makeField("Nationality", profile.nationality || user?.location_details?.nationality),
+      makeField("Profile photo", user?.profile_image_url ? "Uploaded" : EMPTY_VALUE),
+    ]),
+    makeSection("Provider Profile", [
+      makeField(
+        "Service category",
+        profile.service_category_label || serviceCategoryLabel(profile.service_category),
+      ),
+      makeField("Profile title", profile.profile_title),
+      makeField("Native language", profile.native_language),
+      makeField("Experience level", profile.experience_level),
+      makeField("Years of experience", profile.years_of_experience),
+      makeField("Hourly rate", formatCurrency(profile.hourly_rate)),
+      makeField("Languages spoken", profile.languages),
+      makeField("Additional services", profile.additional_services),
+      makeField("Skills", profile.skills),
+    ]),
+    makeSection("Category Details", categoryItems.length ? categoryItems : [makeField("Details", EMPTY_VALUE)]),
+    makeSection("About", [
+      makeField("Why they want to work", profile.work_reason),
+      makeField("About me", profile.about_me),
+      makeField("Consent timestamp", formatDateTime(profile.consent_timestamp)),
+      makeField("Consent version", profile.consent_version),
+    ]),
+    makeSection("Verification & Billing", [
+      makeField("Verification status", verification.status_label || verification.status),
+      makeField("Verification feedback", verification.feedback),
+      makeField("Government ID", verification.government_id_url ? "Uploaded" : EMPTY_VALUE),
+      makeField("Subscription status", user?.subscription_status),
+      makeField("Request count", user?.request_count),
+      makeField("Earnings", formatCurrency(user?.earnings)),
+    ]),
+  ];
+};
+
+const buildSeekerSections = (user) => {
+  const request = user?.onboarding_details || {};
+  const verification = user?.verification || {};
+  const location = request.location_information || {};
+  const childInfo = request.child_information || {};
+  const elderlyInfo = request.elderly_information || {};
+  const tutoringInfo = request.tutoring_information || {};
+  const housekeepingInfo = request.housekeeping_information || {};
+  const category = String(request.service_category || "").toLowerCase();
+  const serviceItems = [];
+
+  if (category === "childcare") {
+    serviceItems.push(
+      makeField("Who needs care", childInfo.who_needs_care),
+      makeField("Childcare type", childInfo.childcare_type),
+      makeField("Number of children", childInfo.number_of_children),
+      makeField("Children", formatChildrenSummary(childInfo.children)),
+    );
+  } else if (category === "elderlycare") {
+    serviceItems.push(
+      makeField("Care type", elderlyInfo.care_type),
+      makeField("Relationship", elderlyInfo.relationship),
+      makeField("Age", elderlyInfo.age),
+      makeField("Gender", elderlyInfo.gender),
+      makeField("Health condition", elderlyInfo.health_condition),
+    );
+  } else if (category === "tutoring") {
+    serviceItems.push(
+      makeField("Subjects", tutoringInfo.subjects),
+      makeField("Student age", tutoringInfo.student_age),
+      makeField("Current grade", tutoringInfo.current_grade),
+    );
+  } else if (category === "housekeeping") {
+    serviceItems.push(
+      makeField("Kind of housekeeping", housekeepingInfo.kind_of_housekeeping),
+      makeField("Size of your house", housekeepingInfo.size_of_your_house),
+      makeField("Bedrooms", housekeepingInfo.number_of_bedrooms),
+      makeField("Bathrooms", housekeepingInfo.number_of_bathrooms),
+      makeField("Toilets", housekeepingInfo.number_of_toilets),
+      makeField("Pets present", housekeepingInfo.pets_present),
+      makeField("Pet details", housekeepingInfo.specify_pet_present),
+      makeField("Additional care", housekeepingInfo.additional_care),
+    );
+  }
+
+  return [
+    makeSection("Identity", [
+      makeField("Full name", user?.full_name),
+      makeField("Email", user?.email),
+      makeField("Phone number", user?.phone_number),
+      makeField("User type", userTypeLabel(user?.user_type)),
+      makeField("Account status", user?.is_active ? "Active" : "Inactive"),
+      makeField("Joined", formatDateTime(user?.date_joined)),
+      makeField("Last login", formatDateTime(user?.last_login)),
+    ]),
+    makeSection("Location", [
+      makeField("Use current location", location.use_current_location ? "Yes" : "No"),
+      makeField("Preferred language", location.preferred_language),
+      makeField("Country", location.country || user?.location_details?.country),
+      makeField("State", location.state || user?.location_details?.state),
+      makeField("City", location.city || user?.location_details?.city),
+      makeField("Zip code", location.zip_code || user?.location_details?.zip_code),
+      makeField("Nationality", location.nationality || user?.location_details?.nationality),
+    ]),
+    makeSection("Care Request", [
+      makeField("Service category", request.service_category_label || serviceCategoryLabel(request.service_category)),
+      makeField("Request title", request.title),
+      makeField("Summary", request.summary),
+      makeField("Message to provider", request.message_to_provider),
+    ]),
+    makeSection("Service Details", serviceItems.length ? serviceItems : [makeField("Details", EMPTY_VALUE)]),
+    makeSection("Schedule & Budget", [
+      makeField("Job type", request.job_type),
+      makeField("Start date", formatDate(request.start_date)),
+      makeField("End date", formatDate(request.end_date)),
+      makeField("Start time", request.start_time),
+      makeField("End time", request.end_time),
+      makeField("Repeat pattern", request.recurrence_pattern),
+      makeField("Budget minimum", formatCurrency(request.price_min)),
+      makeField("Budget maximum", formatCurrency(request.price_max)),
+      makeField("Skills and expertise", request.skills_and_expertise),
+    ]),
+    makeSection("Verification & Subscription", [
+      makeField("Verification status", verification.status_label || verification.status),
+      makeField("Verification feedback", verification.feedback),
+      makeField("Government ID", verification.government_id_url ? "Uploaded" : EMPTY_VALUE),
+      makeField("Subscription status", user?.subscription_status),
+      makeField("Requests posted", user?.request_count),
+    ]),
+  ];
+};
+
 function Users() {
   const dispatch = useDispatch();
   const { stats, users } = useSelector(
@@ -139,7 +385,7 @@ function Users() {
     }
   }, [activeStat, dispatch]);
 
-  const { currentUser } = useSelector(
+  const { currentUser, currentUserLoading, currentUserError } = useSelector(
     (s) => s.adminUsers || { currentUser: null },
   );
 
@@ -147,14 +393,15 @@ function Users() {
     if (currentUser) {
       const u = currentUser;
       setEditRow({
+        ...u,
         id: u.id,
         name: u.full_name || `User ${u.id}`,
-        userType: u.user_type === "provider" ? "Care Provider" : "Care seeker",
+        userType: userTypeLabel(u.user_type),
         email: u.email,
         phone: u.phone_number || "",
         onboard: u.date_joined ? dayjs(u.date_joined).format("DD-MM-YYYY") : "",
         lastLogin: u.last_login ? dayjs(u.last_login).format("DD-MM-YYYY") : "",
-        avatar: `/profilepic (1).png`,
+        avatar: u.profile_image_url || `/profilepic (1).png`,
         requestHistory: u.request_count ?? 0,
         requestsMade: u.request_count ?? 0,
         country: u.location_details?.country || "",
@@ -162,14 +409,26 @@ function Users() {
         nationality: u.location_details?.nationality || "",
         subscriptionStatus:
           u.subscription_status || (u.is_active ? "Active" : "Inactive"),
-        is_suspend: u.is_suspend ?? false,
+        is_suspend: !u.is_active,
         earnings: u.earnings || "-",
-        is_verified: u.is_verified ?? false,
-        verification_status: u.verification_status || "pending",
-        documents_received: u.documents_received ?? false,
+        is_verified:
+          u.verification?.status === "verified" ||
+          u.verification?.status === "approved",
+        verification_status: u.verification?.status || "pending",
+        documents_received: u.verification?.status === "documents_received",
+        profile_image_url: u.profile_image_url || "",
+        verification: u.verification || null,
+        onboarding_details: u.onboarding_details || null,
       });
     }
   }, [currentUser]);
+
+  const detailUser = currentUser || editRow;
+  const detailSections = detailUser
+    ? (detailUser.user_type === "provider"
+      ? buildProviderSections(detailUser)
+      : buildSeekerSections(detailUser))
+    : [];
 
   useEffect(() => {
     if (Array.isArray(users)) {
@@ -323,7 +582,7 @@ function Users() {
     });
 
     return data;
-  }, [rows, query, locationFilter, sortBy, activeStat, profileStatusFilters]);
+  }, [rows, query, locationFilter, sortBy, profileStatusFilters]);
 
   function toggleSort(key) {
     setSortBy((s) =>
@@ -627,149 +886,178 @@ function Users() {
 
         {/* Edit / Details Modal */}
         {editRow && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center pt-24">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6">
             <div
-              className="absolute inset-0 bg-black/30"
+              className="absolute inset-0"
               onClick={() => setEditRow(null)}
             />
-            <div className="relative bg-white w-[380px] rounded-lg shadow-lg p-6 z-50 max-h-[80vh] flex flex-col">
+            <div className="relative z-50 flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
               <button
-                className="absolute right-3 top-3 text-slate-500 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"
+                className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20"
                 onClick={() => setEditRow(null)}
               >
                 ✕
               </button>
-              <h3 className="text-lg font-medium mb-4">Details</h3>
-              <div className="space-y-3 text-sm text-slate-700 overflow-y-auto flex-1 pr-2">
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">Name</span>
-                  <span className="text-right">{editRow.name}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">Status</span>
-                  <span className="text-right">
+
+              <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-6 text-white sm:px-8">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/10">
+                      {editRow.profile_image_url ? (
+                        <img
+                          src={editRow.profile_image_url}
+                          alt={editRow.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl font-semibold">
+                          {(editRow.name || "U").charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+                        {userTypeLabel(editRow.user_type)}
+                      </p>
+                      <h3 className="mt-1 text-2xl font-semibold">
+                        {editRow.name}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-300">
+                        {editRow.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 md:justify-end">
                     {getVerificationBadge(editRow)}
-                  </span>
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">
+                      {editRow.subscriptionStatus}
+                    </span>
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">
+                      Joined {editRow.onboard}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">Phone Number</span>
-                  <span className="text-right">{editRow.phone}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">Email</span>
-                  <span className="text-right">{editRow.email}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">onboarding Date</span>
-                  <span className="text-right">{editRow.onboard}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">Request history</span>
-                  <span className="text-right">{editRow.requestHistory}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">No of requests made</span>
-                  <span className="text-right">{editRow.requestsMade}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">Country</span>
-                  <span className="text-right">{editRow.country}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">City</span>
-                  <span className="text-right">{editRow.city}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">Nationality</span>
-                  <span className="text-right">{editRow.nationality}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">Subscription status</span>
-                  <span className="text-right">{editRow.subscriptionStatus}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-500">Earnings</span>
-                  <span className="text-right">{editRow.earnings}</span>
-                </div>
-                <div className="flex justify-between py-2">
-                  <span className="text-slate-500">last login</span>
-                  <span className="text-right">{editRow.lastLogin}</span>
+
+                {currentUserLoading && (
+                  <p className="mt-4 text-sm text-slate-300">
+                    Refreshing full profile details...
+                  </p>
+                )}
+                {currentUserError && (
+                  <p className="mt-4 text-sm text-red-200">
+                    Unable to load the full profile details.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto bg-slate-50 px-6 py-6 sm:px-8">
+                <div className="grid gap-4">
+                  {detailSections.map((section) => (
+                    <section
+                      key={section.title}
+                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                    >
+                      <div className="mb-4 flex items-center justify-between">
+                        <h4 className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                          {section.title}
+                        </h4>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {section.items.map((item) => (
+                          <div
+                            key={item.label}
+                            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3"
+                          >
+                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+                              {item.label}
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-900">
+                              {item.value}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
                 </div>
               </div>
 
-              <div className="mt-4">
-                <button className="w-full bg-[#0b93c6] text-white py-2 rounded-md mb-3">
-                  Message
-                </button>
-                <button
-                  className="w-full border border-[#0b93c6] text-[#0b93c6] py-2 rounded-md"
-                  onClick={async () => {
-                    if (!editRow?.id) return;
-                    try {
-                      if (editRow.is_suspend) {
-                        const payload = await dispatch(
-                          activateUser(editRow.id),
-                        ).unwrap();
-                        const message = payload?.data?.status || "User activated";
-                        setRows((prev) =>
-                          prev.map((r) =>
-                            r.id === editRow.id
-                              ? { ...r, subscriptionStatus: "Active" }
-                              : r,
-                          ),
-                        );
-                        setEditRow(null);
+              <div className="border-t border-slate-200 bg-white px-6 py-4 sm:px-8">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button className="w-full rounded-md bg-[#0b93c6] py-2 text-white sm:w-auto sm:px-5">
+                    Message
+                  </button>
+                  <button
+                    className="w-full rounded-md border border-[#0b93c6] py-2 text-[#0b93c6] sm:w-auto sm:px-5"
+                    onClick={async () => {
+                      if (!editRow?.id) return;
+                      try {
+                        if (editRow.is_suspend) {
+                          const payload = await dispatch(
+                            activateUser(editRow.id),
+                          ).unwrap();
+                          const message = payload?.data?.status || "User activated";
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.id === editRow.id
+                                ? { ...r, subscriptionStatus: "Active" }
+                                : r,
+                            ),
+                          );
+                          setEditRow(null);
+                          if (alertTimerRef.current) {
+                            clearTimeout(alertTimerRef.current);
+                            alertTimerRef.current = null;
+                          }
+                          setAlert({ type: "success", text: message });
+                          alertTimerRef.current = setTimeout(
+                            () => setAlert(null),
+                            3000,
+                          );
+                        } else {
+                          const payload = await dispatch(
+                            suspendUser(editRow.id),
+                          ).unwrap();
+                          const message = payload?.data?.status || "User suspended";
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.id === editRow.id
+                                ? { ...r, subscriptionStatus: "Suspended" }
+                                : r,
+                            ),
+                          );
+                          setEditRow(null);
+                          if (alertTimerRef.current) {
+                            clearTimeout(alertTimerRef.current);
+                            alertTimerRef.current = null;
+                          }
+                          setAlert({ type: "success", text: message });
+                          alertTimerRef.current = setTimeout(
+                            () => setAlert(null),
+                            3000,
+                          );
+                        }
+                      } catch (e) {
+                        console.error("Action failed", e);
                         if (alertTimerRef.current) {
                           clearTimeout(alertTimerRef.current);
                           alertTimerRef.current = null;
                         }
-                        setAlert({ type: "success", text: message });
-                        alertTimerRef.current = setTimeout(
-                          () => setAlert(null),
-                          3000,
-                        );
-                      } else {
-                        const payload = await dispatch(
-                          suspendUser(editRow.id),
-                        ).unwrap();
-                        const message = payload?.data?.status || "User suspended";
-                        setRows((prev) =>
-                          prev.map((r) =>
-                            r.id === editRow.id
-                              ? { ...r, subscriptionStatus: "Suspended" }
-                              : r,
-                          ),
-                        );
-                        setEditRow(null);
-                        if (alertTimerRef.current) {
-                          clearTimeout(alertTimerRef.current);
-                          alertTimerRef.current = null;
-                        }
-                        setAlert({ type: "success", text: message });
+                        setAlert({
+                          type: "error",
+                          text: "Failed to update user status",
+                        });
                         alertTimerRef.current = setTimeout(
                           () => setAlert(null),
                           3000,
                         );
                       }
-                    } catch (e) {
-                      console.error("Action failed", e);
-                      if (alertTimerRef.current) {
-                        clearTimeout(alertTimerRef.current);
-                        alertTimerRef.current = null;
-                      }
-                      setAlert({
-                        type: "error",
-                        text: "Failed to update user status",
-                      });
-                      alertTimerRef.current = setTimeout(
-                        () => setAlert(null),
-                        3000,
-                      );
-                    }
-                  }}
-                >
-                  {editRow.is_suspend ? "Activate" : "Suspend"}
-                </button>
+                    }}
+                  >
+                    {editRow.is_suspend ? "Activate" : "Suspend"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1213,7 +1501,10 @@ function Users() {
                           <ul>
                             <li
                               onClick={() => {
-                                setEditRow({ id: r.id, name: "Loading..." });
+                                setEditRow({
+                                  ...r,
+                                  is_suspend: r.subscriptionStatus !== "Active",
+                                });
                                 dispatch(fetchUserById(r.id));
                                 setOpenMenuId(null);
                               }}
