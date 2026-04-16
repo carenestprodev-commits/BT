@@ -508,6 +508,7 @@ const slice = createSlice({
       .addCase(fetchUserById.pending, (state) => {
         state.currentUserLoading = true;
         state.currentUserError = null;
+        state.currentUser = null;
       })
       .addCase(fetchUserById.fulfilled, (state, action) => {
         state.currentUserLoading = false;
