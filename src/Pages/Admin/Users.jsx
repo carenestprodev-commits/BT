@@ -423,7 +423,10 @@ function Users() {
     }
   }, [currentUser]);
 
-  const detailUser = currentUser || editRow;
+  const detailUser =
+    currentUser && editRow && currentUser.id === editRow.id
+      ? currentUser
+      : editRow;
   const detailSections = detailUser
     ? (detailUser.user_type === "provider"
       ? buildProviderSections(detailUser)
