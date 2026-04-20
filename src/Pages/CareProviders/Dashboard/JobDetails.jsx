@@ -4,6 +4,7 @@ import Sidebar from "./Sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
+import { providerDashboardPaths } from "../../../Routes/providerRoutes";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import {
   fetchJobById,
@@ -171,7 +172,7 @@ function JobDetails() {
       handleSubmitApplication();
     } else {
       // Still not verified, navigate to verification page
-      navigate("/careproviders/dashboard/verification");
+      navigate(providerDashboardPaths.verifyIdentity);
     }
     setShowVerificationModal(false);
   };

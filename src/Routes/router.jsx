@@ -35,9 +35,11 @@ import RequestsProvider from "../Pages/CareProviders/Dashboard/Requests";
 import RequestDetailsProvider from "../Pages/CareProviders/Dashboard/RequestDetails";
 import SettingsProvider from "../Pages/CareProviders/Dashboard/Settings";
 import VerifyIdentityProvider from "../Pages/CareProviders/Dashboard/VerifyIdentity";
+import CertificateUploadGate from "../Pages/CareProviders/Dashboard/CertificateUploadGate";
 import PasswordProvider from "../Pages/CareProviders/Dashboard/Password";
 import WalletProvider from "../Pages/CareProviders/Dashboard/Wallet";
 import Payment from "../Pages/CareProviders/Dashboard/Payment";
+import { providerDashboardPaths } from "./providerRoutes";
 
 import Summary from "../Pages/CareSeekers/Dashboard/Summary";
 import AdminLayout from "../Pages/Admin/AdminLayout";
@@ -312,6 +314,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: providerDashboardPaths.certificateUpload,
+    element: (
+      <RoleProtectedRoute allowedRole="provider">
+        <CertificateUploadGate />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
     path: "/careproviders/dashboard/job_details",
     element: (
       <RoleProtectedRoute allowedRole="provider">
@@ -400,7 +410,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/careproviders/dashboard/verify_identity",
+    path: providerDashboardPaths.verifyIdentity,
     element: (
       <RoleProtectedRoute allowedRole="provider">
         <VerifyIdentityProvider />

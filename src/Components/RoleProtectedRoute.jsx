@@ -3,6 +3,7 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../Context/AuthContext";
 import VerificationStatusListener from "./VerificationStatusListener";
+import ProviderCertificateGuard from "./ProviderCertificateGuard";
 
 export default function RoleProtectedRoute({ allowedRole, children }) {
   const { user } = useAuth();
@@ -25,10 +26,12 @@ export default function RoleProtectedRoute({ allowedRole, children }) {
   }
 
   return (
-    <>
-      {/* Global verification status listener for all protected routes */}
-      <VerificationStatusListener />
-      {children}
-    </>
+    <ProviderCertificateGuard user={user}>
+      <>
+        {/* Global verification status listener for all protected routes */}
+        <VerificationStatusListener />
+        {children}
+      </>
+    </ProviderCertificateGuard>
   );
 }

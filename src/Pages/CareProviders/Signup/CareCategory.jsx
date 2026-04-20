@@ -14,6 +14,7 @@ import {
   isValidProfilePhoto,
   uploadProfilePhoto,
 } from "../../CareSeekers/Signup/uploadProfilePhoto";
+import { providerDashboardPaths } from "../../../Routes/providerRoutes";
 
 // --- Sub-component: The "I'll do this later" Modal ---
 const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
@@ -61,7 +62,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
       try {
         await uploadProfilePhoto(profilePhoto);
         onClose();
-        navigate("/careproviders/dashboard");
+        navigate(providerDashboardPaths.certificateUpload);
       } catch (err) {
         setUploadError(err.message || "Photo upload failed");
       }
@@ -343,7 +344,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
         await uploadProfilePhoto(profilePhoto);
         alert(res.message || "Account created successfully!");
         onClose();
-        navigate("/careproviders/dashboard");
+        navigate("/careproviders/dashboard/certificate-upload");
       }
     } catch (err) {
       if (registered) {

@@ -12,6 +12,7 @@ import {
   isValidProfilePhoto,
   uploadProfilePhoto,
 } from "../../CareSeekers/Signup/uploadProfilePhoto";
+import { providerDashboardPaths } from "../../../Routes/providerRoutes";
 
 function EmailPassword({ formData, updateFormData, handleBack }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -48,7 +49,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
       setUploadError("");
       try {
         await uploadProfilePhoto(profilePhoto);
-        navigate("/careproviders/dashboard");
+        navigate(providerDashboardPaths.certificateUpload);
       } catch (err) {
         setUploadError(err.message || "Photo upload failed");
       } finally {
@@ -343,7 +344,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
         setSignupComplete(true);
         await uploadProfilePhoto(profilePhoto);
         alert(res.message || "Account created");
-        navigate("/careproviders/dashboard");
+        navigate("/careproviders/dashboard/certificate-upload");
       }
     } catch (err) {
       if (registered) {
