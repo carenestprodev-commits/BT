@@ -107,6 +107,7 @@ export const uploadVerificationId = createAsyncThunk(
   async ({ file, type = "id" }, { rejectWithValue, dispatch }) => {
     // type: 'id' -> government id upload (existing behavior)
     // type: 'image' -> profile image upload (PATCH to upload_image endpoint)
+    // type: 'certificate' -> provider training certificate upload
     try {
       const access =
         localStorage.getItem("accessToken") || localStorage.getItem("access");
@@ -122,6 +123,8 @@ export const uploadVerificationId = createAsyncThunk(
         method = "PATCH";
         // use field name 'image' for profile image
         form.append("image", file);
+      } else if (type === "certificate") {
+        form.append("training_certificate", file);
       } else {
         // government id upload
         form.append("government_id", file);

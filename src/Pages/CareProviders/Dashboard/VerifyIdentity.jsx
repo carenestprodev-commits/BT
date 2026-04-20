@@ -7,14 +7,17 @@ import { uploadVerificationId } from "../../../Redux/Verification";
 function VerifyIdentity() {
   const [selectedFileId, setSelectedFileId] = useState(null);
   const [selectedFileSelf, setSelectedFileSelf] = useState(null);
+  const [selectedFileCertificate, setSelectedFileCertificate] = useState(null);
   const fileInputRefId = useRef();
   const fileInputRefSelf = useRef();
+  const fileInputRefCertificate = useRef();
 
   const handleFileChange = (e, target = "id") => {
     const file = e.target.files[0];
     if (!file) return;
     if (target === "id") setSelectedFileId(file);
-    else setSelectedFileSelf(file);
+    else if (target === "self") setSelectedFileSelf(file);
+    else setSelectedFileCertificate(file);
   };
 
   const handleRemoveFile = (target = "id") => {
@@ -22,8 +25,15 @@ function VerifyIdentity() {
       setSelectedFileId(null);
       if (fileInputRefId.current) fileInputRefId.current.value = "";
     } else {
-      setSelectedFileSelf(null);
-      if (fileInputRefSelf.current) fileInputRefSelf.current.value = "";
+      if (target === "self") {
+        setSelectedFileSelf(null);
+        if (fileInputRefSelf.current) fileInputRefSelf.current.value = "";
+      } else {
+        setSelectedFileCertificate(null);
+        if (fileInputRefCertificate.current) {
+          fileInputRefCertificate.current.value = "";
+        }
+      }
     }
   };
 
@@ -31,7 +41,12 @@ function VerifyIdentity() {
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = async (target = "id") => {
-    const file = target === "id" ? selectedFileId : selectedFileSelf;
+    const file =
+      target === "id"
+        ? selectedFileId
+        : target === "self"
+          ? selectedFileSelf
+          : selectedFileCertificate;
     if (!file) {
       alert("Please choose a file first");
       return;
@@ -39,7 +54,15 @@ function VerifyIdentity() {
     setUploading(true);
     try {
       const res = await dispatch(
-        uploadVerificationId({ file, type: target === "id" ? "id" : "image" })
+        uploadVerificationId({
+          file,
+          type:
+            target === "id"
+              ? "id"
+              : target === "self"
+                ? "image"
+                : "certificate",
+        })
       );
       if (res && res.payload && res.payload.message) {
         alert(res.payload.message);
@@ -184,6 +207,56 @@ function VerifyIdentity() {
                   <button
                     className="bg-red-100 text-green-600 px-4 py-1 rounded font-medium hover:bg-red-200 disabled:opacity-50"
                     onClick={() => handleUpload("self")}
+                    disabled={uploading}
+                  >
+                    {uploading ? "Uploading..." : "Upload"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="max-w-xl mt-10">
+          <div className="mb-4 text-gray-700 font-medium">
+            Upload Training Certificate
+          </div>
+          <div className="w-full mx-auto bg-white border border-gray-200 rounded-lg flex flex-col items-center justify-center py-16">
+            <img src={UploadIcon} alt="Upload Icon" className="mb-4 h-20" />
+            {!selectedFileCertificate ? (
+              <>
+                <button
+                  className=" text-[#0d99c9] px-6 py-2 rounded text-2xl mb-3 hover:bg-[#007bb0] hover:text-white"
+                  onClick={() => fileInputRefCertificate.current.click()}
+                >
+                  Upload File
+                </button>
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  style={{ display: "none" }}
+                  ref={fileInputRefCertificate}
+                  onChange={(e) => handleFileChange(e, "certificate")}
+                />
+                <div className="text-gray-400 text-sm text-center">
+                  Supported format: jpg, png, pdf
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <div className="text-[#0d99c9] font-semibold text-lg mb-2">
+                  {selectedFileCertificate.name}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    className="bg-red-100 text-red-600 px-4 py-1 rounded font-medium hover:bg-red-200"
+                    onClick={() => handleRemoveFile("certificate")}
+                  >
+                    Remove
+                  </button>
+                  <button
+                    className="bg-red-100 text-green-600 px-4 py-1 rounded font-medium hover:bg-red-200 disabled:opacity-50"
+                    onClick={() => handleUpload("certificate")}
                     disabled={uploading}
                   >
                     {uploading ? "Uploading..." : "Upload"}
