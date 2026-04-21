@@ -52,7 +52,7 @@ export const fetchConversations = createAsyncThunk(
   "messenger/fetchConversations",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${BASE_URL}/api/conversations/`, {
+      const res = await fetchWithAuth(`${BASE_URL}/api/conversations/`, {
         headers: getAuthHeaders(),
       });
       if (!res.ok) {
@@ -73,7 +73,7 @@ export const fetchMessages = createAsyncThunk(
   "messenger/fetchMessages",
   async (conversationId, { rejectWithValue }) => {
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${BASE_URL}/api/messages/?conversation_id=${conversationId}`,
         { headers: getAuthHeaders() },
       );
@@ -96,7 +96,7 @@ export const sendMessage = createAsyncThunk(
   "messenger/sendMessage",
   async ({ conversationId, content }, { rejectWithValue }) => {
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${BASE_URL}/api/messages/?conversation_id=${conversationId}`,
         {
           method: "POST",
@@ -132,7 +132,7 @@ export const markAsRead = createAsyncThunk(
   "messenger/markAsRead",
   async (conversationId, { rejectWithValue }) => {
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${BASE_URL}/api/conversations/${conversationId}/mark-as-read/`,
         {
           method: "POST",

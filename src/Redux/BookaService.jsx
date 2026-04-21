@@ -1,4 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { BASE_URL } from "./config";
+import { buildSchedulePayload } from "../lib/jobPayload";
 
 // Helper function to build payload from formData and localStorage
 export const buildJobPayload = (formData) => {
@@ -19,21 +21,20 @@ export const buildJobPayload = (formData) => {
     "childcare"
   ).toLowerCase();
 
-  const job_type =
-    (
+  const schedule = buildSchedulePayload({
+    scheduleType:
       formData.scheduleType ||
       onboarding.steps?.timeDetails?.scheduleType ||
-      "Reoccurring"
-    ).toLowerCase() === "one-off"
-      ? "one-time"
-      : "recurring";
-  const recurrence_frequency = (
-    formData.repeatFrequency ||
-    onboarding.steps?.timeDetails?.repeatFrequency ||
-    "Weekly"
-  ).toLowerCase();
-  const recurrence_days = formData.repeatDays ||
-    onboarding.steps?.timeDetails?.repeatDays || ["Friday"];
+      "Reoccurring",
+    startDate: formData.startDate || onboarding.steps?.timeDetails?.startDate,
+    endDate: formData.endDate || onboarding.steps?.timeDetails?.endDate,
+    repeatEvery: formData.repeatEvery || onboarding.steps?.timeDetails?.repeatEvery,
+    repeatFrequency:
+      formData.repeatFrequency || onboarding.steps?.timeDetails?.repeatFrequency,
+    repeatDays: formData.repeatDays || onboarding.steps?.timeDetails?.repeatDays || ["Friday"],
+    startTime: formData.startTime || onboarding.steps?.timeDetails?.startTime,
+    endTime: formData.endTime || onboarding.steps?.timeDetails?.endTime,
+  });
 
   const priceMinRaw =
     formData.hourlyRateStart ||
@@ -74,13 +75,7 @@ export const buildJobPayload = (formData) => {
           formData.nationality || onboarding.steps?.location?.nationality || "",
       },
     },
-    schedule: {
-      job_type,
-      recurrence_pattern: {
-        frequency: recurrence_frequency,
-        days: recurrence_days,
-      },
-    },
+    schedule,
     budget: {
       price_min,
       price_max,
@@ -230,14 +225,11 @@ export const postJob = createAsyncThunk(
           }
         : { "Content-Type": "application/json" };
 
-      const res = await fetch(
-        "https://backend.app.carenestpro.com/api/post/create/",
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload),
-        },
-      );
+      const res = await fetch(`${BASE_URL}/api/post/create/`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      });
 
       const data = await res.json();
       if (!res.ok) {

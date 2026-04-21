@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL, getAuthHeaders } from "./config";
+import { buildSchedulePayload } from "../lib/jobPayload";
 
 const LS_KEY = "seeker_onboarding";
 
@@ -125,32 +126,6 @@ const initialState = readLS();
 
 // Helper to build API payload from current steps
 export const buildPayloadFromSteps = (steps) => {
-  // Ensure payload uses full weekday names. The UI may store either full
-  // names ("Monday") or short symbols ("M", "T", "W", ...). Normalize
-  // both to full names for the API payload.
-  const fullNames = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-  const shortSymbols = ["S", "M", "T", "W", "T", "F", "S"];
-  const repeat_on = (
-    steps.timeDetails?.repeatDays || ["Monday", "Wednesday", "Friday"]
-  ).map((day) => {
-    if (!day) return day;
-    // If already a full name, keep it
-    if (fullNames.includes(day)) return day;
-    // If it's a short symbol, map to the first matching full name by index
-    const idx = shortSymbols.indexOf(day);
-    if (idx !== -1) return fullNames[idx];
-    // Fallback: return as-is
-    return day;
-  });
-
   const service_category = steps.careCategory?.toLowerCase() || "childcare";
   const location_information = {
     use_current_location: steps.location?.useCurrentLocation || false,
@@ -162,22 +137,16 @@ export const buildPayloadFromSteps = (steps) => {
     nationality: steps.location?.nationality || "",
   };
 
-  const isOneOff = steps.timeDetails?.scheduleType?.toLowerCase() === "one-off";
-
-  const schedule = {
-    job_type: isOneOff ? "one-time" : "recurring",
-    start_date: steps.timeDetails?.startDate || "2025-11-10",
-    end_date: isOneOff ? null : steps.timeDetails?.endDate || "2026-02-10",
-    repeat_every: isOneOff
-      ? {}
-      : {
-          count: parseInt(steps.timeDetails?.repeatEvery || "1"),
-          period: steps.timeDetails?.repeatFrequency || "Weekly",
-        },
-    repeat_on: isOneOff ? [] : repeat_on,
-    start_time: steps.timeDetails?.startTime || "09:00:00",
-    end_time: steps.timeDetails?.endTime || "17:00:00",
-  };
+  const schedule = buildSchedulePayload({
+    scheduleType: steps.timeDetails?.scheduleType,
+    startDate: steps.timeDetails?.startDate,
+    endDate: steps.timeDetails?.endDate,
+    repeatEvery: steps.timeDetails?.repeatEvery,
+    repeatFrequency: steps.timeDetails?.repeatFrequency,
+    repeatDays: steps.timeDetails?.repeatDays || ["Monday", "Wednesday", "Friday"],
+    startTime: steps.timeDetails?.startTime,
+    endTime: steps.timeDetails?.endTime,
+  });
 
   const payload = {
     service_category,
