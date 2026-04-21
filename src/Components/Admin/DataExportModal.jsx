@@ -36,15 +36,15 @@ const DataExportModal = ({ isOpen, onClose, data, selectedIds, activeStat }) => 
     if (dateRange.start) {
       const start = dayjs(dateRange.start);
       filtered = filtered.filter(item => {
-        const itemDate = dayjs(item.onboard, 'DD-MM-YYYY');
-        return itemDate.isAfter(start) || itemDate.isSame(start, 'day');
+        const itemDate = dayjs(item.onboardDate || item.date_joined || item.onboard);
+        return itemDate.isValid() && itemDate.valueOf() >= start.valueOf();
       });
     }
     if (dateRange.end) {
       const end = dayjs(dateRange.end);
       filtered = filtered.filter(item => {
-        const itemDate = dayjs(item.onboard, 'DD-MM-YYYY');
-        return itemDate.isBefore(end) || itemDate.isSame(end, 'day');
+        const itemDate = dayjs(item.onboardDate || item.date_joined || item.onboard);
+        return itemDate.isValid() && itemDate.valueOf() <= end.valueOf();
       });
     }
     
@@ -127,7 +127,7 @@ const DataExportModal = ({ isOpen, onClose, data, selectedIds, activeStat }) => 
             <h3 className="text-xl font-semibold text-gray-900 border-none">Export User Data</h3>
             <p className="text-sm text-gray-500 mt-1">
               {selectedIds?.length > 0 
-                ? `Exporting ${selectedIds.length} selected users` 
+                ? `Exporting ${exportData.length} selected users` 
                 : `Exporting all ${exportData.length} ${activeStat} users`}
             </p>
           </div>

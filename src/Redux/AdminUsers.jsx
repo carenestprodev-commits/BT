@@ -500,6 +500,8 @@ const slice = createSlice({
     deleteError: null,
     suspendLoading: false,
     suspendError: null,
+    verificationLoading: false,
+    verificationError: null,
     screeningLoading: false,
     screeningError: null,
     documentsLoading: false,
@@ -690,11 +692,11 @@ const slice = createSlice({
 
       // Handlers for verifyProvider
       .addCase(verifyProvider.pending, (state) => {
-        state.suspendLoading = true;
-        state.suspendError = null;
+        state.verificationLoading = true;
+        state.verificationError = null;
       })
       .addCase(verifyProvider.fulfilled, (state, action) => {
-        state.suspendLoading = false;
+        state.verificationLoading = false;
         const id = action.payload?.id;
         if (id != null) {
           state.users = state.users.map((u) =>
@@ -703,8 +705,8 @@ const slice = createSlice({
         }
       })
       .addCase(verifyProvider.rejected, (state, action) => {
-        state.suspendLoading = false;
-        state.suspendError = action.payload || action.error;
+        state.verificationLoading = false;
+        state.verificationError = action.payload || action.error;
       })
 
       .addCase(updateUserScreening.fulfilled, (state, action) => {
@@ -802,11 +804,11 @@ const slice = createSlice({
       })
 
       .addCase(approveUser.pending, (state) => {
-        state.suspendLoading = true;
-        state.suspendError = null;
+        state.verificationLoading = true;
+        state.verificationError = null;
       })
       .addCase(approveUser.fulfilled, (state, action) => {
-        state.suspendLoading = false;
+        state.verificationLoading = false;
         const id = action.payload?.id;
         if (id != null) {
           state.users = state.users.map((u) =>
@@ -828,8 +830,8 @@ const slice = createSlice({
         }
       })
       .addCase(approveUser.rejected, (state, action) => {
-        state.suspendLoading = false;
-        state.suspendError = action.payload || action.error;
+        state.verificationLoading = false;
+        state.verificationError = action.payload || action.error;
       });
   },
 });
