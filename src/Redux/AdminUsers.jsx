@@ -219,6 +219,57 @@ export const verifyProvider = createAsyncThunk(
   },
 );
 
+export const updateUserScreening = createAsyncThunk(
+  "adminUsers/updateUserScreening",
+  async ({ id, status, action }, { rejectWithValue }) => {
+    try {
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
+      const headers = {
+        Authorization: `Bearer ${access}`,
+        "Content-Type": "application/json",
+      };
+      const res = await fetchWithAuth(
+        `${BASE_URL}/api/admin/users/${id}/screening/`,
+        {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ status, action }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data);
+      return { id, data };
+    } catch {
+      return rejectWithValue({ error: "Network error" });
+    }
+  },
+);
+
+export const bulkUpdateUserScreening = createAsyncThunk(
+  "adminUsers/bulkUpdateUserScreening",
+  async ({ userIds, status }, { rejectWithValue }) => {
+    try {
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
+      const headers = {
+        Authorization: `Bearer ${access}`,
+        "Content-Type": "application/json",
+      };
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/screening/bulk/`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ user_ids: userIds, status }),
+      });
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data);
+      return data;
+    } catch {
+      return rejectWithValue({ error: "Network error" });
+    }
+  },
+);
+
 /**
  * ✅ NEW: Mark Physical Documents as Received
  *
@@ -449,6 +500,8 @@ const slice = createSlice({
     deleteError: null,
     suspendLoading: false,
     suspendError: null,
+    screeningLoading: false,
+    screeningError: null,
     documentsLoading: false,
     documentsError: null,
     lastFetchType: null, // Track which fetch was last initiated
@@ -652,6 +705,75 @@ const slice = createSlice({
       .addCase(verifyProvider.rejected, (state, action) => {
         state.suspendLoading = false;
         state.suspendError = action.payload || action.error;
+      })
+
+      .addCase(updateUserScreening.fulfilled, (state, action) => {
+        state.screeningLoading = false;
+        const id = action.payload?.id;
+        const screening = action.payload?.data || {};
+        if (id != null) {
+          state.users = state.users.map((u) =>
+            u.id === id
+              ? {
+                ...u,
+                screening_status: screening.status || screening.status_label || u.screening_status,
+              }
+              : u,
+          );
+        }
+        if (state.currentUser && state.currentUser.id === id) {
+          state.currentUser = {
+            ...state.currentUser,
+            screening: {
+              ...(state.currentUser.screening || {}),
+              ...screening,
+            },
+          };
+        }
+      })
+      .addCase(updateUserScreening.rejected, (state, action) => {
+        state.screeningLoading = false;
+        state.screeningError = action.payload || action.error;
+      })
+
+      .addCase(bulkUpdateUserScreening.fulfilled, (state, action) => {
+        state.screeningLoading = false;
+        const updated = action.payload?.updated || [];
+        if (Array.isArray(updated) && updated.length) {
+          const updatedIds = new Set(updated.map((item) => item.user_id));
+          state.users = state.users.map((u) =>
+            updatedIds.has(u.id)
+              ? {
+                ...u,
+                screening_status:
+                  updated.find((item) => item.user_id === u.id)?.status || u.screening_status,
+              }
+              : u,
+          );
+          if (state.currentUser && updatedIds.has(state.currentUser.id)) {
+            const match = updated.find((item) => item.user_id === state.currentUser.id);
+            state.currentUser = {
+              ...state.currentUser,
+              screening: {
+                ...(state.currentUser.screening || {}),
+                status: match?.status || state.currentUser.screening?.status,
+              },
+            };
+          }
+        }
+      })
+      .addCase(bulkUpdateUserScreening.rejected, (state, action) => {
+        state.screeningLoading = false;
+        state.screeningError = action.payload || action.error;
+      })
+
+      .addCase(updateUserScreening.pending, (state) => {
+        state.screeningLoading = true;
+        state.screeningError = null;
+      })
+      .addCase(bulkUpdateUserScreening.pending, (state) => {
+        state.screeningLoading = true;
+        state.screeningError = null;
       })
 
       // ✅ NEW: Mark Documents Received handlers

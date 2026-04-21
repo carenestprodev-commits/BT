@@ -38,7 +38,8 @@ import {
   activateUser,
   approveUser,
   markDocumentsReceived,
-  verifyProvider,
+  updateUserScreening,
+  bulkUpdateUserScreening,
   clearCurrentUser,
 } from "../../Redux/AdminUsers";
 import { updateUserVerification } from "../../Redux/Login";
@@ -92,6 +93,18 @@ const userTypeLabel = (value) =>
 const makeField = (label, value) => ({ label, value: formatText(value) });
 const makeSection = (title, items) => ({ title, items });
 
+const SCREENING_STATUS_LABELS = {
+  pending: "Pending",
+  in_progress: "In Progress",
+  clear: "Clear",
+  consider: "Consider",
+  suspended: "Suspended",
+  failed: "Failed",
+};
+
+const screeningLabel = (value) =>
+  SCREENING_STATUS_LABELS[String(value || "").toLowerCase()] || formatText(value);
+
 const formatChildrenSummary = (children) => {
   if (!Array.isArray(children) || children.length === 0) return EMPTY_VALUE;
   return children
@@ -106,6 +119,7 @@ const formatChildrenSummary = (children) => {
 const buildProviderSections = (user) => {
   const profile = user?.onboarding_details || {};
   const verification = user?.verification || {};
+  const screening = user?.screening || { status: user?.screening_status };
   const category = String(profile.service_category || "").toLowerCase();
   const categoryItems = [];
 
@@ -194,6 +208,14 @@ const buildProviderSections = (user) => {
       makeField("Subscription status", user?.subscription_status),
       makeField("Request count", user?.request_count),
       makeField("Earnings", formatCurrency(user?.earnings)),
+    ]),
+    makeSection("Screening", [
+      makeField("Screening status", screening.status_label || screening.status),
+      makeField("Screening summary", screening.result_summary),
+      makeField("Candidate ID", screening.checkr_candidate_id),
+      makeField("Report ID", screening.checkr_report_id),
+      makeField("Last error", screening.last_error),
+      makeField("Updated at", formatDateTime(screening.updated_at)),
     ]),
   ];
 };
@@ -323,6 +345,8 @@ function Users() {
     payment_reference: "",
     notes: "",
   });
+  const [showScreeningModal, setShowScreeningModal] = useState(false);
+  const [screeningStatus, setScreeningStatus] = useState("clear");
   const [alert, setAlert] = useState(null);
   const alertTimerRef = useRef(null);
 
@@ -334,8 +358,14 @@ function Users() {
   const [profileStatusFilters, setProfileStatusFilters] = useState([]);
   const [profileFilterOpen, setProfileFilterOpen] = useState(false);
   const profileFilterRef = useRef(null);
-  const { suspendLoading, suspendError, documentsLoading, documentsError } =
-    useSelector((s) => s.adminUsers || {});
+  const {
+    suspendLoading,
+    suspendError,
+    documentsLoading,
+    documentsError,
+    screeningLoading,
+    screeningError,
+  } = useSelector((s) => s.adminUsers || {});
 
   // New feature states
   const [showBulkChecker, setShowBulkChecker] = useState(false);
@@ -414,10 +444,13 @@ function Users() {
         is_suspend: !u.is_active,
         earnings: u.earnings || "-",
         is_verified:
-          u.verification?.status === "verified" ||
-          u.verification?.status === "approved",
+          u.is_verified ??
+          (u.verification?.status === "verified" ||
+            u.verification?.status === "approved"),
         verification_status: u.verification?.status || "pending",
         documents_received: u.verification?.status === "documents_received",
+        screening_status: u.screening?.status || u.screening_status || "pending",
+        screening: u.screening || null,
         profile_image_url: u.profile_image_url || "",
         verification: u.verification || null,
         onboarding_details: u.onboarding_details || null,
@@ -456,9 +489,10 @@ function Users() {
         nationality: "",
         subscriptionStatus: u.is_active ? "Active" : "Inactive",
         earnings: "-",
-        is_verified: u.is_verified ?? false,
+        is_verified: u.is_verified ?? u.verification_status === "verified",
         verification_status: u.verification_status || "pending",
         documents_received: u.documents_received ?? false,
+        screening_status: u.screening_status || "pending",
         is_profile_complete: u.is_profile_complete ?? false,
         has_profile_picture: u.has_profile_picture ?? false,
       }));
@@ -616,7 +650,7 @@ function Users() {
 
   // Helper function to get verification status badge
   const getVerificationBadge = (row) => {
-    if (row.is_verified) {
+    if (row.verification_status === "verified" || row.is_verified) {
       return (
         <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
           <FaCheck className="w-3 h-3" /> Verified
@@ -633,6 +667,28 @@ function Users() {
     return (
       <span className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
         Pending
+      </span>
+    );
+  };
+
+  const getScreeningBadge = (row) => {
+    const status = row.screening?.status || row.screening_status;
+    if (!status) {
+      return (
+        <span className="flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+          No screening
+        </span>
+      );
+    }
+    const tone =
+      status === "clear"
+        ? "bg-green-100 text-green-700"
+        : status === "consider" || status === "in_progress"
+          ? "bg-amber-100 text-amber-700"
+          : "bg-rose-100 text-rose-700";
+    return (
+      <span className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${tone}`}>
+        Screening: {screeningLabel(status)}
       </span>
     );
   };
@@ -749,6 +805,14 @@ function Users() {
           >
             <FaSearch />
             Bulk Profile Checker
+          </button>
+          <button
+            onClick={() => setShowScreeningModal(true)}
+            className="px-4 py-2.5 bg-[#0e2f43] text-white rounded-md flex items-center justify-center gap-2 text-sm font-medium shadow-sm hover:shadow-md active:scale-[0.98] transition-all"
+            disabled={selectedIds.length === 0}
+          >
+            <FaCheck />
+            Bulk Screening
           </button>
           <div className="text-xs text-gray-500 flex items-center">
             <span>✨ Check multiple provider profiles at once</span>
@@ -889,6 +953,106 @@ function Users() {
           </div>
         )}
 
+        {/* Bulk Screening Modal */}
+        {showScreeningModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Bulk Screening Status</h3>
+                <button
+                  className="text-gray-500"
+                  onClick={() => setShowScreeningModal(false)}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Update screening status for {selectedIds.length} selected users.
+              </p>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Screening Status
+                </label>
+                <select
+                  value={screeningStatus}
+                  onChange={(e) => setScreeningStatus(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-white"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="clear">Clear</option>
+                  <option value="consider">Consider</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+
+              {screeningError && (
+                <div className="text-red-600 text-sm mt-4">
+                  {typeof screeningError === "string"
+                    ? screeningError
+                    : screeningError?.error || "Action failed"}
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-md"
+                  onClick={() => setShowScreeningModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 bg-[#0b93c6] text-white rounded-md disabled:opacity-50"
+                  onClick={async () => {
+                    try {
+                      await dispatch(
+                        bulkUpdateUserScreening({
+                          userIds: selectedIds,
+                          status: screeningStatus,
+                        }),
+                      ).unwrap();
+
+                      setShowScreeningModal(false);
+                      if (alertTimerRef.current) {
+                        clearTimeout(alertTimerRef.current);
+                        alertTimerRef.current = null;
+                      }
+                      setAlert({
+                        type: "success",
+                        text: `✅ Screening updated for ${selectedIds.length} users.`,
+                      });
+                      alertTimerRef.current = setTimeout(
+                        () => setAlert(null),
+                        4000,
+                      );
+                    } catch (error) {
+                      console.error("Bulk screening failed:", error);
+                      if (alertTimerRef.current) {
+                        clearTimeout(alertTimerRef.current);
+                        alertTimerRef.current = null;
+                      }
+                      setAlert({
+                        type: "error",
+                        text: error?.error || "Failed to update screening",
+                      });
+                      alertTimerRef.current = setTimeout(
+                        () => setAlert(null),
+                        4000,
+                      );
+                    }
+                  }}
+                  disabled={screeningLoading}
+                >
+                  {screeningLoading ? "Updating..." : "Apply Status"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Edit / Details Modal */}
         {editRow && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6">
@@ -943,6 +1107,7 @@ function Users() {
 
                   <div className="flex flex-wrap gap-2 md:justify-end">
                     {getVerificationBadge(editRow)}
+                    {getScreeningBadge(editRow)}
                     <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">
                       {editRow.subscriptionStatus}
                     </span>
@@ -997,7 +1162,7 @@ function Users() {
               </div>
 
               <div className="border-t border-slate-200 bg-white px-6 py-4 sm:px-8">
-                <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <button className="w-full rounded-md bg-[#0b93c6] py-2 text-white sm:w-auto sm:px-5">
                     Message
                   </button>
@@ -1072,6 +1237,79 @@ function Users() {
                   >
                     {editRow.is_suspend ? "Activate" : "Suspend"}
                   </button>
+                  {editRow.user_type === "provider" && (
+                    <>
+                      <select
+                        value={screeningStatus}
+                        onChange={(e) => setScreeningStatus(e.target.value)}
+                        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 sm:w-auto"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="clear">Clear</option>
+                        <option value="consider">Consider</option>
+                        <option value="suspended">Suspended</option>
+                        <option value="failed">Failed</option>
+                      </select>
+                      <button
+                        className="w-full rounded-md bg-[#0e2f43] py-2 text-white sm:w-auto sm:px-5"
+                        disabled={screeningLoading}
+                        onClick={async () => {
+                          if (!editRow?.id) return;
+                          try {
+                            const result = await dispatch(
+                              updateUserScreening({
+                                id: editRow.id,
+                                status: screeningStatus,
+                              }),
+                            ).unwrap();
+                            setEditRow((prev) =>
+                              prev
+                                ? {
+                                  ...prev,
+                                  screening: {
+                                    ...(prev.screening || {}),
+                                    status: result?.data?.status || screeningStatus,
+                                    status_label:
+                                      result?.data?.status_label || screeningLabel(screeningStatus),
+                                  },
+                                  screening_status: result?.data?.status || screeningStatus,
+                                }
+                                : prev,
+                            );
+                            if (alertTimerRef.current) {
+                              clearTimeout(alertTimerRef.current);
+                              alertTimerRef.current = null;
+                            }
+                            setAlert({
+                              type: "success",
+                              text: "✅ Screening status updated.",
+                            });
+                            alertTimerRef.current = setTimeout(
+                              () => setAlert(null),
+                              3000,
+                            );
+                          } catch (e) {
+                            console.error("Screening update failed", e);
+                            if (alertTimerRef.current) {
+                              clearTimeout(alertTimerRef.current);
+                              alertTimerRef.current = null;
+                            }
+                            setAlert({
+                              type: "error",
+                              text: "Failed to update screening status",
+                            });
+                            alertTimerRef.current = setTimeout(
+                              () => setAlert(null),
+                              3000,
+                            );
+                          }
+                        }}
+                      >
+                        {screeningLoading ? "Saving..." : "Save Screening"}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

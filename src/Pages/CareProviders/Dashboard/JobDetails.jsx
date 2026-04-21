@@ -164,10 +164,10 @@ function JobDetails() {
 
   const handleVerificationProceed = async () => {
     // ✅ Refresh user profile before proceeding
-    await dispatch(fetchUserProfile());
+    const result = await dispatch(fetchUserProfile());
 
     // Check again if user is now verified
-    const freshUser = store.getState().auth.user;
+    const freshUser = result?.payload;
     if (freshUser?.is_verified) {
       handleSubmitApplication();
     } else {
