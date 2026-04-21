@@ -105,6 +105,11 @@ const SCREENING_STATUS_LABELS = {
 const screeningLabel = (value) =>
   SCREENING_STATUS_LABELS[String(value || "").toLowerCase()] || formatText(value);
 
+const formatLocation = (value) => {
+  if (!value || typeof value !== "object") return EMPTY_VALUE;
+  return [value.city, value.state, value.country].filter(Boolean).join(", ") || EMPTY_VALUE;
+};
+
 const formatChildrenSummary = (children) => {
   if (!Array.isArray(children) || children.length === 0) return EMPTY_VALUE;
   return children
@@ -318,10 +323,10 @@ function Users() {
     (s) => s.adminUsers || { stats: {}, users: [] },
   );
   const currentUserId = useSelector((s) => s.auth?.user?.id);
-  const [rows, setRows] = useState([]);
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("All");
   const [sortBy, setSortBy] = useState({ key: "onboard", dir: "desc" });
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [activeStat, setActiveStat] = useState("all");
   const [editRow, setEditRow] = useState(null);
@@ -359,8 +364,8 @@ function Users() {
   const [profileFilterOpen, setProfileFilterOpen] = useState(false);
   const profileFilterRef = useRef(null);
   const {
-    suspendLoading,
-    suspendError,
+    verificationLoading,
+    verificationError,
     documentsLoading,
     documentsError,
     screeningLoading,
@@ -379,9 +384,6 @@ function Users() {
     setSelectedIds([]); // Clear selection when switching tabs
     dispatch(fetchAdminStats());
     fetchEnhancedStats(); // Fetch enhanced stats with profile completion metrics
-    if (activeStat === "all") {
-      dispatch(fetchAllUsers());
-    }
   }, [dispatch, activeStat]);
 
   const fetchEnhancedStats = async () => {
@@ -462,43 +464,46 @@ function Users() {
     currentUser && currentUser.id === selectedUserId
       ? currentUser
       : editRow;
+  const rows = useMemo(() => {
+    if (!Array.isArray(users)) return [];
+    return users.map((u) => ({
+      id: u.id,
+      name: u.full_name || `User ${u.id}`,
+      userType:
+        u.user_type === "provider" ? "Care Provider" : u.is_staff ? "Admin" : "Care seeker",
+      email: u.email,
+      phone: u.phone_number || "",
+      onboard: u.date_joined ? dayjs(u.date_joined).format("DD-MM-YYYY") : "",
+      onboardDate: u.date_joined || "",
+      lastLogin: u.last_login ? dayjs(u.last_login).format("DD-MM-YYYY") : "",
+      lastLoginDate: u.last_login || "",
+      lastUpdated: u.updated_at
+        ? dayjs(u.updated_at).format("DD-MM-YYYY")
+        : dayjs(u.date_joined).format("DD-MM-YYYY") || "",
+      lastUpdatedDate: u.updated_at || u.date_joined || "",
+      avatar: `/profilepic (1).png`,
+      requestHistory: 0,
+      requestsMade: 0,
+      country: "",
+      city: "",
+      nationality: "",
+      location: formatLocation(u.location_details),
+      subscriptionStatus: u.is_active ? "Active" : "Inactive",
+      earnings: "-",
+      is_verified: u.is_verified ?? u.verification_status === "verified",
+      verification_status: u.verification_status || "pending",
+      documents_received: u.documents_received ?? false,
+      screening_status: u.screening_status || "pending",
+      is_profile_complete: u.is_profile_complete ?? false,
+      has_profile_picture: u.has_profile_picture ?? false,
+    }));
+  }, [users]);
+
   const detailSections = detailUser
     ? (detailUser.user_type === "provider"
       ? buildProviderSections(detailUser)
       : buildSeekerSections(detailUser))
     : [];
-
-  useEffect(() => {
-    if (Array.isArray(users)) {
-      const mapped = users.map((u) => ({
-        id: u.id,
-        name: u.full_name || `User ${u.id}`,
-        userType: u.user_type === "provider" ? "Care Provider" : u.is_staff ? "Admin" : "Care seeker",
-        email: u.email,
-        phone: u.phone_number || "",
-        onboard: u.date_joined ? dayjs(u.date_joined).format("DD-MM-YYYY") : "",
-        lastLogin: u.last_login ? dayjs(u.last_login).format("DD-MM-YYYY") : "",
-        lastUpdated: u.updated_at
-          ? dayjs(u.updated_at).format("DD-MM-YYYY")
-          : dayjs(u.date_joined).format("DD-MM-YYYY") || "",
-        avatar: `/profilepic (1).png`,
-        requestHistory: 0,
-        requestsMade: 0,
-        country: "",
-        city: "",
-        nationality: "",
-        subscriptionStatus: u.is_active ? "Active" : "Inactive",
-        earnings: "-",
-        is_verified: u.is_verified ?? u.verification_status === "verified",
-        verification_status: u.verification_status || "pending",
-        documents_received: u.documents_received ?? false,
-        screening_status: u.screening_status || "pending",
-        is_profile_complete: u.is_profile_complete ?? false,
-        has_profile_picture: u.has_profile_picture ?? false,
-      }));
-      setRows(mapped);
-    }
-  }, [users]);
 
   const statsCounts = useMemo(
     () => ({
@@ -594,7 +599,9 @@ function Users() {
       );
     }
     if (locationFilter !== "All") {
-      data = data.filter((r) => r.email.includes(locationFilter.toLowerCase()));
+      data = data.filter((r) =>
+        String(r.location || "").toLowerCase().includes(locationFilter.toLowerCase()),
+      );
     }
     if (profileStatusFilters.length > 0) {
       data = data.filter((r) => {
@@ -612,8 +619,14 @@ function Users() {
       let av = a[k];
       let bv = b[k];
       if (k === "onboard" || k === "lastLogin" || k === "lastUpdated") {
-        av = dayjs(a[k], "DD-MM-YYYY").toDate();
-        bv = dayjs(b[k], "DD-MM-YYYY").toDate();
+        const dateField =
+          k === "onboard"
+            ? "onboardDate"
+            : k === "lastLogin"
+              ? "lastLoginDate"
+              : "lastUpdatedDate";
+        av = a[dateField] ? dayjs(a[dateField]).valueOf() : 0;
+        bv = b[dateField] ? dayjs(b[dateField]).valueOf() : 0;
       }
       if (av < bv) return sortBy.dir === "asc" ? -1 : 1;
       if (av > bv) return sortBy.dir === "asc" ? 1 : -1;
@@ -623,6 +636,31 @@ function Users() {
     return data;
   }, [rows, query, locationFilter, sortBy, profileStatusFilters]);
 
+  const pageSize = 20;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeStat, query, locationFilter, sortBy.key, sortBy.dir, profileStatusFilters]);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [activeStat, query, locationFilter, sortBy.key, sortBy.dir, profileStatusFilters]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedIds = useMemo(() => paginated.map((row) => row.id), [paginated]);
+  const allPageSelected =
+    paginatedIds.length > 0 && paginatedIds.every((id) => selectedIds.includes(id));
+
   function toggleSort(key) {
     setSortBy((s) =>
       s.key === key
@@ -631,12 +669,23 @@ function Users() {
     );
   }
 
+  const openUserDetail = (row) => {
+    dispatch(clearCurrentUser());
+    setSelectedUserId(row.id);
+    setEditRow({
+      ...row,
+      is_suspend: row.subscriptionStatus !== "Active",
+    });
+    setOpenMenuId(null);
+    dispatch(fetchUserById(row.id));
+  };
+
   // Selection helpers
   const toggleSelectAll = () => {
-    if (selectedIds.length === filtered.length) {
-      setSelectedIds([]);
+    if (allPageSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !paginatedIds.includes(id)));
     } else {
-      setSelectedIds(filtered.map((r) => r.id));
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...paginatedIds])));
     }
   };
 
@@ -1176,13 +1225,6 @@ function Users() {
                             activateUser(editRow.id),
                           ).unwrap();
                           const message = payload?.data?.status || "User activated";
-                          setRows((prev) =>
-                            prev.map((r) =>
-                              r.id === editRow.id
-                                ? { ...r, subscriptionStatus: "Active" }
-                                : r,
-                            ),
-                          );
                           setSelectedUserId(null);
                           setEditRow(null);
                           if (alertTimerRef.current) {
@@ -1199,13 +1241,6 @@ function Users() {
                             suspendUser(editRow.id),
                           ).unwrap();
                           const message = payload?.data?.status || "User suspended";
-                          setRows((prev) =>
-                            prev.map((r) =>
-                              r.id === editRow.id
-                                ? { ...r, subscriptionStatus: "Suspended" }
-                                : r,
-                            ),
-                          );
                           setSelectedUserId(null);
                           setEditRow(null);
                           if (alertTimerRef.current) {
@@ -1340,7 +1375,6 @@ function Users() {
                   onClick={async () => {
                     try {
                       await dispatch(deleteUser(deleteRow.id)).unwrap();
-                      setRows(rows.filter((x) => x.id !== deleteRow.id));
                     } catch (e) {
                       console.error("Delete failed", e);
                     } finally {
@@ -1454,13 +1488,13 @@ function Users() {
                 </div>
               </div>
 
-              {suspendError && (
+              {verificationError && (
                 <div className="text-red-600 mt-4">
-                  {typeof suspendError === "string"
-                    ? suspendError
-                    : suspendError?.detail ||
-                    suspendError?.error ||
-                    suspendError?.message ||
+                  {typeof verificationError === "string"
+                    ? verificationError
+                    : verificationError?.detail ||
+                    verificationError?.error ||
+                    verificationError?.message ||
                     "Action failed"}
                 </div>
               )}
@@ -1574,10 +1608,10 @@ function Users() {
                     }
                   }}
                   disabled={
-                    suspendLoading || !manualPaymentData.payment_received_date
+                    verificationLoading || !manualPaymentData.payment_received_date
                   }
                 >
-                  {suspendLoading ? "Approving..." : "Approve & Mark Paid"}
+                  {verificationLoading ? "Approving..." : "Approve & Mark Paid"}
                 </button>
               </div>
             </div>
@@ -1675,18 +1709,188 @@ function Users() {
           </div>
         </div>
 
+        {/* Mobile cards */}
+        <div className="grid gap-3 md:hidden">
+          {paginated.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500">
+              No results
+            </div>
+          ) : (
+            paginated.map((r) => (
+              <article
+                key={r.id}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(r.id)}
+                      onChange={() => toggleSelectRow(r.id)}
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
+                    />
+                    <img
+                      src={r.avatar}
+                      alt="avatar"
+                      className="h-12 w-12 rounded-2xl object-cover"
+                    />
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-slate-900">
+                        {r.name}
+                      </div>
+                      <div className="text-xs text-slate-500">{r.userType}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {r.location || EMPTY_VALUE}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    {getVerificationBadge(r)}
+                    {getScreeningBadge(r)}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                      Email
+                    </div>
+                    <div className="mt-1 break-words text-slate-900">{r.email}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                      Phone
+                    </div>
+                    <div className="mt-1 text-slate-900">{r.phone || EMPTY_VALUE}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                      Joined
+                    </div>
+                    <div className="mt-1 text-slate-900">{r.onboard}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                      Updated
+                    </div>
+                    <div className="mt-1 text-slate-900">{r.lastUpdated || EMPTY_VALUE}</div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openUserDetail(r)}
+                    className="flex-1 rounded-xl border border-[#0b93c6] py-2.5 text-sm font-medium text-[#0b93c6]"
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenMenuId((current) => (current === r.id ? null : r.id))
+                    }
+                    className="flex-1 rounded-xl bg-slate-900 py-2.5 text-sm font-medium text-white"
+                  >
+                    Actions
+                  </button>
+                </div>
+
+                {openMenuId === r.id && (
+                  <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-sm">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        openUserDetail(r);
+                        setOpenMenuId(null);
+                      }}
+                      className="block w-full px-4 py-3 text-left text-slate-900 hover:bg-white"
+                    >
+                      View details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedUserForDocs(r);
+                        setShowDocumentsModal(true);
+                        setOpenMenuId(null);
+                      }}
+                      className="block w-full px-4 py-3 text-left text-slate-900 hover:bg-white"
+                    >
+                      Mark documents
+                    </button>
+                    {r.documents_received && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedUserForPayment(r);
+                          setShowManualPaymentModal(true);
+                          setOpenMenuId(null);
+                        }}
+                        className="block w-full px-4 py-3 text-left font-medium text-blue-600 hover:bg-white"
+                      >
+                        Approve user
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSingleEmailUser(r);
+                        setShowEmailModal(true);
+                        setOpenMenuId(null);
+                      }}
+                      className="block w-full px-4 py-3 text-left text-slate-900 hover:bg-white"
+                    >
+                      Send email
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedUserForTemplate(r);
+                        setShowTemplatesModal(true);
+                        setOpenMenuId(null);
+                      }}
+                      className="block w-full px-4 py-3 text-left text-slate-900 hover:bg-white"
+                    >
+                      Quick message
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedUserForTimeline(r.id);
+                        setShowTimelineModal(true);
+                        setOpenMenuId(null);
+                      }}
+                      className="block w-full px-4 py-3 text-left text-slate-900 hover:bg-white"
+                    >
+                      View timeline
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteRow(r);
+                        setOpenMenuId(null);
+                      }}
+                      className="block w-full px-4 py-3 text-left text-red-600 hover:bg-white"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </article>
+            ))
+          )}
+        </div>
+
         {/* Table */}
-        <div className="bg-white rounded-md shadow-sm overflow-x-auto text-black">
+        <div className="hidden overflow-x-auto rounded-md bg-white text-black shadow-sm md:block">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-xs">
+            <thead className="bg-slate-50 text-xs text-slate-500">
               <tr>
                 <th className="p-3">
                   <input
                     type="checkbox"
-                    checked={
-                      filtered.length > 0 &&
-                      selectedIds.length === filtered.length
-                    }
+                    checked={allPageSelected}
                     onChange={toggleSelectAll}
                     className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
                   />
@@ -1711,7 +1915,7 @@ function Users() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {paginated.map((r) => (
                 <tr
                   key={r.id}
                   className="border-b last:border-b-0 hover:bg-slate-50"
@@ -1745,25 +1949,19 @@ function Users() {
                         onClick={() =>
                           setOpenMenuId(openMenuId === r.id ? null : r.id)
                         }
-                        className="px-2 py-1 rounded hover:bg-gray-100 text-black"
+                        className="rounded px-2 py-1 text-black hover:bg-gray-100"
                       >
                         •••
                       </button>
                       {openMenuId === r.id && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow z-10 text-sm">
+                        <div className="absolute right-0 z-10 mt-2 w-48 rounded border border-gray-200 bg-white text-sm shadow">
                           <ul>
                             <li
                               onClick={() => {
-                                dispatch(clearCurrentUser());
-                                setSelectedUserId(r.id);
-                                setEditRow({
-                                  ...r,
-                                  is_suspend: r.subscriptionStatus !== "Active",
-                                });
-                                dispatch(fetchUserById(r.id));
+                                openUserDetail(r);
                                 setOpenMenuId(null);
                               }}
-                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
+                              className="cursor-pointer px-4 py-2 text-black hover:bg-gray-50"
                             >
                               View
                             </li>
@@ -1773,7 +1971,7 @@ function Users() {
                                 setShowDocumentsModal(true);
                                 setOpenMenuId(null);
                               }}
-                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
+                              className="cursor-pointer px-4 py-2 text-black hover:bg-gray-50"
                             >
                               Mark Documents
                             </li>
@@ -1784,7 +1982,7 @@ function Users() {
                                   setShowManualPaymentModal(true);
                                   setOpenMenuId(null);
                                 }}
-                                className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black font-medium text-blue-600"
+                                className="cursor-pointer px-4 py-2 font-medium text-blue-600 hover:bg-gray-50"
                               >
                                 Approve User
                               </li>
@@ -1795,7 +1993,7 @@ function Users() {
                                 setShowEmailModal(true);
                                 setOpenMenuId(null);
                               }}
-                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
+                              className="cursor-pointer px-4 py-2 text-black hover:bg-gray-50"
                             >
                               Send Email
                             </li>
@@ -1805,7 +2003,7 @@ function Users() {
                                 setShowTemplatesModal(true);
                                 setOpenMenuId(null);
                               }}
-                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black flex items-center gap-2"
+                              className="flex cursor-pointer items-center gap-2 px-4 py-2 text-black hover:bg-gray-50"
                             >
                               <FaComments className="text-sm" />
                               Quick Message
@@ -1816,7 +2014,7 @@ function Users() {
                                 setShowTimelineModal(true);
                                 setOpenMenuId(null);
                               }}
-                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black flex items-center gap-2"
+                              className="flex cursor-pointer items-center gap-2 px-4 py-2 text-black hover:bg-gray-50"
                             >
                               <FaClock className="text-sm" />
                               View Timeline
@@ -1826,7 +2024,7 @@ function Users() {
                                 setDeleteRow(r);
                                 setOpenMenuId(null);
                               }}
-                              className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-black"
+                              className="cursor-pointer px-4 py-2 text-black hover:bg-gray-50"
                             >
                               Delete
                             </li>
@@ -1837,7 +2035,7 @@ function Users() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {paginated.length === 0 && (
                 <tr>
                   <td colSpan={9} className="p-6 text-center text-slate-400">
                     No results
@@ -1847,6 +2045,39 @@ function Users() {
             </tbody>
           </table>
         </div>
+
+        {filtered.length > 0 && (
+          <div className="mt-4 flex flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 md:flex-row">
+            <div>
+              Showing {(currentPage - 1) * pageSize + 1}
+              {" "}
+              to {Math.min(currentPage * pageSize, filtered.length)}
+              {" "}
+              of {filtered.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="rounded-xl border border-slate-200 px-3 py-2 text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Prev
+              </button>
+              <span className="min-w-[84px] text-center text-slate-500">
+                Page {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="rounded-xl border border-slate-200 px-3 py-2 text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <DataExportModal
