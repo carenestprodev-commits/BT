@@ -8,6 +8,19 @@ import {
   clearCurrentSubscription,
 } from "../../Redux/AdminSubscription";
 
+const USER_ROLE_LABELS = {
+  provider: "Care Providers",
+  seeker: "Care Seekers",
+  admin: "Admin",
+  "care provider": "Care Providers",
+  "care providers": "Care Providers",
+  "care seeker": "Care Seekers",
+  "care seekers": "Care Seekers",
+};
+
+const userRoleLabel = (value) =>
+  USER_ROLE_LABELS[String(value || "").toLowerCase()] || value || "Unknown";
+
 function Subscription() {
   const dispatch = useDispatch();
   const { subscriptions, current } = useSelector(
@@ -30,11 +43,8 @@ function Subscription() {
     if (Array.isArray(subscriptions)) {
       const mapped = subscriptions.map((s) => ({
         id: s.id,
-        name:
-          s.user && (s.user.first_name || s.user.last_name)
-            ? `${s.user.first_name || ""} ${s.user.last_name || ""}`.trim()
-            : s.user?.email || s.user?.username || `User-${s.id}`,
-        role: s.user?.is_provider ? "Care Providers" : "Care Seekers",
+        name: s.user_name || s.name || `User-${s.id}`,
+        role: userRoleLabel(s.user_role || s.role),
         plan: s.plan || s.subscription_plan || "Unknown",
         amount: s.amount
           ? String(s.amount)
@@ -293,22 +303,13 @@ function Subscription() {
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-500">Name</span>
                 <span className="text-right">
-                  {current.user &&
-                  (current.user.first_name || current.user.last_name)
-                    ? `${current.user.first_name || ""} ${
-                        current.user.last_name || ""
-                      }`.trim()
-                    : current.user?.email ||
-                      current.user?.username ||
-                      `User-${current.id}`}
+                  {current.name || current.user_name || `User-${current.id}`}
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-500">Role</span>
                 <span className="text-right">
-                  {current.user?.is_provider
-                    ? "Care Providers"
-                    : "Care Seekers"}
+                  {userRoleLabel(current.role || current.user_role)}
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b">

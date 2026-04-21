@@ -418,6 +418,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/careproviders/dashboard/verify_identity",
+    element: (
+      <RoleProtectedRoute allowedRole="provider">
+        <VerifyIdentityProvider />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
     path: "/careproviders/dashboard/personal_information",
     element: (
       <RoleProtectedRoute allowedRole="provider">

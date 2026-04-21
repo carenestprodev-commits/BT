@@ -245,17 +245,22 @@ const buildSeekerSections = (user) => {
     );
   } else if (category === "elderlycare") {
     serviceItems.push(
-      makeField("Care type", elderlyInfo.care_type),
-      makeField("Relationship", elderlyInfo.relationship),
-      makeField("Age", elderlyInfo.age),
-      makeField("Gender", elderlyInfo.gender),
-      makeField("Health condition", elderlyInfo.health_condition),
+      makeField("Care type", elderlyInfo.care_type || elderlyInfo.elderly_care_type),
+      makeField("Relationship", elderlyInfo.relationship || elderlyInfo.relationship_with_elderly),
+      makeField("Age", elderlyInfo.age || elderlyInfo.age_of_elderly),
+      makeField("Gender", elderlyInfo.gender || elderlyInfo.gender_of_elderly),
+      makeField(
+        "Health condition",
+        elderlyInfo.health_condition || elderlyInfo.health_condition_of_elderly,
+      ),
     );
   } else if (category === "tutoring") {
     serviceItems.push(
-      makeField("Subjects", tutoringInfo.subjects),
-      makeField("Student age", tutoringInfo.student_age),
+      makeField("Subjects", tutoringInfo.subjects || tutoringInfo.subjects_needed),
+      makeField("Student age", tutoringInfo.student_age || tutoringInfo.age_range_of_student),
       makeField("Current grade", tutoringInfo.current_grade),
+      makeField("Learning goal", tutoringInfo.purpose_of_learning),
+      makeField("Learning environment", tutoringInfo.learning_environment_needed),
     );
   } else if (category === "housekeeping") {
     serviceItems.push(
@@ -316,6 +321,18 @@ const buildSeekerSections = (user) => {
     ]),
   ];
 };
+
+const buildAdminSections = (user) => [
+  makeSection("Identity", [
+    makeField("Full name", user?.full_name),
+    makeField("Email", user?.email),
+    makeField("Phone number", user?.phone_number),
+    makeField("User type", userTypeLabel(user?.user_type || (user?.is_staff ? "admin" : ""))),
+    makeField("Account status", user?.is_active ? "Active" : "Inactive"),
+    makeField("Joined", formatDateTime(user?.date_joined)),
+    makeField("Last login", formatDateTime(user?.last_login)),
+  ]),
+];
 
 function Users() {
   const dispatch = useDispatch();
@@ -469,8 +486,7 @@ function Users() {
     return users.map((u) => ({
       id: u.id,
       name: u.full_name || `User ${u.id}`,
-      userType:
-        u.user_type === "provider" ? "Care Provider" : u.is_staff ? "Admin" : "Care seeker",
+      userType: userTypeLabel(u.user_type || (u.is_staff ? "admin" : "")),
       email: u.email,
       phone: u.phone_number || "",
       onboard: u.date_joined ? dayjs(u.date_joined).format("DD-MM-YYYY") : "",
@@ -502,7 +518,9 @@ function Users() {
   const detailSections = detailUser
     ? (detailUser.user_type === "provider"
       ? buildProviderSections(detailUser)
-      : buildSeekerSections(detailUser))
+      : detailUser.user_type === "seeker"
+        ? buildSeekerSections(detailUser)
+        : buildAdminSections(detailUser))
     : [];
 
   const statsCounts = useMemo(
