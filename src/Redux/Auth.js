@@ -61,6 +61,8 @@ export const fetchUserProfile = createAsyncThunk(
         phone_number: data.phone_number,
         user_type: userType,
         is_verified: data.is_verified || false,
+        verification_status: data.verification_status || null,
+        screening_status: data.screening_status || null,
         ...data,
       };
 
