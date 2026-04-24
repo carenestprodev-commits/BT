@@ -5,6 +5,7 @@ import { saveStep } from "../../../Redux/CareProviderAuth";
 import { reverseGeocode } from "../../../Redux/Location";
 import { useHourlyRateConfig } from "../../../constants/hourlyRates";
 import mappopup from "../../../../public/mappopup.png";
+import TrainingCertificateUpload from "./TrainingCertificateUpload";
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 function TutoringDetails({
@@ -705,6 +706,11 @@ function TutoringDetails({
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
           />
+          <TrainingCertificateUpload
+            file={formData.trainingCertificate}
+            onChange={(file) => updateFormData("trainingCertificate", file)}
+            error={errors.trainingCertificate}
+          />
         </div>
 
         <CheckboxGroup
@@ -843,6 +849,7 @@ function TutoringDetails({
               "nativeLanguage",
               // "otherLanguage", // optional
               "hourlyRate",
+              "trainingCertificate",
               "aboutYou",
               "title",
             ];

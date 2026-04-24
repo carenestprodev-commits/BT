@@ -31,6 +31,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
+  const [trainingCertificate, setTrainingCertificate] = useState(null);
   const [signupComplete, setSignupComplete] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -62,7 +63,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
       try {
         await uploadProfilePhoto(profilePhoto);
         onClose();
-        navigate(providerDashboardPaths.certificateUpload);
+        navigate("/careproviders/dashboard/home", { replace: true });
       } catch (err) {
         setUploadError(err.message || "Photo upload failed");
       }
@@ -202,9 +203,9 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
               0,
           ) || 0,
         hourly_rate:
-          parseFloat(
-            mergedProfile.hourlyRate || mergedProfile.hourly_rate || 0,
-          ) || 0,
+          mergedProfile.hourlyRate || mergedProfile.hourly_rate
+            ? parseFloat(mergedProfile.hourlyRate || mergedProfile.hourly_rate)
+            : null,
         languages: ensureArray(
           mergedProfile.languages ||
             mergedProfile.nativeLanguage ||
@@ -319,7 +320,12 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
 
       console.log("OUTGOING PAYLOAD (canonical)", payload);
 
-      const resultAction = await dispatch(registerAndCreateProfile(payload));
+      const requestBody = new FormData();
+      requestBody.append("user_data", JSON.stringify(payload.user_data));
+      requestBody.append("profile_data", JSON.stringify(payload.profile_data));
+      requestBody.append("training_certificate", trainingCertificate);
+
+      const resultAction = await dispatch(registerAndCreateProfile(requestBody));
 
       if (resultAction.error) {
         alert(
@@ -344,7 +350,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
         await uploadProfilePhoto(profilePhoto);
         alert(res.message || "Account created successfully!");
         onClose();
-        navigate("/careproviders/dashboard/certificate-upload");
+        navigate("/careproviders/dashboard/home", { replace: true });
       }
     } catch (err) {
       if (registered) {
@@ -366,7 +372,8 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
     signupForm.password === signupForm.confirmPassword &&
     acceptedTerms &&
     profilePhoto &&
-    isValidProfilePhoto(profilePhoto);
+    isValidProfilePhoto(profilePhoto) &&
+    trainingCertificate;
 
   if (!isOpen) return null;
 
@@ -426,6 +433,26 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
           )}
           {uploadError && (
             <p className="mt-2 text-sm text-red-500">{uploadError}</p>
+          )}
+        </div>
+
+        <div className="mb-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Training certificate
+          </label>
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+            onChange={(e) =>
+              setTrainingCertificate(e.target.files?.[0] || null)
+            }
+            className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-[#0093d1] file:px-4 file:py-2 file:text-white hover:file:bg-[#007bb0]"
+          />
+          <p className="mt-2 text-xs text-gray-500">PDF, JPG or PNG.</p>
+          {trainingCertificate && (
+            <p className="mt-2 text-sm text-gray-700 truncate">
+              Selected: {trainingCertificate.name}
+            </p>
           )}
         </div>
 
