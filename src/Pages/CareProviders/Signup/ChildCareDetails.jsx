@@ -5,6 +5,7 @@ import { saveStep } from "../../../Redux/CareProviderAuth";
 import { reverseGeocode } from "../../../Redux/Location";
 import { useHourlyRateConfig } from "../../../constants/hourlyRates";
 import mappopup from "../../../../public/mappopup.png";
+import TrainingCertificateUpload from "./TrainingCertificateUpload";
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 function ChildCareDetails({
@@ -687,6 +688,11 @@ function ChildCareDetails({
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
           />
+          <TrainingCertificateUpload
+            file={formData.trainingCertificate}
+            onChange={(file) => updateFormData("trainingCertificate", file)}
+            error={errors.trainingCertificate}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -822,6 +828,10 @@ function ChildCareDetails({
             const newErrors = {};
             if (!trimmedFirst) newErrors.firstName = "First name is required.";
             if (!trimmedLast) newErrors.lastName = "Last name is required.";
+            if (!formData.trainingCertificate) {
+              newErrors.trainingCertificate =
+                "Training certificate is required.";
+            }
             setErrors(newErrors);
             if (Object.keys(newErrors).length > 0) {
               // don't submit

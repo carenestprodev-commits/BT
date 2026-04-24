@@ -5,6 +5,7 @@ import { saveStep } from "../../../Redux/CareProviderAuth";
 import { reverseGeocode } from "../../../Redux/Location";
 import { useHourlyRateConfig } from "../../../constants/hourlyRates";
 import mappopup from "../../../../public/mappopup.png";
+import TrainingCertificateUpload from "./TrainingCertificateUpload";
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 function HouseKeepingDetails({
@@ -699,6 +700,11 @@ function HouseKeepingDetails({
             values={formData.otherServices || []}
             onChange={(val) => updateFormData("otherServices", val)}
           />
+          <TrainingCertificateUpload
+            file={formData.trainingCertificate}
+            onChange={(file) => updateFormData("trainingCertificate", file)}
+            error={errors.trainingCertificate}
+          />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Hourly Rate <span className="text-red-600">*</span>
@@ -800,6 +806,7 @@ function HouseKeepingDetails({
               "nativeLanguage",
               // "otherLanguage", // optional
               "hourlyRate",
+              "trainingCertificate",
               "aboutYou",
               "title",
             ];

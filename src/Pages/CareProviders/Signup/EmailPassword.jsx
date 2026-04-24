@@ -49,7 +49,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
       setUploadError("");
       try {
         await uploadProfilePhoto(profilePhoto);
-        navigate(providerDashboardPaths.certificateUpload);
+        navigate("/careproviders/dashboard/home", { replace: true });
       } catch (err) {
         setUploadError(err.message || "Photo upload failed");
       } finally {
@@ -189,9 +189,9 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
             0,
         ) || 0,
       hourly_rate:
-        parseFloat(
-          mergedProfile.hourlyRate || mergedProfile.hourly_rate || 0,
-        ) || 0,
+        mergedProfile.hourlyRate || mergedProfile.hourly_rate
+          ? parseFloat(mergedProfile.hourlyRate || mergedProfile.hourly_rate)
+          : null,
       languages: ensureArray(
         mergedProfile.languages ||
           mergedProfile.nativeLanguage ||
@@ -320,7 +320,12 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
     console.log("OUTGOING PAYLOAD (canonical)", payload);
 
     try {
-      const resultAction = await dispatch(registerAndCreateProfile(payload));
+      const requestBody = new FormData();
+      requestBody.append("user_data", JSON.stringify(payload.user_data));
+      requestBody.append("profile_data", JSON.stringify(payload.profile_data));
+      requestBody.append("training_certificate", formData.trainingCertificate);
+
+      const resultAction = await dispatch(registerAndCreateProfile(requestBody));
       if (resultAction.error) {
         alert(
           "Registration failed: " +
@@ -344,7 +349,7 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
         setSignupComplete(true);
         await uploadProfilePhoto(profilePhoto);
         alert(res.message || "Account created");
-        navigate("/careproviders/dashboard/certificate-upload");
+        navigate("/careproviders/dashboard/home", { replace: true });
       }
     } catch (err) {
       if (registered) {
@@ -409,7 +414,6 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
             <p className="mt-2 text-sm text-red-500">{uploadError}</p>
           )}
         </div>
-
         {/* Form */}
         <form className="space-y-4" onSubmit={handleSignUp}>
           {/* Email */}
@@ -635,7 +639,8 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
               !isStrongPassword(password) ||
               password !== password2 ||
               !profilePhoto ||
-              !isValidProfilePhoto(profilePhoto)
+              !isValidProfilePhoto(profilePhoto) ||
+              !formData.trainingCertificate
             }
             className="w-full bg-[#0093d1] text-white font-medium py-2 rounded-md hover:bg-[#007bb0] transition disabled:opacity-60"
           >

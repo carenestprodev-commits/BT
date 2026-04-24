@@ -5,6 +5,7 @@ import { saveStep } from "../../../Redux/CareProviderAuth";
 import { reverseGeocode } from "../../../Redux/Location";
 import { useHourlyRateConfig } from "../../../constants/hourlyRates";
 import mappopup from "../../../../public/mappopup.png";
+import TrainingCertificateUpload from "./TrainingCertificateUpload";
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 function ElderlyCareDetails({
@@ -716,6 +717,11 @@ function ElderlyCareDetails({
           {errors.otherServices && (
             <p className="text-sm text-red-600 mt-1">{errors.otherServices}</p>
           )}
+          <TrainingCertificateUpload
+            file={formData.trainingCertificate}
+            onChange={(file) => updateFormData("trainingCertificate", file)}
+            error={errors.trainingCertificate}
+          />
         </div>
 
         <CheckboxGroup
@@ -912,6 +918,11 @@ function ElderlyCareDetails({
                 "Native language is required.",
               ],
               ["hourlyRate", formData.hourlyRate, "Hourly rate is required."],
+              [
+                "trainingCertificate",
+                formData.trainingCertificate,
+                "Training certificate is required.",
+              ],
               ["aboutYou", formData.aboutYou, "About you is required."],
               ["title", formData.title, "Title is required."],
             ];

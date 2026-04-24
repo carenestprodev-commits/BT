@@ -23,12 +23,13 @@ export const registerAndCreateProfile = createAsyncThunk(
   "careProvider/registerAndCreateProfile",
   async (payload, { rejectWithValue }) => {
     try {
+      const isFormData = payload instanceof FormData;
       const res = await fetch(
         `${BASE_URL}/api/provider/public-onboarding/register-and-create-profile/`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          headers: isFormData ? undefined : { "Content-Type": "application/json" },
+          body: isFormData ? payload : JSON.stringify(payload),
         }
       );
       if (!res.ok) {
