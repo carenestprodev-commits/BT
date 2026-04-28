@@ -636,15 +636,6 @@ function Users() {
     },
   ];
 
-  const visibleProfileStats = useMemo(
-    () => ({
-      incomplete: filtered.filter((row) => !row.is_profile_complete).length,
-      pendingDocs: filtered.filter((row) => !row.documents_received).length,
-      awaitingVerification: filtered.filter((row) => !row.is_verified).length,
-    }),
-    [filtered],
-  );
-
   // Close profile filter dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
@@ -761,6 +752,15 @@ function Users() {
 
     return data;
   }, [rows, query, locationFilter, accountStatusFilter, sortBy, profileStatusFilters]);
+
+  const visibleProfileStats = useMemo(
+    () => ({
+      incomplete: filtered.filter((row) => !row.is_profile_complete).length,
+      pendingDocs: filtered.filter((row) => !row.documents_received).length,
+      awaitingVerification: filtered.filter((row) => !row.is_verified).length,
+    }),
+    [filtered],
+  );
 
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
