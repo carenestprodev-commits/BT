@@ -520,7 +520,6 @@ function Users() {
     return users.map((u) => ({
       id: u.id,
       name: u.full_name || `User ${u.id}`,
-      userTypeKey: u.user_type || (u.is_staff ? "admin" : ""),
       userType: userTypeLabel(u.user_type || (u.is_staff ? "admin" : "")),
       email: u.email,
       phone: u.phone_number || "",
@@ -540,6 +539,7 @@ function Users() {
       nationality: "",
       location: formatLocation(u.location_details),
       accountStatus: u.is_active ? "Active" : "Suspended",
+      subscriptionStatus: u.is_active ? "Active" : "Suspended",
       earnings: "-",
       is_verified: u.is_verified ?? u.verification_status === "verified",
       verification_status: u.verification_status || "pending",
