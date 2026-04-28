@@ -504,6 +504,7 @@ function Users() {
     return users.map((u) => ({
       id: u.id,
       name: u.full_name || `User ${u.id}`,
+      user_type: u.user_type || (u.is_staff ? "admin" : ""),
       userType: userTypeLabel(u.user_type || (u.is_staff ? "admin" : "")),
       email: u.email,
       phone: u.phone_number || "",
