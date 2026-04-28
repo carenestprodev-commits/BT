@@ -520,6 +520,7 @@ function Users() {
     return users.map((u) => ({
       id: u.id,
       name: u.full_name || `User ${u.id}`,
+      userTypeKey: u.user_type || (u.is_staff ? "admin" : ""),
       userType: userTypeLabel(u.user_type || (u.is_staff ? "admin" : "")),
       email: u.email,
       phone: u.phone_number || "",
@@ -560,6 +561,12 @@ function Users() {
       ).sort(),
     [rows],
   );
+
+  const hasActiveFilters =
+    Boolean(query.trim()) ||
+    locationFilter !== "All" ||
+    accountStatusFilter !== "All" ||
+    profileStatusFilters.length > 0;
 
   const detailSections = detailUser
     ? (detailUser.user_type === "provider"
@@ -629,6 +636,15 @@ function Users() {
     },
   ];
 
+  const visibleProfileStats = useMemo(
+    () => ({
+      incomplete: filtered.filter((row) => !row.is_profile_complete).length,
+      pendingDocs: filtered.filter((row) => !row.documents_received).length,
+      awaitingVerification: filtered.filter((row) => !row.is_verified).length,
+    }),
+    [filtered],
+  );
+
   // Close profile filter dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
@@ -651,6 +667,49 @@ function Users() {
     { value: "Incomplete", label: "Incomplete Profile" },
     { value: "NoPhoto", label: "No Profile Picture" },
   ];
+
+  const activeFilters = useMemo(() => {
+    const items = [];
+    if (query.trim()) {
+      items.push({
+        key: "query",
+        label: `Search: ${query.trim()}`,
+        clear: () => setQuery(""),
+      });
+    }
+    if (locationFilter !== "All") {
+      items.push({
+        key: "location",
+        label: `Location: ${locationFilter}`,
+        clear: () => setLocationFilter("All"),
+      });
+    }
+    if (accountStatusFilter !== "All") {
+      items.push({
+        key: "account",
+        label: `Account: ${accountStatusFilter}`,
+        clear: () => setAccountStatusFilter("All"),
+      });
+    }
+    profileStatusFilters.forEach((value) => {
+      items.push({
+        key: `profile-${value}`,
+        label: profileFilterOptions.find((opt) => opt.value === value)?.label || value,
+        clear: () =>
+          setProfileStatusFilters((prev) => prev.filter((item) => item !== value)),
+      });
+    });
+    return items;
+  }, [query, locationFilter, accountStatusFilter, profileStatusFilters]);
+
+  const clearAllFilters = () => {
+    setQuery("");
+    setLocationFilter("All");
+    setAccountStatusFilter("All");
+    setProfileStatusFilters([]);
+    setProfileFilterOpen(false);
+    setCurrentPage(1);
+  };
 
   const filtered = useMemo(() => {
     let data = [...rows];
@@ -840,9 +899,52 @@ function Users() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                Filter scope
+              </p>
+              <p className="mt-1 text-sm text-slate-700">
+                {hasActiveFilters
+                  ? `Stats and rows are showing ${filtered.length.toLocaleString()} matching users.`
+                  : `Stats and rows are showing all ${rows.length.toLocaleString()} users in this tab.`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              disabled={!hasActiveFilters}
+              className={`w-full rounded-xl border px-4 py-2 text-sm font-medium lg:w-auto ${
+                hasActiveFilters
+                  ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                  : "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+              }`}
+            >
+              Clear all filters
+            </button>
+          </div>
+          {activeFilters.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {activeFilters.map((filter) => (
+                <button
+                  key={filter.key}
+                  type="button"
+                  onClick={filter.clear}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                >
+                  <span>{filter.label}</span>
+                  <span className="text-slate-400">×</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 md:grid-cols-4">
           {statsConfig.map((s) => {
             const isActive = activeStat === s.key;
+            const value = isActive && hasActiveFilters ? filtered.length : s.value;
             return (
               <div
                 key={s.key}
@@ -867,12 +969,17 @@ function Users() {
                       })()}
                     </div>
                     <div className="text-sm font-medium">{s.label}</div>
+                    {isActive && hasActiveFilters && (
+                      <div className="mt-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-white">
+                        Filtered
+                      </div>
+                    )}
                   </div>
                   <div
                     className={`ml-auto text-2xl font-semibold ${isActive ? "text-white" : "text-black"
                       }`}
                   >
-                    {s.value.toLocaleString()}
+                    {value.toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -895,7 +1002,7 @@ function Users() {
                   <div className="flex flex-col items-start">
                     <div className="text-sm font-medium text-gray-700">{s.label}</div>
                     <div className="text-2xl font-semibold text-gray-900 mt-1">
-                      {s.value.toLocaleString()}
+                      {(hasActiveFilters ? visibleProfileStats[s.key] : s.value).toLocaleString()}
                     </div>
                   </div>
                   <div className={`w-10 h-10 flex items-center justify-center rounded-full ${s.color === 'red' ? 'bg-red-100' :
