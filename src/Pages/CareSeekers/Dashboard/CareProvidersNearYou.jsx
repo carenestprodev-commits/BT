@@ -10,14 +10,13 @@ import {
   formatCurrencyAmount,
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
-import { BASE_URL } from "../../../Redux/config";
 
 const resolveImage = (url, name = "Provider") => {
   if (!url) {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=E5E7EB&color=374151&size=100`;
   }
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  if (url.startsWith("/")) return `${BASE_URL}${url}`;
+  if (url.startsWith("/")) return `${import.meta.env.VITE_API_BASE_URL}${url}`;
   return url;
 };
 
