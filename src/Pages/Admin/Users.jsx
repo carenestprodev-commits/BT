@@ -430,27 +430,11 @@ function Users() {
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [selectedUserForTemplate, setSelectedUserForTemplate] = useState(null);
   const [selectedUserForTimeline, setSelectedUserForTimeline] = useState(null);
-  const [enhancedStats, setEnhancedStats] = useState(null);
 
   useEffect(() => {
     setSelectedIds([]); // Clear selection when switching tabs
     dispatch(fetchAdminStats());
-    fetchEnhancedStats(); // Fetch enhanced stats with profile completion metrics
   }, [dispatch, activeStat]);
-
-  const fetchEnhancedStats = async () => {
-    try {
-      const access = localStorage.getItem("accessToken") || localStorage.getItem("access");
-      const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetch(`${BASE_URL}/api/admin/stats/enhanced/`, { headers });
-      const data = await res.json();
-      if (res.ok) {
-        setEnhancedStats(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch enhanced stats:", err);
-    }
-  };
 
   // Fetch appropriate user list when activeStat changes
   useEffect(() => {
@@ -520,6 +504,7 @@ function Users() {
     return users.map((u) => ({
       id: u.id,
       name: u.full_name || `User ${u.id}`,
+      user_type: u.user_type || (u.is_staff ? "admin" : ""),
       userType: userTypeLabel(u.user_type || (u.is_staff ? "admin" : "")),
       email: u.email,
       phone: u.phone_number || "",
@@ -575,66 +560,6 @@ function Users() {
         ? buildSeekerSections(detailUser)
         : buildAdminSections(detailUser))
     : [];
-
-  const statsCounts = useMemo(
-    () => ({
-      users: stats?.total_users ?? 0,
-      providers: stats?.total_providers ?? 0,
-      seekers: stats?.total_seekers ?? 0,
-      signups: stats?.new_sign_ups ?? 0,
-      incomplete: enhancedStats?.incomplete_profiles ?? 0,
-      pendingDocs: enhancedStats?.profiles_pending_docs ?? 0,
-      awaitingVerification: enhancedStats?.profiles_awaiting_verification ?? 0,
-    }),
-    [stats, enhancedStats],
-  );
-
-  const statsConfig = [
-    { key: "all", label: "Users", value: statsCounts.users, icon: CubeIcon },
-    {
-      key: "providers",
-      label: "Care Providers",
-      value: statsCounts.providers,
-      icon: CubeIconGreen,
-    },
-    {
-      key: "seekers",
-      label: "Care Seekers",
-      value: statsCounts.seekers,
-      icon: CubeIconPink,
-    },
-    {
-      key: "signups",
-      label: "New Sign Ups",
-      value: statsCounts.signups,
-      icon: CubeIconOrange,
-    },
-  ];
-
-  // Feature 3: Profile Completion Stats Cards
-  const profileStatsConfig = [
-    {
-      key: "incomplete",
-      label: "Incomplete Profiles",
-      value: statsCounts.incomplete,
-      icon: CubeIconBlue,
-      color: "red"
-    },
-    {
-      key: "pendingDocs",
-      label: "Pending Documents",
-      value: statsCounts.pendingDocs,
-      icon: CubeIconOrange,
-      color: "yellow"
-    },
-    {
-      key: "awaitingVerification",
-      label: "Awaiting Verification",
-      value: statsCounts.awaitingVerification,
-      icon: CubeIconGreen,
-      color: "blue"
-    },
-  ];
 
   // Close profile filter dropdown when clicking outside
   useEffect(() => {
@@ -753,14 +678,69 @@ function Users() {
     return data;
   }, [rows, query, locationFilter, accountStatusFilter, sortBy, profileStatusFilters]);
 
-  const visibleProfileStats = useMemo(
-    () => ({
-      incomplete: filtered.filter((row) => !row.is_profile_complete).length,
-      pendingDocs: filtered.filter((row) => !row.documents_received).length,
-      awaitingVerification: filtered.filter((row) => !row.is_verified).length,
-    }),
-    [filtered],
-  );
+  const summaryStats = useMemo(() => {
+    const users = filtered.length;
+    const providers = filtered.filter((row) => row.user_type === "provider").length;
+    const seekers = filtered.filter((row) => row.user_type === "seeker").length;
+    const verified = filtered.filter(
+      (row) => row.is_verified || row.verification_status === "verified" || row.verification_status === "approved",
+    ).length;
+    const incomplete = filtered.filter((row) => !row.is_profile_complete).length;
+    const awaitingVerification = filtered.filter(
+      (row) =>
+        (row.verification_status === "documents_received" || row.documents_received) &&
+        !(row.is_verified || row.verification_status === "verified" || row.verification_status === "approved"),
+    ).length;
+
+    return {
+      users,
+      providers,
+      seekers,
+      verified,
+      incomplete,
+      awaitingVerification,
+    };
+  }, [filtered]);
+
+  const statsConfig = [
+    { key: "all", label: "Users", value: summaryStats.users, icon: CubeIcon },
+    {
+      key: "providers",
+      label: "Care Providers",
+      value: summaryStats.providers,
+      icon: CubeIconGreen,
+    },
+    {
+      key: "seekers",
+      label: "Care Seekers",
+      value: summaryStats.seekers,
+      icon: CubeIconPink,
+    },
+  ];
+
+  const profileStatsConfig = [
+    {
+      key: "verified",
+      label: "Verified",
+      value: summaryStats.verified,
+      icon: CubeIconGreen,
+      color: "green",
+    },
+    {
+      key: "incomplete",
+      label: "Incomplete Profiles",
+      value: summaryStats.incomplete,
+      icon: CubeIconBlue,
+      color: "red",
+    },
+    {
+      key: "awaitingVerification",
+      label: "Awaiting Verification",
+      value: summaryStats.awaitingVerification,
+      icon: CubeIconOrange,
+      color: "yellow",
+    },
+  ];
 
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -898,24 +878,138 @@ function Users() {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                Filter scope
-              </p>
-              <p className="mt-1 text-sm text-slate-700">
-                {hasActiveFilters
-                  ? `Stats and rows are showing ${filtered.length.toLocaleString()} matching users.`
-                  : `Stats and rows are showing all ${rows.length.toLocaleString()} users in this tab.`}
-              </p>
+        {/* Controls */}
+        <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex-1 space-y-3">
+              <div className="flex flex-col gap-3 lg:flex-row">
+                <div className="flex-1">
+                  <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                    <FaSearch className="mr-2 text-slate-400" />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Search users"
+                      className="w-full bg-transparent text-sm outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <select
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                    className="min-w-[180px] appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-8 text-sm shadow-sm"
+                  >
+                    <option value="All">All locations</option>
+                    {locationOptions.map((location) => (
+                      <option key={location} value={location}>
+                        {location}
+                      </option>
+                    ))}
+                  </select>
+                  <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                </div>
+
+                <div className="relative">
+                  <select
+                    value={accountStatusFilter}
+                    onChange={(e) => setAccountStatusFilter(e.target.value)}
+                    className="min-w-[180px] appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-8 text-sm shadow-sm"
+                  >
+                    <option value="All">Account status</option>
+                    <option value="Active">Active accounts</option>
+                    <option value="Suspended">Suspended accounts</option>
+                  </select>
+                  <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative" ref={profileFilterRef}>
+                  <button
+                    type="button"
+                    onClick={() => setProfileFilterOpen((o) => !o)}
+                    className="inline-flex min-w-[180px] items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm shadow-sm"
+                  >
+                    <span>
+                      {profileStatusFilters.length === 0
+                        ? "Profile status"
+                        : profileStatusFilters.length === 1
+                          ? profileFilterOptions.find((o) => o.value === profileStatusFilters[0])?.label
+                          : `${profileStatusFilters.length} filters`}
+                    </span>
+                    <FaChevronDown className="shrink-0 text-slate-400" />
+                  </button>
+
+                  {profileFilterOpen && (
+                    <div className="absolute left-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                      {profileFilterOptions.map((opt) => (
+                        <label
+                          key={opt.value}
+                          className="flex cursor-pointer items-center gap-2 px-4 py-2.5 text-sm text-slate-900 hover:bg-slate-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={profileStatusFilters.includes(opt.value)}
+                            onChange={() => toggleProfileFilter(opt.value)}
+                            className="h-4 w-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
+                          />
+                          {opt.label}
+                        </label>
+                      ))}
+                      {profileStatusFilters.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setProfileStatusFilters([])}
+                          className="w-full border-t border-slate-100 px-4 py-2.5 text-left text-xs font-medium text-[#0b93c6] hover:bg-slate-50"
+                        >
+                          Clear filters
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setShowEmailModal(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#0b93c6] px-4 py-2.5 text-sm font-medium text-[#0b93c6] transition hover:bg-blue-50"
+                >
+                  <FaEnvelope />
+                  Send Email
+                </button>
+
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#0b93c6] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#0a82b0]"
+                >
+                  <FaFileExport />
+                  Export Data
+                </button>
+              </div>
+
+              {activeFilters.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {activeFilters.map((filter) => (
+                    <button
+                      key={filter.key}
+                      type="button"
+                      onClick={filter.clear}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                    >
+                      <span>{filter.label}</span>
+                      <span className="text-slate-400">×</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
             <button
               type="button"
               onClick={clearAllFilters}
               disabled={!hasActiveFilters}
-              className={`w-full rounded-xl border px-4 py-2 text-sm font-medium lg:w-auto ${
+              className={`w-full rounded-xl border px-4 py-2.5 text-sm font-medium lg:w-auto ${
                 hasActiveFilters
                   ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
                   : "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
@@ -924,101 +1018,95 @@ function Users() {
               Clear all filters
             </button>
           </div>
-          {activeFilters.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {activeFilters.map((filter) => (
-                <button
-                  key={filter.key}
-                  type="button"
-                  onClick={filter.clear}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-                >
-                  <span>{filter.label}</span>
-                  <span className="text-slate-400">×</span>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 md:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {statsConfig.map((s) => {
             const isActive = activeStat === s.key;
-            const value = isActive && hasActiveFilters ? filtered.length : s.value;
             return (
-              <div
+              <button
                 key={s.key}
+                type="button"
                 onClick={() => setActiveStat(s.key)}
-                className={`p-4 rounded-lg cursor-pointer flex flex-col justify-between ${isActive ? "bg-[#0e2f43] text-white" : "bg-white text-black"
-                  } border`}
+                className={`rounded-2xl border p-4 text-left transition ${
+                  isActive
+                    ? "border-[#0e2f43] bg-[#0e2f43] text-white shadow-lg shadow-slate-200"
+                    : "border-slate-200 bg-white text-slate-900 shadow-sm hover:border-slate-300"
+                }`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex flex-col items-start">
                     <div
-                      className={`w-8 h-8 flex items-center justify-center mb-2 rounded-full ${isActive ? "bg-white/10" : "bg-slate-100"
-                        }`}
+                      className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full ${
+                        isActive ? "bg-white/10" : "bg-slate-100"
+                      }`}
                     >
                       {(() => {
                         const Icon = s.icon || CubeIcon;
                         return (
                           <Icon
-                            className={`w-5 h-5 ${isActive ? "text-white" : "text-black"
-                              }`}
+                            className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-700"}`}
                           />
                         );
                       })()}
                     </div>
                     <div className="text-sm font-medium">{s.label}</div>
-                    {isActive && hasActiveFilters && (
+                    {isActive && (
                       <div className="mt-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-white">
-                        Filtered
+                        Selected
                       </div>
                     )}
                   </div>
                   <div
-                    className={`ml-auto text-2xl font-semibold ${isActive ? "text-white" : "text-black"
-                      }`}
+                    className={`text-2xl font-semibold ${
+                      isActive ? "text-white" : "text-slate-900"
+                    }`}
                   >
-                    {value.toLocaleString()}
+                    {s.value.toLocaleString()}
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
 
-        {/* Feature 3: Profile Completion Stats */}
-        {enhancedStats && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            {profileStatsConfig.map((s) => (
-              <div
-                key={s.key}
-                className={`p-4 rounded-lg border ${s.color === 'red' ? 'bg-red-50 border-red-200' :
-                  s.color === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
-                    'bg-blue-50 border-blue-200'
-                  }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col items-start">
-                    <div className="text-sm font-medium text-gray-700">{s.label}</div>
-                    <div className="text-2xl font-semibold text-gray-900 mt-1">
-                      {(hasActiveFilters ? visibleProfileStats[s.key] : s.value).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className={`w-10 h-10 flex items-center justify-center rounded-full ${s.color === 'red' ? 'bg-red-100' :
-                    s.color === 'yellow' ? 'bg-yellow-100' :
-                      'bg-blue-100'
-                    }`}>
-                    {(() => {
-                      const Icon = s.icon || CubeIcon;
-                      return <Icon className="w-5 h-5 text-gray-700" />;
-                    })()}
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {profileStatsConfig.map((s) => (
+            <div
+              key={s.key}
+              className={`rounded-2xl border p-4 ${
+                s.color === "red"
+                  ? "border-red-200 bg-red-50"
+                  : s.color === "yellow"
+                    ? "border-yellow-200 bg-yellow-50"
+                    : "border-green-200 bg-green-50"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-medium text-slate-700">{s.label}</div>
+                  <div className="mt-1 text-2xl font-semibold text-slate-900">
+                    {s.value.toLocaleString()}
                   </div>
                 </div>
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                    s.color === "red"
+                      ? "bg-red-100"
+                      : s.color === "yellow"
+                        ? "bg-yellow-100"
+                        : "bg-green-100"
+                  }`}
+                >
+                  {(() => {
+                    const Icon = s.icon || CubeIcon;
+                    return <Icon className="h-5 w-5 text-slate-700" />;
+                  })()}
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
 
         {/* Feature 1: Bulk Profile Checker Button */}
         <div className="mb-4 flex gap-3">
@@ -1784,113 +1872,6 @@ function Users() {
             </div>
           </div>
         )}
-
-        {/* Controls */}
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4">
-          <div className="flex-1 w-full">
-            <div className="flex items-center bg-white rounded-md px-3 py-2 shadow-sm text-black">
-              <FaSearch className="text-slate-400 mr-2" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="search for users"
-                className="outline-none w-full text-sm bg-white text-black"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 mt-3 md:mt-0">
-            <div className="relative">
-              <select
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
-              >
-                <option value="All">All locations</option>
-                {locationOptions.map((location) => (
-                  <option key={location} value={location}>
-                    {location}
-                  </option>
-                ))}
-              </select>
-              <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
-
-            <div className="relative">
-              <select
-                value={accountStatusFilter}
-                onChange={(e) => setAccountStatusFilter(e.target.value)}
-                className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
-              >
-                <option value="All">Account status</option>
-                <option value="Active">Active accounts</option>
-                <option value="Suspended">Suspended accounts</option>
-              </select>
-              <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
-
-            <div className="relative" ref={profileFilterRef}>
-              <button
-                type="button"
-                onClick={() => setProfileFilterOpen((o) => !o)}
-                className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8 min-w-[160px] flex items-center justify-between gap-2"
-              >
-                <span>
-                  {profileStatusFilters.length === 0
-                    ? "Profile Status"
-                    : profileStatusFilters.length === 1
-                      ? profileFilterOptions.find((o) => o.value === profileStatusFilters[0])?.label
-                      : `${profileStatusFilters.length} filters`}
-                </span>
-                <FaChevronDown className="text-slate-400 shrink-0" />
-              </button>
-
-              {profileFilterOpen && (
-                <div className="absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-md shadow-lg z-50 py-1">
-                  {profileFilterOptions.map((opt) => (
-                    <label
-                      key={opt.value}
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-black hover:bg-slate-50 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={profileStatusFilters.includes(opt.value)}
-                        onChange={() => toggleProfileFilter(opt.value)}
-                        className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
-                      />
-                      {opt.label}
-                    </label>
-                  ))}
-                  {profileStatusFilters.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setProfileStatusFilters([])}
-                      className="w-full text-left px-3 py-2 text-xs text-[#0b93c6] hover:bg-slate-50 border-t border-slate-100 mt-1"
-                    >
-                      Clear filters
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => setShowEmailModal(true)}
-              className="px-4 py-2 border border-[#0b93c6] text-[#0b93c6] rounded-md flex items-center justify-center gap-2 text-sm font-medium hover:bg-blue-50 transition-all"
-            >
-              <FaEnvelope />
-              Send Email
-            </button>
-
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="px-4 py-2 bg-[#0b93c6] text-white rounded-md flex items-center justify-center gap-2 text-sm font-medium shadow-sm hover:bg-[#0a82b0] active:scale-[0.98] transition-all"
-            >
-              <FaFileExport />
-              Export Data
-            </button>
-          </div>
-        </div>
 
         {/* Mobile cards */}
         <div className="grid gap-3 md:hidden">
