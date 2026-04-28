@@ -10,6 +10,16 @@ import {
   formatCurrencyAmount,
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
+import { BASE_URL } from "../../../Redux/config";
+
+const resolveImage = (url, name = "Provider") => {
+  if (!url) {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=E5E7EB&color=374151&size=100`;
+  }
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/")) return `${BASE_URL}${url}`;
+  return url;
+};
 
 function CareProvidersNearYou() {
   const navigate = useNavigate();
@@ -102,9 +112,12 @@ function CareProvidersNearYou() {
                     {/* Top Profile Section */}
                     <div className="flex items-start gap-4 mb-4">
                       <img
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(p.user?.full_name || "Provider")}&background=E5E7EB&color=374151&size=100`}
+                        src={resolveImage(p.user?.profile_image_url, p.user?.full_name)}
                         alt="Provider"
                         className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.src = resolveImage(null, p.user?.full_name);
+                        }}
                       />
                       <div className="flex-1 pr-6">
                         <div className="flex items-center gap-1">

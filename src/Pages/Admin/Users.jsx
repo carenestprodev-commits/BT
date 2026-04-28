@@ -90,6 +90,40 @@ const serviceCategoryLabel = (value) =>
 const userTypeLabel = (value) =>
   USER_TYPE_LABELS[String(value || "").toLowerCase()] || formatText(value);
 
+const resolveImageUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return url.startsWith("/") ? `${BASE_URL}${url}` : `${BASE_URL}/${url}`;
+};
+
+const getInitials = (name) =>
+  String(name || "U")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join("")
+    .toUpperCase() || "U";
+
+const UserAvatar = ({ name, imageUrl, className, textClassName = "text-sm" }) => {
+  const resolvedUrl = resolveImageUrl(imageUrl);
+  return (
+    <div className={`flex items-center justify-center overflow-hidden ${className || "bg-slate-200"}`}>
+      {resolvedUrl ? (
+        <img
+          src={resolvedUrl}
+          alt={name ? `${name} profile photo` : "profile photo"}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <span className={`font-semibold text-slate-700 ${textClassName}`}>
+          {getInitials(name)}
+        </span>
+      )}
+    </div>
+  );
+};
+
 const makeField = (label, value) => ({ label, value: formatText(value) });
 const makeSection = (title, items) => ({ title, items });
 
@@ -173,7 +207,7 @@ const buildProviderSections = (user) => {
       makeField("Email", user?.email),
       makeField("Phone number", user?.phone_number || profile.phone_number),
       makeField("User type", userTypeLabel(user?.user_type)),
-      makeField("Account status", user?.is_active ? "Active" : "Inactive"),
+      makeField("Account status", user?.is_active ? "Active" : "Suspended"),
       makeField("Joined", formatDateTime(user?.date_joined)),
       makeField("Last login", formatDateTime(user?.last_login)),
     ]),
@@ -281,7 +315,7 @@ const buildSeekerSections = (user) => {
       makeField("Email", user?.email),
       makeField("Phone number", user?.phone_number),
       makeField("User type", userTypeLabel(user?.user_type)),
-      makeField("Account status", user?.is_active ? "Active" : "Inactive"),
+      makeField("Account status", user?.is_active ? "Active" : "Suspended"),
       makeField("Joined", formatDateTime(user?.date_joined)),
       makeField("Last login", formatDateTime(user?.last_login)),
     ]),
@@ -323,15 +357,15 @@ const buildSeekerSections = (user) => {
 };
 
 const buildAdminSections = (user) => [
-  makeSection("Identity", [
-    makeField("Full name", user?.full_name),
-    makeField("Email", user?.email),
-    makeField("Phone number", user?.phone_number),
-    makeField("User type", userTypeLabel(user?.user_type || (user?.is_staff ? "admin" : ""))),
-    makeField("Account status", user?.is_active ? "Active" : "Inactive"),
-    makeField("Joined", formatDateTime(user?.date_joined)),
-    makeField("Last login", formatDateTime(user?.last_login)),
-  ]),
+    makeSection("Identity", [
+      makeField("Full name", user?.full_name),
+      makeField("Email", user?.email),
+      makeField("Phone number", user?.phone_number),
+      makeField("User type", userTypeLabel(user?.user_type || (user?.is_staff ? "admin" : ""))),
+      makeField("Account status", user?.is_active ? "Active" : "Suspended"),
+      makeField("Joined", formatDateTime(user?.date_joined)),
+      makeField("Last login", formatDateTime(user?.last_login)),
+    ]),
 ];
 
 function Users() {
@@ -346,6 +380,7 @@ function Users() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const [activeStat, setActiveStat] = useState("all");
+  const [accountStatusFilter, setAccountStatusFilter] = useState("All");
   const [editRow, setEditRow] = useState(null);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
@@ -452,14 +487,13 @@ function Users() {
         phone: u.phone_number || "",
         onboard: u.date_joined ? dayjs(u.date_joined).format("DD-MM-YYYY") : "",
         lastLogin: u.last_login ? dayjs(u.last_login).format("DD-MM-YYYY") : "",
-        avatar: u.profile_image_url || `/profilepic (1).png`,
+        profileImageUrl: u.profile_image_url || "",
         requestHistory: u.request_count ?? 0,
         requestsMade: u.request_count ?? 0,
         country: u.location_details?.country || "",
         city: u.location_details?.city || "",
         nationality: u.location_details?.nationality || "",
-        subscriptionStatus:
-          u.subscription_status || (u.is_active ? "Active" : "Inactive"),
+        accountStatus: u.is_active ? "Active" : "Suspended",
         is_suspend: !u.is_active,
         earnings: u.earnings || "-",
         is_verified:
@@ -486,6 +520,7 @@ function Users() {
     return users.map((u) => ({
       id: u.id,
       name: u.full_name || `User ${u.id}`,
+      userTypeKey: u.user_type || (u.is_staff ? "admin" : ""),
       userType: userTypeLabel(u.user_type || (u.is_staff ? "admin" : "")),
       email: u.email,
       phone: u.phone_number || "",
@@ -497,14 +532,14 @@ function Users() {
         ? dayjs(u.updated_at).format("DD-MM-YYYY")
         : dayjs(u.date_joined).format("DD-MM-YYYY") || "",
       lastUpdatedDate: u.updated_at || u.date_joined || "",
-      avatar: `/profilepic (1).png`,
+      profileImageUrl: u.profile_image_url || "",
       requestHistory: 0,
       requestsMade: 0,
       country: "",
       city: "",
       nationality: "",
       location: formatLocation(u.location_details),
-      subscriptionStatus: u.is_active ? "Active" : "Inactive",
+      accountStatus: u.is_active ? "Active" : "Suspended",
       earnings: "-",
       is_verified: u.is_verified ?? u.verification_status === "verified",
       verification_status: u.verification_status || "pending",
@@ -514,6 +549,24 @@ function Users() {
       has_profile_picture: u.has_profile_picture ?? false,
     }));
   }, [users]);
+
+  const locationOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rows
+            .map((row) => row.location)
+            .filter((value) => value && value !== EMPTY_VALUE),
+        ),
+      ).sort(),
+    [rows],
+  );
+
+  const hasActiveFilters =
+    Boolean(query.trim()) ||
+    locationFilter !== "All" ||
+    accountStatusFilter !== "All" ||
+    profileStatusFilters.length > 0;
 
   const detailSections = detailUser
     ? (detailUser.user_type === "provider"
@@ -583,6 +636,15 @@ function Users() {
     },
   ];
 
+  const visibleProfileStats = useMemo(
+    () => ({
+      incomplete: filtered.filter((row) => !row.is_profile_complete).length,
+      pendingDocs: filtered.filter((row) => !row.documents_received).length,
+      awaitingVerification: filtered.filter((row) => !row.is_verified).length,
+    }),
+    [filtered],
+  );
+
   // Close profile filter dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
@@ -606,6 +668,49 @@ function Users() {
     { value: "NoPhoto", label: "No Profile Picture" },
   ];
 
+  const activeFilters = useMemo(() => {
+    const items = [];
+    if (query.trim()) {
+      items.push({
+        key: "query",
+        label: `Search: ${query.trim()}`,
+        clear: () => setQuery(""),
+      });
+    }
+    if (locationFilter !== "All") {
+      items.push({
+        key: "location",
+        label: `Location: ${locationFilter}`,
+        clear: () => setLocationFilter("All"),
+      });
+    }
+    if (accountStatusFilter !== "All") {
+      items.push({
+        key: "account",
+        label: `Account: ${accountStatusFilter}`,
+        clear: () => setAccountStatusFilter("All"),
+      });
+    }
+    profileStatusFilters.forEach((value) => {
+      items.push({
+        key: `profile-${value}`,
+        label: profileFilterOptions.find((opt) => opt.value === value)?.label || value,
+        clear: () =>
+          setProfileStatusFilters((prev) => prev.filter((item) => item !== value)),
+      });
+    });
+    return items;
+  }, [query, locationFilter, accountStatusFilter, profileStatusFilters]);
+
+  const clearAllFilters = () => {
+    setQuery("");
+    setLocationFilter("All");
+    setAccountStatusFilter("All");
+    setProfileStatusFilters([]);
+    setProfileFilterOpen(false);
+    setCurrentPage(1);
+  };
+
   const filtered = useMemo(() => {
     let data = [...rows];
 
@@ -620,6 +725,9 @@ function Users() {
       data = data.filter((r) =>
         String(r.location || "").toLowerCase().includes(locationFilter.toLowerCase()),
       );
+    }
+    if (accountStatusFilter !== "All") {
+      data = data.filter((r) => r.accountStatus === accountStatusFilter);
     }
     if (profileStatusFilters.length > 0) {
       data = data.filter((r) => {
@@ -652,7 +760,7 @@ function Users() {
     });
 
     return data;
-  }, [rows, query, locationFilter, sortBy, profileStatusFilters]);
+  }, [rows, query, locationFilter, accountStatusFilter, sortBy, profileStatusFilters]);
 
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -663,11 +771,11 @@ function Users() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeStat, query, locationFilter, sortBy.key, sortBy.dir, profileStatusFilters]);
+  }, [activeStat, query, locationFilter, accountStatusFilter, sortBy.key, sortBy.dir, profileStatusFilters]);
 
   useEffect(() => {
     setSelectedIds([]);
-  }, [activeStat, query, locationFilter, sortBy.key, sortBy.dir, profileStatusFilters]);
+  }, [activeStat, query, locationFilter, accountStatusFilter, sortBy.key, sortBy.dir, profileStatusFilters]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -692,7 +800,7 @@ function Users() {
     setSelectedUserId(row.id);
     setEditRow({
       ...row,
-      is_suspend: row.subscriptionStatus !== "Active",
+      is_suspend: row.accountStatus !== "Active",
     });
     setOpenMenuId(null);
     dispatch(fetchUserById(row.id));
@@ -791,9 +899,52 @@ function Users() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                Filter scope
+              </p>
+              <p className="mt-1 text-sm text-slate-700">
+                {hasActiveFilters
+                  ? `Stats and rows are showing ${filtered.length.toLocaleString()} matching users.`
+                  : `Stats and rows are showing all ${rows.length.toLocaleString()} users in this tab.`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              disabled={!hasActiveFilters}
+              className={`w-full rounded-xl border px-4 py-2 text-sm font-medium lg:w-auto ${
+                hasActiveFilters
+                  ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                  : "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+              }`}
+            >
+              Clear all filters
+            </button>
+          </div>
+          {activeFilters.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {activeFilters.map((filter) => (
+                <button
+                  key={filter.key}
+                  type="button"
+                  onClick={filter.clear}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                >
+                  <span>{filter.label}</span>
+                  <span className="text-slate-400">×</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 md:grid-cols-4">
           {statsConfig.map((s) => {
             const isActive = activeStat === s.key;
+            const value = isActive && hasActiveFilters ? filtered.length : s.value;
             return (
               <div
                 key={s.key}
@@ -818,12 +969,17 @@ function Users() {
                       })()}
                     </div>
                     <div className="text-sm font-medium">{s.label}</div>
+                    {isActive && hasActiveFilters && (
+                      <div className="mt-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-white">
+                        Filtered
+                      </div>
+                    )}
                   </div>
                   <div
                     className={`ml-auto text-2xl font-semibold ${isActive ? "text-white" : "text-black"
                       }`}
                   >
-                    {s.value.toLocaleString()}
+                    {value.toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -846,7 +1002,7 @@ function Users() {
                   <div className="flex flex-col items-start">
                     <div className="text-sm font-medium text-gray-700">{s.label}</div>
                     <div className="text-2xl font-semibold text-gray-900 mt-1">
-                      {s.value.toLocaleString()}
+                      {(hasActiveFilters ? visibleProfileStats[s.key] : s.value).toLocaleString()}
                     </div>
                   </div>
                   <div className={`w-10 h-10 flex items-center justify-center rounded-full ${s.color === 'red' ? 'bg-red-100' :
@@ -1146,19 +1302,12 @@ function Users() {
               <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-6 text-white sm:px-8">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/10">
-                      {editRow.profile_image_url ? (
-                        <img
-                          src={editRow.profile_image_url}
-                          alt={editRow.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-2xl font-semibold">
-                          {(editRow.name || "U").charAt(0)}
-                        </span>
-                      )}
-                    </div>
+                    <UserAvatar
+                      name={editRow.name}
+                      imageUrl={editRow.profileImageUrl || editRow.profile_image_url}
+                      className="h-16 w-16 rounded-2xl bg-white/10 ring-1 ring-white/10"
+                      textClassName="text-2xl text-slate-100"
+                    />
                     <div>
                       <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
                         {userTypeLabel(editRow.user_type)}
@@ -1176,7 +1325,7 @@ function Users() {
                     {getVerificationBadge(editRow)}
                     {getScreeningBadge(editRow)}
                     <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">
-                      {editRow.subscriptionStatus}
+                      {editRow.accountStatus}
                     </span>
                     <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">
                       Joined {editRow.onboard}
@@ -1242,7 +1391,7 @@ function Users() {
                           const payload = await dispatch(
                             activateUser(editRow.id),
                           ).unwrap();
-                          const message = payload?.data?.status || "User activated";
+                          const message = payload?.data?.status || "User reactivated";
                           setSelectedUserId(null);
                           setEditRow(null);
                           if (alertTimerRef.current) {
@@ -1288,7 +1437,7 @@ function Users() {
                       }
                     }}
                   >
-                    {editRow.is_suspend ? "Activate" : "Suspend"}
+                    {editRow.is_suspend ? "Reactivate" : "Suspend"}
                   </button>
                   {editRow.user_type === "provider" && (
                     <>
@@ -1657,9 +1806,25 @@ function Users() {
                 onChange={(e) => setLocationFilter(e.target.value)}
                 className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
               >
-                <option value="All">Filter by Location</option>
-                <option value="olivia">Lagos</option>
-                <option value="phoenix">Abuja</option>
+                <option value="All">All locations</option>
+                {locationOptions.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </select>
+              <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
+            </div>
+
+            <div className="relative">
+              <select
+                value={accountStatusFilter}
+                onChange={(e) => setAccountStatusFilter(e.target.value)}
+                className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
+              >
+                <option value="All">Account status</option>
+                <option value="Active">Active accounts</option>
+                <option value="Suspended">Suspended accounts</option>
               </select>
               <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
             </div>
@@ -1747,10 +1912,10 @@ function Users() {
                       onChange={() => toggleSelectRow(r.id)}
                       className="mt-1 h-4 w-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
                     />
-                    <img
-                      src={r.avatar}
-                      alt="avatar"
-                      className="h-12 w-12 rounded-2xl object-cover"
+                    <UserAvatar
+                      name={r.name}
+                      imageUrl={r.profileImageUrl}
+                      className="h-12 w-12 rounded-2xl bg-slate-200"
                     />
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-slate-900">
@@ -1947,10 +2112,11 @@ function Users() {
                     />
                   </td>
                   <td className="p-3 flex items-center gap-3">
-                    <img
-                      src={r.avatar}
-                      alt="avatar"
-                      className="w-8 h-8 rounded-full object-cover"
+                    <UserAvatar
+                      name={r.name}
+                      imageUrl={r.profileImageUrl}
+                      className="h-8 w-8 rounded-full bg-slate-200"
+                      textClassName="text-xs"
                     />
                     <div>
                       <div className="font-medium">{r.name}</div>
