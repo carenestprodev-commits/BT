@@ -44,12 +44,11 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
 
   // root class: on mobile render as overlay when mobileOpen, otherwise hidden and shown from md+
   const rootClass = mobileOpen
-    ? "fixed inset-y-0 left-0 z-50 w-56 bg-[#0e2f43] text-white flex flex-col font-sfpro p-4 md:hidden shadow-lg"
-    : "hidden md:flex h-screen w-56 bg-[#0e2f43] text-white flex-col font-sfpro";
+    ? "fixed inset-y-0 left-0 z-50 w-56 min-h-[100dvh] bg-[#0e2f43] text-white flex flex-col font-sfpro p-4 md:hidden shadow-lg"
+    : "hidden md:flex min-h-[100dvh] w-56 bg-[#0e2f43] text-white flex-col font-sfpro";
 
   return (
-    <aside className={rootClass} aria-hidden={mobileOpen ? "false" : "true"}>
-      {/* close button visible only on mobile overlay */}
+    <aside className={rootClass}>
       {mobileOpen && (
         <div className="flex justify-end mb-2 md:hidden">
           <button
@@ -91,10 +90,12 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
 
           {/* Profile Verification with submenu */}
           <li>
-            <div
+            <button
+              type="button"
               role="button"
               onClick={() => setOpenProfile((s) => !s)}
-              className="flex items-center px-4 py-3 text-xs rounded-md transition-colors duration-150 hover:bg-[#1d4353] cursor-pointer"
+              aria-expanded={openProfile}
+              className="flex w-full items-center rounded-md px-4 py-3 text-xs transition-colors duration-150 hover:bg-[#1d4353]"
             >
               <span className="mr-3 text-base ">
                 <ProfileIcon className="w-5 h-5" />
@@ -105,7 +106,7 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
               <span className="text-sm opacity-80">
                 {openProfile ? "▾" : "▸"}
               </span>
-            </div>
+            </button>
 
             {openProfile && (
               <ul className="ml-8 mt-2 space-y-1">

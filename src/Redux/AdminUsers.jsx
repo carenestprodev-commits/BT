@@ -188,7 +188,7 @@ export const activateUser = createAsyncThunk(
 
 export const verifyProvider = createAsyncThunk(
   "adminUsers/verifyProvider",
-  async (id, { rejectWithValue, dispatch }) => {
+  async (id, { rejectWithValue }) => {
     try {
       const access =
         localStorage.getItem("accessToken") || localStorage.getItem("access");
@@ -204,13 +204,6 @@ export const verifyProvider = createAsyncThunk(
       );
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
-
-      // Refresh the user list
-      try {
-        dispatch(fetchAllUsers());
-      } catch {
-        /* ignore refresh error */
-      }
 
       return { id, data };
     } catch {
@@ -381,7 +374,7 @@ export const markDocumentsReceived = createAsyncThunk(
  */
 export const approveUser = createAsyncThunk(
   "adminUsers/approveUser",
-  async ({ id, manualPayment }, { rejectWithValue, dispatch }) => {
+  async ({ id, manualPayment }, { rejectWithValue }) => {
     try {
       const access =
         localStorage.getItem("accessToken") || localStorage.getItem("access");
@@ -425,7 +418,7 @@ export const approveUser = createAsyncThunk(
         console.log("Approving user via verification endpoint...");
         const body = JSON.stringify({
           action: "approve",
-          verification_status: "approved",
+          verification_status: "verified",
           ...(manualPayment ? manualPayment : {}),
         });
 
@@ -450,13 +443,6 @@ export const approveUser = createAsyncThunk(
             "User must have physical documents marked as received before approval. Please mark documents first.",
           error_code: "NO_VERIFICATION_RECORD",
         });
-      }
-
-      // Refresh the admin's user list
-      try {
-        dispatch(fetchAllUsers());
-      } catch {
-        /* ignore refresh error */
       }
 
       // Fetch the updated user profile
@@ -700,7 +686,9 @@ const slice = createSlice({
         const id = action.payload?.id;
         if (id != null) {
           state.users = state.users.map((u) =>
-            u.id === id ? { ...u, is_verified: true } : u,
+            u.id === id
+              ? { ...u, is_verified: true, verification_status: "verified" }
+              : u,
           );
         }
       })
@@ -816,7 +804,7 @@ const slice = createSlice({
               ? {
                 ...u,
                 is_verified: true,
-                verification_status: "approved",
+                verification_status: "verified",
               }
               : u,
           );
@@ -825,7 +813,7 @@ const slice = createSlice({
           state.currentUser = {
             ...state.currentUser,
             is_verified: true,
-            verification_status: "approved",
+            verification_status: "verified",
           };
         }
       })

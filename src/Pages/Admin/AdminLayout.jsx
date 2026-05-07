@@ -1,4 +1,3 @@
-// ...existing code...
 import { Outlet, useLocation, Navigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
@@ -27,32 +26,23 @@ function AdminLayout() {
   const access = tokenService.getAccessToken();
   const user = tokenService.getUser();
 
-  console.log("AdminLayout check - Access token:", access);
-
   if (!access) {
-    console.log("No access token, redirecting to /admin/login");
     return <Navigate to="/admin/login" replace />;
   }
 
   // Check if user is admin or staff
   if (user) {
     if (!user.is_staff) {
-      console.log("User is not admin, redirecting to /admin/login");
       return <Navigate to="/admin/login" replace />;
     }
   } else {
-    console.log("No user data found, redirecting to /admin/login");
     return <Navigate to="/admin/login" replace />;
   }
 
-  console.log("Admin user verified, rendering admin layout");
-
   return (
-    <div className="flex h-screen flex-col md:flex-row bg-[#f5f7f9] font-sfpro">
-      {/* Sidebar: desktop shown via md:flex, mobile shown via mobileOpen prop inside Sidebar */}
+    <div className="flex min-h-[100dvh] flex-col md:flex-row bg-slate-50 font-sfpro text-slate-900">
       <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* mobile backdrop when sidebar open */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/30 z-40 md:hidden"
@@ -66,7 +56,7 @@ function AdminLayout() {
           title={pageTitle}
           onToggleSidebar={() => setSidebarOpen((s) => !s)}
         />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-white">
+        <main className="flex-1 overflow-y-auto bg-slate-50">
           <Outlet />
         </main>
       </div>

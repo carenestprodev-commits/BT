@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { FaRegCalendarAlt, FaBars } from "react-icons/fa";
 import { BASE_URL } from "../../Redux/config";
 import tokenService from "../../utils/tokenService";
 import { useAuth } from "../../Context/AuthContext";
@@ -45,46 +46,39 @@ function Header({ title = "Admin", onToggleSidebar }) {
   };
 
   return (
-    <header className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 bg-white border-b border-gray-200 shadow-sm font-sfpro">
-      <div className="flex items-center gap-3">
-        {/* hamburger for mobile to toggle sidebar */}
+    <header className="border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm font-sfpro">
+      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
+        <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onToggleSidebar}
-          className="md:hidden p-2 rounded-md bg-white text-gray-700"
+          className="md:hidden inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white p-2 text-slate-700"
           aria-label="Toggle sidebar"
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
+          <FaBars className="h-4 w-4" />
         </button>
-        <h1 className="text-lg text-black">{title}</h1>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <div className="flex items-center space-x-2 text-[11px] text-gray-600 bg-white border border-gray-200 rounded-md px-3 py-2">
-          <span>{formatted}</span>
-          <span role="img" aria-label="calendar">
-            📅
-          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+              Admin
+            </p>
+            <h1 className="truncate text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">
+              {title}
+            </h1>
+          </div>
         </div>
 
-        <button
-          onClick={handleLogout}
-          className="text-sm px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+            <FaRegCalendarAlt className="h-3.5 w-3.5 text-slate-400" />
+            <span>{formatted}</span>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-700 active:scale-[0.98]"
+          >
+            Logout
+          </button>
+        </div>
       </div>
     </header>
   );
