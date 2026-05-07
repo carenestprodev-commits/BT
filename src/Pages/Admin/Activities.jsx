@@ -293,7 +293,7 @@ function Activities() {
               onChange={(e) => setServiceFilter(e.target.value)}
               className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
             >
-              <option>Service Type</option>
+              <option value="All">Service Type</option>
               {serviceOptions
                 .filter((s) => s !== "All")
                 .map((s) => (
@@ -311,7 +311,7 @@ function Activities() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
             >
-              <option>Filter by Status</option>
+              <option value="All">Filter by Status</option>
               {statusOptions
                 .filter((s) => s !== "All")
                 .map((s) => (
