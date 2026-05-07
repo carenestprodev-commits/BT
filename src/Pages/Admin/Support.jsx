@@ -16,16 +16,19 @@ function Support() {
   );
 
   const [query, setQuery] = useState("");
-  const [role, setRole] = useState("");
-  const [status, setStatus] = useState("");
+  const [role, setRole] = useState("All");
+  const [status, setStatus] = useState("All");
   const [date, setDate] = useState("");
   const [page, setPage] = useState(1);
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteText, setNoteText] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [composeMsg, setComposeMsg] = useState("");
   const { actionLoading, actionError, actionSuccess } = useSelector(
     (s) => s.adminSupport || {},
   );
+
+  const normalizeRole = (value) => String(value || "").trim().toLowerCase();
 
   const pageSize = 8;
 
@@ -45,7 +48,12 @@ function Support() {
           (r.name || "").toLowerCase().includes(q),
       );
     }
-    if (status) list2 = list2.filter((r) => r.status === status);
+    if (role !== "All") {
+      list2 = list2.filter(
+        (r) => normalizeRole(r.role) === normalizeRole(role),
+      );
+    }
+    if (status !== "All") list2 = list2.filter((r) => r.status === status);
     if (date)
       list2 = list2.filter(
         (r) => dayjs(r.date || r.start_date).format("YYYY-MM-DD") === date,
@@ -114,19 +122,19 @@ function Support() {
             onChange={(e) => setRole(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded bg-white text-sm"
           >
-            <option value="">Role</option>
-            <option>Care provider</option>
-            <option>Care seeker</option>
+            <option value="All">Role</option>
+            <option value="Care Provider">Care provider</option>
+            <option value="Care Seeker">Care seeker</option>
           </select>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded bg-white text-sm"
           >
-            <option value="">Status</option>
-            <option>Open</option>
-            <option>In Review</option>
-            <option>Resolved</option>
+            <option value="All">Status</option>
+            <option value="Open">Open</option>
+            <option value="In Review">In Review</option>
+            <option value="Resolved">Resolved</option>
           </select>
           <input
             type="date"
@@ -390,6 +398,17 @@ function Support() {
               >
                 {actionLoading ? "Processing..." : "Escalate"}
               </button>
+              <button
+                disabled={!current}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNoteText("");
+                  setShowNoteModal(true);
+                }}
+                className="w-full border border-slate-200 bg-white text-slate-700 py-2 rounded disabled:opacity-50"
+              >
+                Internal Note
+              </button>
 
               {/* Message flow: show input inline and button to send */}
               <div className="w-full">
@@ -446,6 +465,8 @@ function Support() {
             </div>
             <div className="p-5">
               <textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
                 placeholder="Input Internal admin notes for future reference"
                 className="w-full h-56 p-3 border border-gray-100 rounded text-sm resize-none dark:text-black bg-white"
               />
@@ -461,7 +482,8 @@ function Support() {
                 onClick={() => {
                   // emulate save and show success
                   setShowNoteModal(false);
-                  setSuccessMsg("Comment sent successfully");
+                  setSuccessMsg("Internal note saved successfully");
+                  setNoteText("");
                   setTimeout(() => setSuccessMsg(""), 3000);
                 }}
                 className="px-4 py-2 bg-[#0ea5d7] hover:bg-[#0c94bf] text-white rounded"
