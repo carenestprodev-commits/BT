@@ -1,5 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import paystackService from "../utils/paystackService.js";
+import {
+  SUBSCRIPTION_PAUSED_MESSAGE,
+  SUBSCRIPTION_PAYMENTS_PAUSED,
+} from "../config/subscriptionPause";
 
 /**
  * Async thunk to initiate seeker checkout payment
@@ -30,6 +34,10 @@ export const initiateSeekerCheckout = createAsyncThunk(
     "seekerPayment/initiateCheckout",
     async ({ bookingId, amount, bookingDetails }, { rejectWithValue }) => {
       try {
+        if (SUBSCRIPTION_PAYMENTS_PAUSED) {
+          return rejectWithValue(SUBSCRIPTION_PAUSED_MESSAGE);
+        }
+
         const result = await paystackService.initiateSeekerCheckout({
           bookingId,
           amount,

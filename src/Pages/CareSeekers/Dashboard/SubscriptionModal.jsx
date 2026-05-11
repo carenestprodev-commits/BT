@@ -9,6 +9,10 @@ import {
   detectUserCountry,
   formatCurrencyAmount,
 } from "../../../utils/countryHelper";
+import {
+  SUBSCRIPTION_PAUSED_MESSAGE,
+  SUBSCRIPTION_PAYMENTS_PAUSED,
+} from "../../../config/subscriptionPause";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -23,6 +27,7 @@ function SubscriptionModal({ onClose, imageSrc }) {
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const isPaused = SUBSCRIPTION_PAYMENTS_PAUSED;
 
   /* ---------------- Fetch subscription plans ---------------- */
   useEffect(() => {
@@ -68,6 +73,8 @@ function SubscriptionModal({ onClose, imageSrc }) {
 
   /* ---------------- Continue button ---------------- */
   const handleContinue = async () => {
+    if (isPaused) return;
+
     const plan = plans.find((p) => p.id === selectedPlanId);
     if (!plan) return;
 
@@ -120,6 +127,12 @@ function SubscriptionModal({ onClose, imageSrc }) {
               Choose a subscription plan
             </h2>
 
+            {isPaused && (
+              <div className="mb-6 w-full rounded-lg border border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-800">
+                {SUBSCRIPTION_PAUSED_MESSAGE}
+              </div>
+            )}
+
             {/* Plans */}
             {loadingPlans ? (
                 <p className="text-gray-500">Loading plans...</p>
@@ -131,8 +144,8 @@ function SubscriptionModal({ onClose, imageSrc }) {
                     return (
                         <div
                             key={plan.id}
-                            onClick={() => !processing && setSelectedPlanId(plan.id)}
-                            className={`cursor-pointer rounded-xl border p-6 transition ${
+                            onClick={() => !isPaused && !processing && setSelectedPlanId(plan.id)}
+                            className={`rounded-xl border p-6 transition ${
                                 selected
                                     ? "bg-[#0aa0d6] text-white shadow-lg border-transparent"
                                     : "bg-white text-gray-800 border-gray-200 hover:shadow"
@@ -171,14 +184,14 @@ function SubscriptionModal({ onClose, imageSrc }) {
             {/* CTA */}
             <button
                 onClick={handleContinue}
-                disabled={processing || initiating || loadingPlans}
+                disabled={isPaused || processing || initiating || loadingPlans}
                 className={`mt-8 bg-[#0093d1] hover:bg-[#007bb0] text-white px-10 py-3 rounded-md font-medium transition ${
-                    processing || initiating
+                    isPaused || processing || initiating
                         ? "opacity-50 cursor-not-allowed"
                         : ""
                 }`}
             >
-              {processing || initiating ? "Processing..." : "Continue"}
+              {isPaused ? "Subscriptions paused" : processing || initiating ? "Processing..." : "Continue"}
             </button>
 
             <p className="mt-4 text-xs text-gray-500 flex items-center gap-2">

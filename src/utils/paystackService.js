@@ -13,6 +13,10 @@ import {
   resolveCountryIso2,
   getIso2FromCountryName,
 } from "./countryHelper";
+import {
+  SUBSCRIPTION_PAUSED_MESSAGE,
+  SUBSCRIPTION_PAYMENTS_PAUSED,
+} from "../config/subscriptionPause";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -67,6 +71,10 @@ export const paystackService = {
    * @returns {Promise<Object>} Payment initialization response with localized fields
    */
   initiateProviderSubscription: async (planId) => {
+    if (SUBSCRIPTION_PAYMENTS_PAUSED) {
+      throw new Error(SUBSCRIPTION_PAUSED_MESSAGE);
+    }
+
     if (!planId) {
       throw new Error("Invalid subscription plan selected");
     }
@@ -156,6 +164,10 @@ export const paystackService = {
     amount,
     bookingDetails = {},
   }) => {
+    if (SUBSCRIPTION_PAYMENTS_PAUSED) {
+      throw new Error(SUBSCRIPTION_PAUSED_MESSAGE);
+    }
+
     console.log("Initiate Seeker Checkout");
     console.log(bookingId);
     console.log(amount);

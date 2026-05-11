@@ -3,9 +3,11 @@ import { useDispatch, useSelector } from "react-redux";
 import Sidebar from "./Sidebar";
 import { useNavigate } from "react-router-dom";
 import PaymentModal from "./PaymentModal";
-import { initiateProviderSubscription } from "../../../Redux/ProviderPayment";
-import { nairaToKobo } from "../../../utils/paystackService";
 import CurrencyNaira from "../../../../public/NiCurrency.svg";
+import {
+  SUBSCRIPTION_PAUSED_MESSAGE,
+  SUBSCRIPTION_PAYMENTS_PAUSED,
+} from "../../../config/subscriptionPause";
 
 function Payment() {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ function Payment() {
   const [selectedAmount, setSelectedAmount] = useState(null);
 
   const { initiating } = useSelector((s) => s.providerPayment || {});
+  const isPaused = SUBSCRIPTION_PAYMENTS_PAUSED;
 
   const plans = [
     {
@@ -45,6 +48,8 @@ function Payment() {
   ];
 
   const handleMakePayment = (plan) => {
+    if (isPaused) return;
+
     setSelectedPlan(plan.id);
     setSelectedAmount(plan.amount);
     setShowPaymentModal(true);
@@ -70,6 +75,11 @@ function Payment() {
           <h2 className="text-2xl font-semibold text-gray-800">Payment</h2>
         </div>
         <div className="max-w-5xl">
+          {isPaused && (
+            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              {SUBSCRIPTION_PAUSED_MESSAGE}
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {plans.map((plan) => (
               <div
@@ -131,10 +141,10 @@ function Payment() {
                   <div className="mt-6">
                     <button
                       onClick={() => handleMakePayment(plan)}
-                      disabled={initiating}
+                      disabled={isPaused || initiating}
                       className={`w-full ${plan.buttonBg} ${plan.buttonText} py-3 rounded-md font-semibold opacity-90 hover:opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      {initiating ? "Processing..." : "Make Payment"}
+                      {isPaused ? "Subscriptions paused" : initiating ? "Processing..." : "Make Payment"}
                     </button>
                   </div>
                 </div>
@@ -153,12 +163,12 @@ function Payment() {
                 securely through Paystack
               </p>
               <p>
-                <strong>Full Payment:</strong> Pay the full amount once and get
-                immediate access
+                <strong>Full Payment:</strong> Subscription payments are paused
+                for now
               </p>
               <p>
-                <strong>Installment:</strong> Spread the payment across two
-                payouts from your care services
+                <strong>Installment:</strong> Verification payments still work
+                from the verification screens
               </p>
               <p>
                 <strong>Verification:</strong> You must be verified before
