@@ -9,6 +9,10 @@ import {
   formatCurrencyAmount,
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
+import {
+  SUBSCRIPTION_PAUSED_MESSAGE,
+  SUBSCRIPTION_PAYMENTS_PAUSED,
+} from "../../../config/subscriptionPause";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -31,6 +35,7 @@ const PaymentModal = ({
     countryUsed,
     isFallbackPrice,
   } = useSelector((s) => s.providerPayment || {});
+  const isPaused = SUBSCRIPTION_PAYMENTS_PAUSED;
 
   console.log(authorizationUrl);
   console.log(selectedPlan);
@@ -69,34 +74,9 @@ const PaymentModal = ({
 
   if (!isOpen || !selectedPlan) return null;
 
-  const handlePaymentOld = async () => {
-    try {
-      setIsProcessing(true);
-
-      // Dispatch the thunk with the correct planId
-      const result = await dispatch(
-        initiateProviderSubscription({
-          planType: selectedPlan.id,
-          amount: selectedPlan.price,
-        }),
-      ).unwrap();
-
-      // Redirect immediately
-      if (result?.authorizationUrl) {
-        window.location.href = result.authorizationUrl;
-      } else {
-        alert("Payment initiation failed. Please try again.");
-        setIsProcessing(false);
-      }
-    } catch (err) {
-      console.error("Payment error:", err);
-      const message = err?.message || "Payment initiation failed";
-      alert(message);
-      setIsProcessing(false);
-    }
-  };
-
   const handlePayment = async () => {
+    if (isPaused) return;
+
     if (!selectedPlan?.id) return alert("No plan selected");
 
     try {
@@ -173,7 +153,7 @@ const PaymentModal = ({
         <button
           onClick={handleClose}
           className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors z-10"
-          disabled={isProcessing || initiating}
+          disabled={isPaused || isProcessing || initiating}
           aria-label="Close modal"
         >
           <IoMdClose className="w-6 h-6" />
@@ -221,6 +201,12 @@ const PaymentModal = ({
             </p>
           </div>
 
+          {isPaused && (
+            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              {SUBSCRIPTION_PAUSED_MESSAGE}
+            </div>
+          )}
+
           {/* Error */}
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 rounded p-3">
@@ -234,14 +220,16 @@ const PaymentModal = ({
           <div className="space-y-4">
             <button
               onClick={handlePayment}
-              disabled={isProcessing || initiating || loading}
+              disabled={isPaused || isProcessing || initiating || loading}
               className={`w-full bg-[#0093d1] text-white py-3 sm:py-3.5 rounded-lg font-semibold text-sm sm:text-base shadow-md hover:bg-[#0082b9] hover:shadow-lg transition-all duration-200 ${
-                isProcessing || initiating || loading
+                isPaused || isProcessing || initiating || loading
                   ? "opacity-60 cursor-not-allowed"
                   : ""
               }`}
             >
-              {isProcessing || initiating || loading
+              {isPaused
+                ? "Subscriptions paused"
+                : isProcessing || initiating || loading
                 ? "Processing..."
                 : "Make Payment"}
             </button>

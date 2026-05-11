@@ -1,6 +1,10 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import paystackService from "../utils/paystackService.js";
 import { getUserCurrencyInfo } from "../utils/countryHelper";
+import {
+  SUBSCRIPTION_PAUSED_MESSAGE,
+  SUBSCRIPTION_PAYMENTS_PAUSED,
+} from "../config/subscriptionPause";
 
 /**
  * Async thunk to initiate provider subscription payment
@@ -9,6 +13,10 @@ export const initiateProviderSubscription = createAsyncThunk(
   "providerPayment/initiateSubscription",
   async ({ planType, amount }, { rejectWithValue }) => {
     try {
+      if (SUBSCRIPTION_PAYMENTS_PAUSED) {
+        return rejectWithValue(SUBSCRIPTION_PAUSED_MESSAGE);
+      }
+
       const result = await paystackService.initiateProviderSubscription(
         planType,
         amount,

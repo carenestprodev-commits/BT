@@ -7,12 +7,17 @@ import {
   formatCurrencyAmount,
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
+import {
+  SUBSCRIPTION_PAUSED_MESSAGE,
+  SUBSCRIPTION_PAYMENTS_PAUSED,
+} from "../../../config/subscriptionPause";
 
 const PaymentModal = ({ isOpen, onClose, selectedPlan, plan }) => {
   const dispatch = useDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
   const activePlan = selectedPlan || plan;
   const defaultCurrency = getUserCurrencyInfo();
+  const isPaused = SUBSCRIPTION_PAYMENTS_PAUSED;
 
   // Redux slice for payment
   const {
@@ -70,6 +75,8 @@ const PaymentModal = ({ isOpen, onClose, selectedPlan, plan }) => {
 
   // Trigger payment
   const handlePayment = async () => {
+    if (isPaused) return;
+
     try {
       setIsProcessing(true);
 
@@ -126,6 +133,12 @@ const PaymentModal = ({ isOpen, onClose, selectedPlan, plan }) => {
               Secure payment via Paystack to activate your subscription
             </p>
           </div>
+
+          {isPaused && (
+            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              {SUBSCRIPTION_PAUSED_MESSAGE}
+            </div>
+          )}
 
           {/* Price Display */}
           <div className="mb-6 text-center">
@@ -195,19 +208,21 @@ const PaymentModal = ({ isOpen, onClose, selectedPlan, plan }) => {
           <div className="space-y-3">
             <button
               onClick={handlePayment}
-              disabled={isProcessing || initiating}
+              disabled={isPaused || isProcessing || initiating}
               className={`w-full bg-[#0093d1] text-white py-3 sm:py-3.5 rounded-lg font-semibold text-sm sm:text-base hover:bg-[#007bb0] transition-all duration-200 shadow-md hover:shadow-lg ${
-                isProcessing || initiating
+                isPaused || isProcessing || initiating
                   ? "opacity-50 cursor-not-allowed"
                   : ""
               }`}
             >
-              {isProcessing || initiating
+              {isPaused
+                ? "Subscriptions paused"
+                : isProcessing || initiating
                 ? "Processing..."
                 : "Proceed to Payment"}
             </button>
 
-            {!isProcessing && !initiating && (
+            {!isPaused && !isProcessing && !initiating && (
               <button
                 onClick={handleClose}
                 className="w-full bg-gray-100 text-gray-700 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base hover:bg-gray-200 transition-colors"
