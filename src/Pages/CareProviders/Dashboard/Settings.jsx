@@ -23,6 +23,11 @@ import {
   STATE_OPTIONS,
   LANGUAGE_OPTIONS,
 } from "../../../constants/formOptions"; // ADD THIS LINE
+import ProviderCategoryPreferences, {
+  buildCategoryFormState,
+  buildCategoryPayload,
+  skillsForCategory,
+} from "../../../Components/ProviderCategoryPreferences";
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 function Settings() {
@@ -113,6 +118,10 @@ function Settings() {
   ];
 
   const [dragActive, setDragActive] = useState(false);
+  const [otherDetails, setOtherDetails] = useState(null);
+  const [categoryState, setCategoryState] = useState(() =>
+    buildCategoryFormState(""),
+  );
 
   /* -------------------- HELPERS -------------------- */
 
@@ -431,19 +440,36 @@ function Settings() {
           "1-3": 1,
           "3-5": 3,
           "5+": 5,
-        }[formData.yearsOfExperience] ?? 0;
+          "1 year": 1,
+          "3 years": 3,
+          "8 years": 8,
+          "12 years": 12,
+          "15 years": 15,
+        }[formData.yearsOfExperience] ??
+          (Number(formData.yearsOfExperience) || 0);
+
+        const additionalServices = Array.isArray(formData.otherServices)
+          ? formData.otherServices
+          : formData.otherServices
+            ? [formData.otherServices]
+            : [];
+
+        const languages = Array.isArray(formData.otherLanguages)
+          ? formData.otherLanguages
+          : formData.otherLanguages
+            ? [formData.otherLanguages]
+            : [];
+
         const payload = {
           about_me: formData.about,
           profile_title: formData.title,
+          work_reason: formData.about,
           years_of_experience: experienceYears,
           native_language: formData.nativeLanguage,
-          additional_services: formData.otherServices
-            ? [formData.otherServices]
-            : [],
-          languages: formData.otherLanguages ? [formData.otherLanguages] : [],
-          house_keeping_preferences: formData.housekeeping
-            ? [formData.housekeeping]
-            : [],
+          additional_services: additionalServices,
+          languages,
+          skills: skillsForCategory(categoryState),
+          category_specific_details: buildCategoryPayload(categoryState),
         };
 
         if (formData.hourlyRate) {
@@ -451,6 +477,10 @@ function Settings() {
             /[^\d.]/g,
             "",
           );
+        }
+
+        if (categoryState.serviceCategory === "housekeeping") {
+          payload.house_keeping_preferences = categoryState.selectedSkills || [];
         }
 
         const res = await fetchWithAuth(
@@ -697,6 +727,67 @@ function Settings() {
   }, []);
 
   useEffect(() => {
+    const loadOtherDetails = async () => {
+      try {
+        const res = await fetchWithAuth(
+          `${API_URL}/api/provider/profile/other-details/`,
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const info = data.user_info || {};
+        setOtherDetails(info);
+        setCategoryState(
+          buildCategoryFormState(
+            profile?.service_category,
+            info,
+            info.skills || [],
+          ),
+        );
+
+        const yearsMap = {
+          0: "0-1",
+          1: "1-3",
+          3: "3-5",
+          5: "5+",
+          8: "8 years",
+          12: "12 years",
+          15: "15 years",
+        };
+        const yearsLabel =
+          yearsMap[info.years_of_experience] ||
+          (info.years_of_experience
+            ? `${info.years_of_experience} years`
+            : "");
+
+        setFormData((prev) => ({
+          ...prev,
+          about: info.about_me ?? prev.about,
+          title: info.profile_title ?? prev.title,
+          yearsOfExperience: yearsLabel || prev.yearsOfExperience,
+          nativeLanguage: info.native_language ?? prev.nativeLanguage,
+          hourlyRate: info.hourly_rate ?? prev.hourlyRate,
+          otherServices: info.additional_services ?? prev.otherServices,
+          otherLanguages: info.languages ?? prev.otherLanguages,
+        }));
+        setOriginalFormData((prev) => ({
+          ...prev,
+          about: info.about_me ?? prev.about,
+          title: info.profile_title ?? prev.title,
+          yearsOfExperience: yearsLabel || prev.yearsOfExperience,
+          nativeLanguage: info.native_language ?? prev.nativeLanguage,
+          hourlyRate: info.hourly_rate ?? prev.hourlyRate,
+          otherServices: info.additional_services ?? prev.otherServices,
+          otherLanguages: info.languages ?? prev.otherLanguages,
+        }));
+      } catch (error) {
+        console.warn("Failed to load provider other details", error);
+      }
+    };
+
+    loadOtherDetails();
+  }, [profile?.service_category]);
+
+  useEffect(() => {
     if (!profile) return;
 
     const populated = {
@@ -730,7 +821,19 @@ function Settings() {
     setFormData(populated);
     setOriginalFormData(populated);
     setHasChanges(false);
-  }, [profile]);
+
+    if (otherDetails) {
+      setCategoryState(
+        buildCategoryFormState(
+          profile.service_category,
+          otherDetails,
+          otherDetails.skills || [],
+        ),
+      );
+    } else {
+      setCategoryState(buildCategoryFormState(profile.service_category));
+    }
+  }, [profile, otherDetails]);
 
   useEffect(() => {
     if (location?.state?.activeTab) {
@@ -1632,6 +1735,22 @@ function Settings() {
                 </p>
 
                 <div className="space-y-4 sm:space-y-6">
+                  <ProviderCategoryPreferences
+                    categoryState={{
+                      ...categoryState,
+                      serviceCategory:
+                        categoryState.serviceCategory ||
+                        String(profile?.service_category || "")
+                          .toLowerCase()
+                          .replace(/[\s_/]+/g, ""),
+                    }}
+                    onCategoryChange={(next) => {
+                      setCategoryState(next);
+                      setHasChanges(true);
+                    }}
+                  />
+
+                  <div className="border-t border-gray-200 pt-4" />
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                       Tell us about yourself
@@ -1644,19 +1763,6 @@ function Settings() {
                       placeholder="Kindly highlight your skills and experience, the childcare services you offer and other relevant information."
                       className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm resize-none"
                     />
-                    <label className="flex items-start sm:items-center mt-3 text-xs sm:text-sm text-gray-600 gap-2">
-                      <input
-                        type="checkbox"
-                        name="autoSend"
-                        checked={formData.autoSend}
-                        onChange={handleInputChange}
-                        className="mt-1 sm:mt-0 rounded flex-shrink-0"
-                      />
-                      <span>
-                        I would like to automatically send the above application
-                        to potential careseekers
-                      </span>
-                    </label>
                   </div>
 
                   <div>
@@ -1792,23 +1898,21 @@ function Settings() {
                   </div>
                 </div>
 
-                {hasChanges && (
-                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 mt-6 sm:mt-8">
-                    <button
-                      onClick={resetForm}
-                      className="px-4 sm:px-6 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg text-sm sm:text-base"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={saveSettings}
-                      disabled={loading}
-                      className="px-4 sm:px-6 py-2 bg-blue-500 text-white font-medium hover:bg-blue-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                    >
-                      {loading ? "Saving..." : "Save changes"}
-                    </button>
-                  </div>
-                )}
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 mt-6 sm:mt-8">
+                  <button
+                    onClick={resetForm}
+                    className="px-4 sm:px-6 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg text-sm sm:text-base"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveSettings}
+                    disabled={loading}
+                    className="px-4 sm:px-6 py-2 bg-blue-500 text-white font-medium hover:bg-blue-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                  >
+                    {loading ? "Saving..." : "Save changes"}
+                  </button>
+                </div>
               </div>
             )}
           </div>
