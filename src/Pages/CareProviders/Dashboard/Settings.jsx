@@ -28,7 +28,14 @@ import ProviderCategoryPreferences, {
   buildCategoryPayload,
   skillsForCategory,
 } from "../../../Components/ProviderCategoryPreferences";
+import { readApiErrorMessage } from "../../../utils/parseApiError";
 const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+async function assertOkResponse(res, fallback = "Save failed") {
+  if (res.ok) return;
+  const message = await readApiErrorMessage(res, fallback);
+  throw new Error(message);
+}
 
 function Settings() {
   const navigate = useNavigate();
@@ -429,7 +436,7 @@ function Settings() {
           },
         );
 
-        if (!res.ok) throw new Error("Save failed");
+        await assertOkResponse(res, "Password update failed");
 
         setFormData(cleared);
         setOriginalFormData(cleared);
@@ -492,7 +499,7 @@ function Settings() {
           },
         );
 
-        if (!res.ok) throw new Error("Save failed");
+        await assertOkResponse(res, "Could not save other details");
         setOriginalFormData(formData);
         setMessage({ type: "success", text: "Settings saved!" });
       } else {
@@ -515,14 +522,16 @@ function Settings() {
           },
         );
 
-        if (!res.ok) throw new Error("Save failed");
+        await assertOkResponse(res, "Could not save personal information");
         setOriginalFormData(formData);
         setMessage({ type: "success", text: "Settings saved!" });
       }
 
       setHasChanges(false);
     } catch (e) {
-      setMessage({ type: "error", text: e.message });
+      const errorText = e?.message || "Save failed";
+      setMessage({ type: "error", text: errorText });
+      alert(errorText);
     } finally {
       setLoading(false);
     }
