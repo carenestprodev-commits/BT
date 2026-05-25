@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { AiOutlineCheckCircle } from "react-icons/ai";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
 import { IoMdClose } from "react-icons/io";
+import { formatDisplayName } from "../utils/formatDisplayName";
 
 /**
  * VerificationCheckModal Component
@@ -171,7 +172,7 @@ export default function VerificationCheckModal({
             <div className="flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-gray-800">
-                  {user?.name || user?.full_name || "User"}
+                  {formatDisplayName(user?.name || user?.full_name) || "User"}
                 </span>
                 {user?.is_verified && (
                   <RiVerifiedBadgeFill className="text-blue-500 text-base" />

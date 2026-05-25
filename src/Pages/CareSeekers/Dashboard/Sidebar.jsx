@@ -381,7 +381,8 @@ function Sidebar({ active = "Home", onNav }) {
               </p>
 
               <button
-                onClick={() => navigate("/careseekers/dashboard/setting")}
+                onClick={() =>
+                  navigate("/careseekers/dashboard/personal-information")}
                 className="flex items-center gap-2 text-[#4fd1c5] hover:text-[#3fb9ad] transition text-sm font-medium"
               >
                 Complete profile now

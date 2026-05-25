@@ -22,6 +22,7 @@ import {
 } from "../../../Redux/StartActivity";
 import { endActivity, startActivity } from "../../../Redux/StartActivity";
 import { BASE_URL } from "../../../Redux/config";
+import { formatDisplayName } from "../../../utils/formatDisplayName";
 import ChatMessageItem from "../../../Components/Chat/ChatMessageItem";
 import {
   getConversationPreviewText,
@@ -234,7 +235,9 @@ const MobileConversationsList = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1 mb-1">
                     <span className="font-medium text-gray-900 text-sm truncate">
-                      {conversation.other_participant?.full_name ||
+                      {formatDisplayName(
+                        conversation.other_participant?.full_name,
+                      ) ||
                         conversation.other_participant?.email ||
                         "Unknown User"}
                     </span>
@@ -336,7 +339,9 @@ const MobileChatView = ({
             />
             <div className="flex-1 flex items-center gap-1">
               <span className="font-semibold text-gray-900 text-base">
-                {currentConversation.other_participant?.full_name ||
+                {formatDisplayName(
+                  currentConversation.other_participant?.full_name,
+                ) ||
                   currentConversation.other_participant?.email ||
                   "Unknown User"}
               </span>
@@ -1075,7 +1080,9 @@ function Message() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <div className="font-medium text-gray-800 text-base">
-                              {conversation.other_participant?.full_name ||
+                              {formatDisplayName(
+                                conversation.other_participant?.full_name,
+                              ) ||
                                 conversation.other_participant?.email ||
                                 "Unknown User"}
                             </div>
@@ -1140,7 +1147,9 @@ function Message() {
                     />
                     <div className="flex-1 flex items-center">
                       <div className="font-semibold text-gray-800 text-lg">
-                        {currentConversation.other_participant?.full_name ||
+                        {formatDisplayName(
+                          currentConversation.other_participant?.full_name,
+                        ) ||
                           currentConversation.other_participant?.email ||
                           "Unknown User"}
                       </div>
