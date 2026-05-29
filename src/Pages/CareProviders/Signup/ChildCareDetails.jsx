@@ -657,12 +657,42 @@ function ChildCareDetails({
             value={formData.zipCode}
             onChange={(val) => updateFormData("zipCode", val)}
           />
-          <CheckboxGroup
-            label="Type of child care provider?"
-            options={["Nanny", "Babysitter"]}
-            values={formData.providerType || []}
-            onChange={(val) => updateFormData("providerType", val)}
-          />
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Type of child care provider?
+            </label>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-3 border border-gray-200 rounded-lg bg-gray-50/50">
+              <label className="flex items-center flex-1 cursor-pointer hover:text-[#0093d1] transition select-none">
+                <input
+                  type="checkbox"
+                  checked={(formData.providerType || []).includes("Nanny")}
+                  onChange={() => {
+                    const values = formData.providerType || [];
+                    const next = values.includes("Nanny") ? values.filter(v => v !== "Nanny") : [...values, "Nanny"];
+                    updateFormData("providerType", next);
+                  }}
+                  className="mr-2 h-4 w-4 rounded border-gray-300 text-[#0093d1] focus:ring-[#0093d1]"
+                />
+                <span className="text-sm font-medium text-gray-700">Nanny</span>
+              </label>
+              <div className="hidden sm:block h-6 w-px bg-gray-300" />
+              <div className="block sm:hidden h-px w-full bg-gray-200" />
+              <label className="flex items-center flex-1 cursor-pointer hover:text-[#0093d1] transition select-none">
+                <input
+                  type="checkbox"
+                  checked={(formData.providerType || []).includes("Babysitter")}
+                  onChange={() => {
+                    const values = formData.providerType || [];
+                    const next = values.includes("Babysitter") ? values.filter(v => v !== "Babysitter") : [...values, "Babysitter"];
+                    updateFormData("providerType", next);
+                  }}
+                  className="mr-2 h-4 w-4 rounded border-gray-300 text-[#0093d1] focus:ring-[#0093d1]"
+                />
+                <span className="text-sm font-medium text-gray-700">Babysitter</span>
+              </label>
+            </div>
+          </div>
+
 
           <SelectField
             label="Years of Experience"
