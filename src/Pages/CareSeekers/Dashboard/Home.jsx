@@ -15,6 +15,7 @@ import { fetchUserProfile } from "../../../Redux/Auth";
 import { useUserProfileRefreshOnFocus } from "../../../hooks/useUserProfileRefresh";
 import SubscriptionModal from "./SubscriptionModal";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { formatDisplayName } from "../../../utils/formatDisplayName";
 
 function Home() {
   const dispatch = useDispatch();
@@ -103,7 +104,10 @@ function Home() {
         <div className="flex items-center space-x-2 mb-4">
           <FaCheckCircle className="text-[#00b894] text-lg" />
           <p className="text-black text-2xl">
-            Hello, <span className="font-semibold">{greetingName}</span>
+            Hello,{" "}
+            <span className="font-semibold">
+              {formatDisplayName(greetingName) || greetingName}
+            </span>
           </p>
         </div>
 

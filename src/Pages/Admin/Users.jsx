@@ -34,6 +34,7 @@ import {
   fetchNewSignups,
   fetchUserById,
   deleteUser,
+  deleteUserImage,
   suspendUser,
   activateUser,
   approveUser,
@@ -1470,12 +1471,47 @@ function Users() {
               <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-6 text-white sm:px-8">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="flex items-center gap-4">
-                    <UserAvatar
-                      name={editRow.name}
-                      imageUrl={editRow.profileImageUrl || editRow.profile_image_url}
-                      className="h-16 w-16 rounded-2xl bg-white/10 ring-1 ring-white/10"
-                      textClassName="text-2xl text-slate-100"
-                    />
+                    <div className="relative">
+                      <UserAvatar
+                        name={editRow.name}
+                        imageUrl={editRow.profileImageUrl || editRow.profile_image_url}
+                        className="h-16 w-16 rounded-2xl bg-white/10 ring-1 ring-white/10"
+                        textClassName="text-2xl text-slate-100"
+                      />
+                      {(editRow.profileImageUrl || editRow.profile_image_url) && (
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm("Are you sure you want to delete this user's profile image?")) return;
+                            try {
+                              await dispatch(deleteUserImage(editRow.id)).unwrap();
+                              setEditRow((prev) => ({
+                                ...prev,
+                                profileImageUrl: "",
+                                profile_image_url: "",
+                              }));
+                              if (alertTimerRef.current) {
+                                clearTimeout(alertTimerRef.current);
+                                alertTimerRef.current = null;
+                              }
+                              setAlert({ type: "success", text: "Profile image deleted successfully" });
+                              alertTimerRef.current = setTimeout(() => setAlert(null), 3000);
+                            } catch (err) {
+                              console.error(err);
+                              if (alertTimerRef.current) {
+                                clearTimeout(alertTimerRef.current);
+                                alertTimerRef.current = null;
+                              }
+                              setAlert({ type: "error", text: "Failed to delete profile image" });
+                              alertTimerRef.current = setTimeout(() => setAlert(null), 3000);
+                            }
+                          }}
+                          className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white transition hover:bg-red-600 shadow-md ring-2 ring-slate-900"
+                          title="Delete Profile Image"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                     <div>
                       <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
                         {userTypeLabel(editRow.user_type)}

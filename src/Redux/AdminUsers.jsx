@@ -136,6 +136,26 @@ export const deleteUser = createAsyncThunk(
   },
 );
 
+export const deleteUserImage = createAsyncThunk(
+  "adminUsers/deleteUserImage",
+  async (id, { rejectWithValue }) => {
+    try {
+      const access =
+        localStorage.getItem("accessToken") || localStorage.getItem("access");
+      const headers = access ? { Authorization: `Bearer ${access}` } : {};
+      const res = await fetchWithAuth(
+        `${BASE_URL}/api/admin/users/${id}/delete-image/`,
+        { method: "DELETE", headers },
+      );
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data);
+      return { id };
+    } catch {
+      return rejectWithValue({ error: "Network error" });
+    }
+  },
+);
+
 export const suspendUser = createAsyncThunk(
   "adminUsers/suspendUser",
   async (id, { rejectWithValue }) => {
@@ -820,6 +840,29 @@ const slice = createSlice({
       .addCase(approveUser.rejected, (state, action) => {
         state.verificationLoading = false;
         state.verificationError = action.payload || action.error;
+      })
+      .addCase(deleteUserImage.fulfilled, (state, action) => {
+        const id = action.payload?.id;
+        if (id != null) {
+          state.users = state.users.map((u) =>
+            u.id === id
+              ? {
+                ...u,
+                profileImageUrl: "",
+                profile_image_url: "",
+                has_profile_picture: false,
+              }
+              : u,
+          );
+        }
+        if (state.currentUser && state.currentUser.id === id) {
+          state.currentUser = {
+            ...state.currentUser,
+            profileImageUrl: "",
+            profile_image_url: "",
+            profile_image: "",
+          };
+        }
       });
   },
 });

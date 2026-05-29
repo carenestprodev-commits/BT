@@ -12,6 +12,16 @@ import { fetchJobsFeed } from "../../../Redux/JobsFeed";
 import avatar_user from "../../../../public/avatar_user.png";
 import { useAppNotifications } from "../../../hooks/useAppNotifications.js";
 import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
+import { formatDisplayName } from "../../../utils/formatDisplayName";
+
+const resolveSeekerAvatar = (url, name = "User") => {
+  if (!url) {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=E5E7EB&color=374151&size=100`;
+  }
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/")) return `${import.meta.env.VITE_API_BASE_URL}${url}`;
+  return url;
+};
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -35,7 +45,7 @@ export default function HomePage() {
     });
   }, [authUser]);
 
-  const displayName = authUser?.full_name || "User";
+  const displayName = formatDisplayName(authUser?.full_name) || "User";
 
   const { search, setSearch } = useJobFeedSearch();
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
@@ -99,7 +109,7 @@ export default function HomePage() {
 
   // Apply filterBy logic
   if (filterBy === "Verified") {
-    filteredJobs = filteredJobs.filter((job) => job.verified === true);
+    filteredJobs = filteredJobs.filter((job) => job.seeker_is_verified === true);
   } else if (filterBy === "Earliest") {
     filteredJobs = filteredJobs.sort(
       (a, b) => new Date(a.created_at) - new Date(b.created_at),
@@ -380,16 +390,29 @@ export default function HomePage() {
                   {/* Header Row - Avatar, Name, Time */}
                   <div className="flex items-start gap-3 mb-3">
                     <img
-                      src={avatar_user}
+                      src={resolveSeekerAvatar(
+                        job.image_url,
+                        job.seeker_name || job.poster_name,
+                      )}
                       alt="avatar"
                       className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.src = resolveSeekerAvatar(
+                          null,
+                          job.seeker_name || job.poster_name,
+                        );
+                      }}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="font-medium text-gray-800 text-sm">
-                          {job.seeker_name || job.poster_name || "User"}
+                          {formatDisplayName(
+                            job.seeker_name || job.poster_name,
+                          ) || "User"}
                         </span>
-                        <RiVerifiedBadgeFill className="text-blue-500 text-xs flex-shrink-0" />
+                        {job.seeker_is_verified && (
+                          <RiVerifiedBadgeFill className="text-blue-500 text-xs flex-shrink-0" />
+                        )}
                       </div>
                       <span className="text-gray-400 text-xs">
                         Posted {job.posted_ago || "Just now"}
@@ -424,16 +447,29 @@ export default function HomePage() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-3">
                       <img
-                        src={avatar_user}
+                        src={resolveSeekerAvatar(
+                          job.image_url,
+                          job.seeker_name || job.poster_name,
+                        )}
                         alt="avatar"
                         className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.src = resolveSeekerAvatar(
+                            null,
+                            job.seeker_name || job.poster_name,
+                          );
+                        }}
                       />
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
                           <span className="font-medium text-gray-900 text-base">
-                            {job.seeker_name || job.poster_name || "User"}
+                            {formatDisplayName(
+                              job.seeker_name || job.poster_name,
+                            ) || "User"}
                           </span>
-                          <RiVerifiedBadgeFill className="text-blue-500 text-sm flex-shrink-0" />
+                          {job.seeker_is_verified && (
+                            <RiVerifiedBadgeFill className="text-blue-500 text-sm flex-shrink-0" />
+                          )}
                         </div>
                         <span className="text-gray-400 text-xs mt-0.5">
                           Posted {job.posted_ago || "Just now"}

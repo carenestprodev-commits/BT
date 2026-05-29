@@ -8,6 +8,7 @@ import {
   fetchPendingRequests,
 } from "../../../Redux/CareProviderRequest";
 import { BASE_URL } from "../../../Redux/config";
+import { formatDisplayName } from "../../../utils/formatDisplayName";
 
 const tabs = ["Active", "Closed", "Pending"];
 
@@ -134,7 +135,7 @@ function Requests() {
                       {req.title || (req.job_details && req.job_details.title)}
                     </div>
                     <div className="text-sm text-gray-600 mt-1">
-                      {(req.seeker && req.seeker.full_name) || ""}
+                      {formatDisplayName(req.seeker?.full_name)}
                     </div>
                     <div className="text-xs text-gray-400 mt-1">
                       {req.date
@@ -181,7 +182,7 @@ function Requests() {
                   <div>
                     <div className="font-semibold text-gray-800">
                       {(req.job_details && req.job_details.title) ||
-                        (req.seeker && req.seeker.full_name) ||
+                        formatDisplayName(req.seeker?.full_name) ||
                         req.name ||
                         ""}
                     </div>
