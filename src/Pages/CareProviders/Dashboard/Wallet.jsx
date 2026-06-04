@@ -237,6 +237,104 @@ function TransactionDetailsModal({ isOpen, onClose, transaction }) {
   );
 }
 
+function WithdrawModal({ isOpen, onClose, dashboard, onSuccess }) {
+  const [amount, setAmount] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const account = dashboard?.payout_account || {};
+  const balance = Number(dashboard?.current_balance || 0);
+  const canSubmit = Number(amount) > 0 && Number(amount) <= balance;
+
+  if (!isOpen) return null;
+
+  const submit = async () => {
+    try {
+      setIsSubmitting(true);
+      const raw = localStorage.getItem("user");
+      const user = raw ? JSON.parse(raw) : {};
+      const payment_method =
+        (user.country || "").toString().toLowerCase() === "nigeria"
+          ? "paystack"
+          : "stripe";
+      const res = await fetchWithAuth(
+        `${BASE_URL}/api/payments/wallet/request-payout/`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ payment_method, amount }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || data.detail || "Failed to request payout.");
+        return;
+      }
+      const url = data.onboarding_url || data.onboardingUrl || data.url;
+      if (url) window.open(url, "_blank");
+      alert(data.message || "Payout requested successfully.");
+      onSuccess();
+      onClose();
+      setAmount("");
+    } catch (err) {
+      console.error("request-payout error", err);
+      alert("An error occurred while requesting payout.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-md relative p-6">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        >
+          <FaTimes />
+        </button>
+        <h2 className="text-xl font-semibold mb-2">Withdraw funds</h2>
+        <p className="text-sm text-gray-500 mb-5">
+          Enter the amount you want to withdraw.
+        </p>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Amount
+        </label>
+        <input
+          type="number"
+          min="1"
+          max={balance}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0093d1] mb-4"
+          placeholder="0.00"
+        />
+        <div className="bg-gray-50 rounded-lg p-4 mb-5 space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-500">Bank name</span>
+            <span className="font-medium">{account.bank_name || "Not set"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Account holder</span>
+            <span className="font-medium">{account.account_name || "Not resolved"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Account number</span>
+            <span className="font-medium">{account.account_number || "Not set"}</span>
+          </div>
+        </div>
+        <button
+          onClick={submit}
+          disabled={!canSubmit || isSubmitting}
+          className={`w-full bg-[#0093d1] text-white py-3 rounded-lg font-semibold ${
+            !canSubmit || isSubmitting ? "opacity-60 cursor-not-allowed" : "hover:bg-[#007bb0]"
+          }`}
+        >
+          {isSubmitting ? "Please wait..." : "Proceed to withdrawal"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Wallet() {
   const dispatch = useDispatch();
   const { dashboard, history, loading } = useSelector(
@@ -337,58 +435,10 @@ function Wallet() {
               className={`w-full bg-[#0093d1] text-white py-3 lg:py-4 rounded-lg font-semibold hover:bg-[#007bb0] transition ${
                 isWithdrawing ? "opacity-70 cursor-not-allowed" : ""
               }`}
-              onClick={async () => {
-                try {
-                  setIsWithdrawing(true);
-                  const raw = localStorage.getItem("user");
-                  let country = "";
-                  if (raw) {
-                    try {
-                      const u = JSON.parse(raw);
-                      country = (u.country || "").toString().toLowerCase();
-                    } catch {
-                      country = "";
-                    }
-                  }
-
-                  const payment_method =
-                    country === "nigeria" ? "paystack" : "stripe";
-
-                  const res = await fetchWithAuth(
-                    `${BASE_URL}/api/payments/wallet/request-payout/`,
-                    {
-                      method: "POST",
-                      headers: getAuthHeaders(),
-                      body: JSON.stringify({ payment_method }),
-                    }
-                  );
-
-                  if (!res.ok) {
-                    const txt = await res.text();
-                    alert(`Failed to request payout: ${txt}`);
-                    setIsWithdrawing(false);
-                    return;
-                  }
-
-                  const data = await res.json();
-                  const url =
-                    data &&
-                    (data.onboarding_url || data.onboardingUrl || data.url);
-                  if (url) {
-                    window.open(url, "_blank");
-                  } else {
-                    alert("No onboarding URL returned from server.");
-                  }
-                } catch (err) {
-                  console.error("request-payout error", err);
-                  alert("An error occurred while requesting payout.");
-                } finally {
-                  setIsWithdrawing(false);
-                }
-              }}
+              onClick={() => setIsWithdrawing(true)}
               disabled={isWithdrawing}
             >
-              {isWithdrawing ? "Please wait..." : "Withdraw Fund"}
+              Withdraw Fund
             </button>
           </div>
 
@@ -537,6 +587,16 @@ function Wallet() {
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
         transaction={selectedTransaction}
+      />
+
+      <WithdrawModal
+        isOpen={isWithdrawing}
+        onClose={() => setIsWithdrawing(false)}
+        dashboard={dashboard}
+        onSuccess={() => {
+          dispatch(fetchWalletDashboard());
+          dispatch(fetchWalletHistory());
+        }}
       />
     </div>
   );
