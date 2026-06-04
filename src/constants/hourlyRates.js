@@ -8,6 +8,7 @@ import {
 const hourlyRateCache = {};
 const hourlyRateListeners = new Set();
 const DEFAULT_COUNTRY_CODE = "NG";
+const HOURS_PER_MONTH = 160;
 const DEFAULT_HOURLY_RATE_POLICY = {
   country_name: "Nigeria",
   currency_code: "NGN",
@@ -15,6 +16,9 @@ const DEFAULT_HOURLY_RATE_POLICY = {
   min_rate: 900,
   max_rate: 1200,
   average_rate: 1000,
+  monthly_min_rate: 900 * HOURS_PER_MONTH,
+  monthly_max_rate: 1200 * HOURS_PER_MONTH,
+  monthly_average_rate: 1000 * HOURS_PER_MONTH,
 };
 
 const normalizeCountryCode = (countryInput = "NG") =>
@@ -27,6 +31,11 @@ const toHourlyRateConfig = (policy, countryCode) => {
   const minRate = Number(policy.min_rate ?? 0);
   const maxRate = Number(policy.max_rate ?? 0);
   const averageHourlyRate = Number(policy.average_rate ?? 0);
+  const monthlyMinRate = Number(policy.monthly_min_rate ?? minRate * HOURS_PER_MONTH);
+  const monthlyMaxRate = Number(policy.monthly_max_rate ?? maxRate * HOURS_PER_MONTH);
+  const averageMonthlyRate = Number(
+    policy.monthly_average_rate ?? averageHourlyRate * HOURS_PER_MONTH,
+  );
   return {
     country: policy.country_name || currencyInfo.countryIso2,
     currency: policy.currency_code || currencyInfo.currencyCode,
@@ -34,6 +43,9 @@ const toHourlyRateConfig = (policy, countryCode) => {
     averageHourlyRate,
     minRate,
     maxRate,
+    monthlyMinRate,
+    monthlyMaxRate,
+    averageMonthlyRate,
     description:
       policy.description ||
       `Average range in your area is ${
@@ -41,6 +53,13 @@ const toHourlyRateConfig = (policy, countryCode) => {
       }${minRate.toLocaleString()} - ${
         policy.currency_symbol || currencyInfo.currencySymbol
       }${maxRate.toLocaleString()}`,
+    monthlyDescription:
+      policy.monthly_description ||
+      `Average range in your area is ${
+        policy.currency_symbol || currencyInfo.currencySymbol
+      }${monthlyMinRate.toLocaleString()} - ${
+        policy.currency_symbol || currencyInfo.currencySymbol
+      }${monthlyMaxRate.toLocaleString()}`,
     countryCode,
   };
 };

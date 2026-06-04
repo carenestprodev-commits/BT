@@ -19,6 +19,11 @@ const asList = (value) => {
 const firstValue = (...values) =>
   values.find((value) => value !== undefined && value !== null && value !== "");
 
+export const normalizeBillingCycle = (value) => {
+  const raw = String(value || "").trim().toLowerCase();
+  return raw === "monthly" ? "monthly" : "hourly";
+};
+
 export const buildProviderRequirements = (formData = {}, steps = {}) => {
   const experience = steps.experience || {};
   const personality = asList(
@@ -75,6 +80,14 @@ export const buildSeekerJobData = (formData = {}, steps = {}) => {
   );
   const timeDetails = steps.timeDetails || {};
   const location = steps.location || {};
+  const billingCycle = normalizeBillingCycle(
+    firstValue(
+      formData.billingCycle,
+      timeDetails.billingCycle,
+      formData.billing_cycle,
+      timeDetails.billing_cycle,
+    ),
+  );
   const priceMin = firstValue(
     formData.hourlyRateStart,
     formData.priceMin,
@@ -205,6 +218,7 @@ export const buildSeekerJobData = (formData = {}, steps = {}) => {
     budget: {
       price_min: parseFloat(priceMin) || 0,
       price_max: parseFloat(priceMax) || 0,
+      billing_cycle: billingCycle,
     },
     message_to_provider: firstValue(
       formData.messageToProvider,

@@ -22,6 +22,7 @@ function ElderlyTimeDetails({
   const hourlyRateConfig = useHourlyRateConfig(
     formData.country || onboardingSteps?.location?.country,
   );
+  const billingCycle = formData.billingCycle || "hourly";
   return (
     <div className="w-full max-w-3xl mx-auto bg-white p-4 lg:p-8 rounded-2xl shadow-lg border border-gray-100 font-sfpro">
       <div className="flex items-center mb-6">
@@ -298,17 +299,16 @@ function ElderlyTimeDetails({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             How much would you be offering{" "}
-            <span className="text-gray-500 text-xs">(per Hour)</span>
+            <span className="text-gray-500 text-xs">(per month or hour)</span>
           </label>
-          <div className="bg-green-100 text-green-700 text-sm p-2 rounded mb-4">
-            <span className="inline-flex items-center">
-              <span className="mr-1">ℹ️</span> {hourlyRateConfig.description}
-            </span>
-          </div>
           <DualRangeSlider
             countryCode={hourlyRateConfig.countryCode}
             valueStart={formData.hourlyRateStart}
             valueEnd={formData.hourlyRateEnd}
+            billingCycle={billingCycle}
+            onBillingCycleChange={(value) =>
+              updateFormData("billingCycle", value)
+            }
             onChange={(v) => {
               if (v?.hourlyRateStart !== undefined)
                 updateFormData("hourlyRateStart", v.hourlyRateStart);
