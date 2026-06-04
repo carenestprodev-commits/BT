@@ -250,7 +250,14 @@ function WithdrawModal({ isOpen, onClose, dashboard, onSuccess }) {
     try {
       setIsSubmitting(true);
       const raw = localStorage.getItem("user");
-      const user = raw ? JSON.parse(raw) : {};
+      let user = {};
+      if (raw) {
+        try {
+          user = JSON.parse(raw);
+        } catch {
+          user = {};
+        }
+      }
       const payment_method =
         (user.country || "").toString().toLowerCase() === "nigeria"
           ? "paystack"
