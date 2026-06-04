@@ -27,8 +27,8 @@ function PendingDetails() {
     (s) => s.seekerRequests || { currentRequest: null },
   );
 
-  // source of truth: prefer location state, then redux — no hardcoded fallback
-  const source = locationDetails || currentRequest || null;
+  // Prefer the fetched detail payload; route state is often list-shaped only.
+  const source = currentRequest || locationDetails || null;
 
   const [summary, setSummary] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
@@ -37,10 +37,10 @@ function PendingDetails() {
 
   useEffect(() => {
     const id = params.id || params.requestId || null;
-    if (!locationDetails && id) {
+    if (id) {
       dispatch(fetchPendingRequestById(id));
     }
-  }, [dispatch, locationDetails, params]);
+  }, [dispatch, params.id, params.requestId]);
 
   useEffect(() => {
     if (!source) return;

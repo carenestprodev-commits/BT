@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
+import { FaRegClock, FaRegCalendarAlt } from "react-icons/fa";
 import { useHourlyRateConfig } from "../../../constants/hourlyRates";
 
 export default function DualRangeSlider({
@@ -9,158 +10,110 @@ export default function DualRangeSlider({
   maxValue,
   onChange,
   countryCode = "NG",
+  billingCycle = "hourly",
+  onBillingCycleChange,
 }) {
   const config = useHourlyRateConfig(countryCode);
-  const defaultMinValue = minValue ?? config.minRate;
-  const defaultMaxValue = maxValue ?? config.maxRate;
-  const defaultValueStart = valueStart ?? defaultMinValue;
-  const defaultValueEnd = valueEnd ?? defaultMaxValue;
-  const clamp = (v, min, max) => Math.max(min, Math.min(v, max));
-
-  const [start, setStart] = useState(defaultValueStart);
-  const [end, setEnd] = useState(defaultValueEnd);
-  const [isDragging, setIsDragging] = useState(null);
-
-  const sliderRef = useRef(null);
-  const startRef = useRef(null);
-  const endRef = useRef(null);
+  const hoursPerMonth = 160;
+  const isMonthly = billingCycle === "monthly";
+  const defaultMinValue = isMonthly
+    ? minValue ?? config.monthlyMinRate ?? config.minRate * hoursPerMonth
+    : minValue ?? config.minRate;
+  const defaultMaxValue = isMonthly
+    ? maxValue ?? config.monthlyMaxRate ?? config.maxRate * hoursPerMonth
+    : maxValue ?? config.maxRate;
+  const defaultValue = valueEnd ?? valueStart ?? defaultMinValue;
+  const [value, setValue] = useState(defaultValue);
 
   useEffect(() => {
-    setStart(defaultValueStart);
-    setEnd(defaultValueEnd);
-  }, [defaultValueStart, defaultValueEnd]);
+    setValue(valueEnd ?? valueStart ?? defaultMinValue);
+  }, [valueEnd, valueStart, defaultMinValue]);
 
   useEffect(() => {
     if (onChange) {
       onChange({
-        hourlyRateStart: start,
-        hourlyRateEnd: end,
+        hourlyRateStart: value,
+        hourlyRateEnd: value,
       });
     }
-  }, [start, end]);
+  }, [value, onChange]);
 
-  const getPercent = (value) =>
-    ((value - defaultMinValue) / (defaultMaxValue - defaultMinValue)) * 100;
+  const formatValue = (v) => `${config.symbol}${Number(v || 0).toLocaleString()}`;
 
-  const formatValue = (v) => `${config.symbol}${v}`;
-
-  const getClientX = (e) => (e.touches ? e.touches[0].clientX : e.clientX);
-
-  const handleMove = (e) => {
-    if (!isDragging || !sliderRef.current) return;
-
-    const rect = sliderRef.current.getBoundingClientRect();
-    const percent = (getClientX(e) - rect.left) / rect.width;
-
-    let value = Math.round(
-      defaultMinValue + percent * (defaultMaxValue - defaultMinValue),
-    );
-    value = clamp(value, defaultMinValue, defaultMaxValue);
-
-    if (isDragging === "start") {
-      setStart(Math.min(value, end));
-    }
-
-    if (isDragging === "end") {
-      setEnd(Math.max(value, start));
-    }
+  const handleInputChange = (event) => {
+    const next = Number(event.target.value);
+    if (Number.isFinite(next)) setValue(next);
   };
 
-  useEffect(() => {
-    const stopDrag = () => setIsDragging(null);
-
-    if (isDragging) {
-      document.addEventListener("mousemove", handleMove);
-      document.addEventListener("mouseup", stopDrag);
-      document.addEventListener("touchmove", handleMove);
-      document.addEventListener("touchend", stopDrag);
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMove);
-      document.removeEventListener("mouseup", stopDrag);
-      document.removeEventListener("touchmove", handleMove);
-      document.removeEventListener("touchend", stopDrag);
-    };
-  }, [isDragging, start, end]);
-
-  /* Keyboard Controls */
-
-  const handleKey = (e, type) => {
-    const step = 10;
-
-    if (type === "start") {
-      if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-        setStart((prev) => clamp(prev + step, defaultMinValue, end));
-      }
-
-      if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-        setStart((prev) => clamp(prev - step, defaultMinValue, end));
-      }
-    }
-
-    if (type === "end") {
-      if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-        setEnd((prev) => clamp(prev + step, start, defaultMaxValue));
-      }
-
-      if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-        setEnd((prev) => clamp(prev - step, start, defaultMaxValue));
-      }
-    }
+  const handleCycleChange = (nextCycle) => {
+    if (!onBillingCycleChange || nextCycle === billingCycle) return;
+    const nextValue = nextCycle === "monthly"
+      ? Math.round(Number(value || 0) * hoursPerMonth)
+      : Math.round(Number(value || 0) / hoursPerMonth);
+    setValue(nextValue);
+    onBillingCycleChange(nextCycle);
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
-      {/* FIXED MOBILE LAYOUT */}
-      <div className="flex justify-between mb-3 text-sm text-gray-500">
-        <span>{formatValue(defaultMinValue)}</span>
-        <span>{formatValue(defaultMaxValue)}</span>
-      </div>
-
-      <div
-        ref={sliderRef}
-        className="relative w-full h-8 flex items-center cursor-pointer"
-      >
-        {/* background */}
-        <div className="absolute w-full h-2 bg-gray-200 rounded-full"></div>
-
-        {/* active range */}
-        <div
-          className="absolute h-2 bg-blue-500 rounded-full"
-          style={{
-            left: `${getPercent(start)}%`,
-            width: `${getPercent(end) - getPercent(start)}%`,
-          }}
-        ></div>
-
-        {/* start thumb */}
-        <div
-          ref={startRef}
-          tabIndex={0}
-          onKeyDown={(e) => handleKey(e, "start")}
-          onMouseDown={() => setIsDragging("start")}
-          onTouchStart={() => setIsDragging("start")}
-          className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow-md -translate-x-1/2 cursor-pointer"
-          style={{ left: `${getPercent(start)}%` }}
-        ></div>
-
-        {/* end thumb */}
-        <div
-          ref={endRef}
-          tabIndex={0}
-          onKeyDown={(e) => handleKey(e, "end")}
-          onMouseDown={() => setIsDragging("end")}
-          onTouchStart={() => setIsDragging("end")}
-          className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow-md -translate-x-1/2 cursor-pointer"
-          style={{ left: `${getPercent(end)}%` }}
-        ></div>
-      </div>
-
-      {/* Selected values */}
-      <div className="flex justify-between mt-4 text-blue-600 font-semibold text-lg">
-        <span>{formatValue(start)}</span>
-        <span>{formatValue(end)}</span>
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      {onBillingCycleChange && (
+        <div className="mb-4 flex rounded-2xl bg-gray-100 p-1">
+          {[
+            ["hourly", "Hourly"],
+            ["monthly", "Monthly"],
+          ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => handleCycleChange(value)}
+                className={`flex-1 rounded-2xl py-3 text-sm font-semibold transition ${
+                  billingCycle === value
+                    ? "bg-white text-[#0d99c9] shadow"
+                    : "text-gray-500"
+              }`}
+            >
+              <span className="inline-flex items-center gap-2">
+                {value === "hourly" ? (
+                  <FaRegClock className="text-base" />
+                ) : (
+                  <FaRegCalendarAlt className="text-base" />
+                )}
+                {label}
+              </span>
+              
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="rounded-2xl border border-gray-200 p-4">
+        <div className="mb-4">
+          <div className="text-xl font-medium text-gray-700">
+            {isMonthly ? "Monthly rates" : "Hourly rates"}
+          </div>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={defaultMinValue}
+            max={defaultMaxValue}
+            value={value}
+            onChange={handleInputChange}
+            className="mt-4 w-full rounded-2xl border border-gray-200 px-5 py-4 text-2xl font-medium text-gray-700 shadow-sm outline-none focus:border-[#0d99c9] focus:ring-2 focus:ring-[#0d99c9]/15"
+          />
+        </div>
+        <p className="text-sm text-[#63c96c]">
+          Average range in your area is {formatValue(defaultMinValue)} - {formatValue(defaultMaxValue)} per {isMonthly ? "month" : "hour"}
+        </p>
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-[#0d99c9] bg-[#eef8fd] px-4 py-3 text-sm text-gray-700">
+          <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#0d99c9] text-[11px] font-semibold text-[#0d99c9]">
+            i
+          </span>
+            <span>
+            Care providers will see your rates as{" "}
+            <span className="font-semibold text-[#0d99c9]">
+              {formatValue(value)}/{isMonthly ? "monthly" : "hourly"} rate
+            </span>
+          </span>
+        </div>
       </div>
     </div>
   );

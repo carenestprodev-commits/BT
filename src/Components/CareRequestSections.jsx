@@ -1,5 +1,6 @@
 import React from "react";
 import { BASE_URL } from "../Redux/config";
+import { normalizeBillingCycle } from "../lib/seekerRequestPayload";
 
 export const asList = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean);
@@ -106,6 +107,13 @@ export function requestDetailSections(request) {
   const requirements = details.provider_experience_requirements || {};
   const schedule = request?.job_data?.schedule || request?.schedule || {};
   const budget = request?.job_data?.budget || request?.budget || {};
+  const billingCycle = normalizeBillingCycle(
+    request?.billing_cycle ||
+      budget.billing_cycle ||
+      request?.billingCycle ||
+      request?.job_data?.billing_cycle,
+  );
+  const rateSuffix = billingCycle === "monthly" ? "month" : "hour";
   const location = details.location_information || {};
   const categoryDetails = Object.entries(details).filter(
     ([key]) => key !== "provider_experience_requirements" && key !== "location_information",
@@ -129,7 +137,7 @@ export function requestDetailSections(request) {
       schedule.start_time ? `Start time: ${schedule.start_time}` : "",
       schedule.end_time ? `End time: ${schedule.end_time}` : "",
       budget.price_min || budget.price_max
-        ? `Budget: ${[budget.price_min, budget.price_max].filter(Boolean).join(" - ")}`
+        ? `Budget: ${[budget.price_min, budget.price_max].filter(Boolean).join(" - ")}/${rateSuffix}`
         : "",
     ],
     locationRows: [

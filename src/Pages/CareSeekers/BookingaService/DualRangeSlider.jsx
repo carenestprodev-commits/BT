@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
+import { FaRegClock, FaRegCalendarAlt } from "react-icons/fa";
 import { useHourlyRateConfig } from "../../../constants/hourlyRates";
 
 export default function DualRangeSlider({
@@ -10,132 +11,101 @@ export default function DualRangeSlider({
   maxValue,
   countryCode = "NG",
   onChange,
+  billingCycle = "hourly",
+  onBillingCycleChange,
 }) {
   const config = useHourlyRateConfig(countryCode);
-
-  // Use provided values or defaults from config
-  const defaultStart = valueStart ?? config.minRate;
-  const defaultEnd = valueEnd ?? config.maxRate;
-  const defaultMin = minValue ?? config.minRate;
-  const defaultMax = maxValue ?? config.maxRate;
-  const [start, setStart] = useState(defaultStart);
-  const [end, setEnd] = useState(defaultEnd);
-  const [isDragging, setIsDragging] = useState(null);
-  const sliderRef = useRef(null);
-
-  useEffect(() => {
-    setStart(defaultStart);
-    setEnd(defaultEnd);
-  }, [defaultStart, defaultEnd]);
+  const hoursPerMonth = 160;
+  const isMonthly = billingCycle === "monthly";
+  const defaultMin = isMonthly
+    ? minValue ?? config.monthlyMinRate ?? config.minRate * hoursPerMonth
+    : minValue ?? config.minRate;
+  const defaultMax = isMonthly
+    ? maxValue ?? config.monthlyMaxRate ?? config.maxRate * hoursPerMonth
+    : maxValue ?? config.maxRate;
+  const defaultValue = valueEnd ?? valueStart ?? defaultMin;
+  const [value, setValue] = useState(defaultValue);
 
   useEffect(() => {
-    if (onChange) onChange({ hourlyRateStart: start, hourlyRateEnd: end });
-  }, [start, end, onChange]);
+    setValue(valueEnd ?? valueStart ?? defaultMin);
+  }, [valueEnd, valueStart, defaultMin]);
 
-  const getPercentage = (value) =>
-    ((value - defaultMin) / (defaultMax - defaultMin)) * 100;
+  useEffect(() => {
+    if (onChange) onChange({ hourlyRateStart: value, hourlyRateEnd: value });
+  }, [value, onChange]);
 
-  const handleSliderClick = (e) => {
-    if (!sliderRef.current || isDragging) return;
-    const rect = sliderRef.current.getBoundingClientRect();
-    const clickPosition = (e.clientX - rect.left) / rect.width;
-    const clickValue = defaultMin + clickPosition * (defaultMax - defaultMin);
-    const distanceToStart = Math.abs(clickValue - start);
-    const distanceToEnd = Math.abs(clickValue - end);
-    if (distanceToStart < distanceToEnd) {
-      setStart(Math.round(Math.min(clickValue, end)));
-    } else {
-      setEnd(Math.round(Math.max(clickValue, start)));
-    }
+  const handleInputChange = (e) => {
+    const next = Number(e.target.value);
+    if (Number.isFinite(next)) setValue(next);
   };
 
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isDragging || !sliderRef.current) return;
-      const rect = sliderRef.current.getBoundingClientRect();
-      const position = (e.clientX - rect.left) / rect.width;
-      const value = Math.round(
-        defaultMin + position * (defaultMax - defaultMin),
-      );
-      if (isDragging === "start") {
-        setStart(Math.max(defaultMin, Math.min(value, end)));
-      } else if (isDragging === "end") {
-        setEnd(Math.min(defaultMax, Math.max(value, start)));
-      }
-    };
-    const handleMouseUp = () => setIsDragging(null);
-    if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.addEventListener("touchmove", handleMouseMove);
-      document.addEventListener("touchend", handleMouseUp);
-    }
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-      document.removeEventListener("touchmove", handleMouseMove);
-      document.removeEventListener("touchend", handleMouseUp);
-    };
-  }, [isDragging, start, end]);
+  const handleCycleChange = (nextCycle) => {
+    if (!onBillingCycleChange || nextCycle === billingCycle) return;
+    const nextValue = nextCycle === "monthly"
+      ? Math.round(Number(value || 0) * hoursPerMonth)
+      : Math.round(Number(value || 0) / hoursPerMonth);
+    setValue(nextValue);
+    onBillingCycleChange(nextCycle);
+  };
 
   return (
     <div>
-      <div className="bg-white border border-gray-200 rounded-lg p-4 font-sfpro">
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 lg:gap-0 mb-2">
-          <span className="text-sm text-gray-500">{config.symbol}{defaultMin}</span>
-          <span className="text-sm text-gray-500">{config.symbol}{defaultMax}</span>
-        </div>
-        <div
-          ref={sliderRef}
-          className="relative w-full h-8 flex items-center mb-4 cursor-pointer"
-          onClick={handleSliderClick}
-        >
-          <div className="absolute w-full h-2 bg-gray-200 rounded-full"></div>
-          <div
-            className="absolute h-2 bg-blue-500 rounded-full pointer-events-none"
-            style={{
-              left: `${getPercentage(start)}%`,
-              width: `${getPercentage(end) - getPercentage(start)}%`,
-            }}
-          ></div>
-          <div
-            className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow-md cursor-grab active:cursor-grabbing transform -translate-x-1/2 z-10"
-            style={{ left: `${getPercentage(start)}%` }}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              setIsDragging("start");
-            }}
-          ></div>
-          <div
-            className="absolute w-5 h-5 bg-white border-2 border-blue-500 rounded-full shadow-md cursor-grab active:cursor-grabbing transform -translate-x-1/2 z-10"
-            style={{ left: `${getPercentage(end)}%` }}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              setIsDragging("end");
-            }}
-          ></div>
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 font-sfpro shadow-sm">
+        {onBillingCycleChange && (
+          <div className="mb-4 flex rounded-2xl bg-gray-100 p-1">
+            {[
+              ["hourly", "Hourly"],
+              ["monthly", "Monthly"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => handleCycleChange(value)}
+                className={`flex-1 rounded-2xl py-3 text-sm font-semibold transition ${
+                  billingCycle === value
+                    ? "bg-white text-[#0d99c9] shadow"
+                    : "text-gray-500"
+                }`}
+              >
+                <span className="inline-flex items-center gap-2">
+                  {value === "hourly" ? (
+                    <FaRegClock className="text-base" />
+                  ) : (
+                    <FaRegCalendarAlt className="text-base" />
+                  )}
+                  {label}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="rounded-2xl border border-gray-200 p-4">
+          <div className="text-xl font-medium text-gray-700">
+            {isMonthly ? "Monthly rates" : "Hourly rates"}
+          </div>
           <input
-            type="range"
+            type="number"
+            inputMode="numeric"
             min={defaultMin}
             max={defaultMax}
-            value={start}
-            onChange={(e) => setStart(Math.min(parseInt(e.target.value), end))}
-            className="sr-only"
-            aria-label="Minimum hourly rate"
+            value={value}
+            onChange={handleInputChange}
+            className="mt-4 w-full rounded-2xl border border-gray-200 px-5 py-4 text-2xl font-medium text-gray-700 shadow-sm outline-none focus:border-[#0d99c9] focus:ring-2 focus:ring-[#0d99c9]/15"
           />
-          <input
-            type="range"
-            min={defaultMin}
-            max={defaultMax}
-            value={end}
-            onChange={(e) => setEnd(Math.max(parseInt(e.target.value), start))}
-            className="sr-only"
-            aria-label="Maximum hourly rate"
-          />
-        </div>
-        <div className="flex justify-between mt-2 dark: text-blue-500">
-          <span className="text-lg font-semibold">{config.symbol}{start}</span>
-          <span className="text-lg font-semibold">{config.symbol}{end}</span>
+          <p className="mt-4 text-sm text-[#63c96c]">
+            Average range in your area is {config.symbol}{defaultMin} - {config.symbol}{defaultMax} per {isMonthly ? "month" : "hour"}
+          </p>
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-[#0d99c9] bg-[#eef8fd] px-4 py-3 text-sm text-gray-700">
+            <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#0d99c9] text-[11px] font-semibold text-[#0d99c9]">
+              i
+            </span>
+            <span>
+              Care providers will see your rates as{" "}
+              <span className="font-semibold text-[#0d99c9]">
+                {config.symbol}{value}/{isMonthly ? "monthly" : "hourly"} rate
+              </span>
+            </span>
+          </div>
         </div>
       </div>
     </div>

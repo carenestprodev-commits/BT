@@ -77,6 +77,7 @@ function Signup() {
     repeatDays: [],
     startTime: "",
     endTime: "",
+    billingCycle: "hourly",
     hourlyRateStart: "",
     hourlyRateEnd: "",
 
