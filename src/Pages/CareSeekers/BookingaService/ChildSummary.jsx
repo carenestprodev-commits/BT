@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { saveStep, generatePreview } from "../../../Redux/CareSeekerAuth";
+import CreateRequestSummaryReview from "../../../Components/CreateRequestSummaryReview";
 
 function ChildSummary({
   formData,
@@ -45,22 +46,10 @@ function ChildSummary({
         </span>{" "}
         <span className="ml-2 text-base lg:text-lg text-gray-500"> of {totalSteps}</span>
       </div>
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-        <div className="flex items-start">
-          <div className="text-green-600 mr-3">💡</div>
-          <p className="text-sm text-green-700">
-            This was generated based on the information you gave. This would
-            help care providers understand your preferences.
-          </p>
-        </div>
-      </div>
-      <div className="bg-gray-50 p-6 rounded-lg mb-6">
-        <p className="text-sm text-gray-700 leading-relaxed">
-          {preview?.summary ||
-            preview?.title ||
-            "This text will be generated after we call the preview API."}
-        </p>
-      </div>
+      <CreateRequestSummaryReview
+        formData={formData}
+        updateFormData={updateFormData}
+      />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Message to Care Provider <span className="text-red-600">*</span>
@@ -131,6 +120,7 @@ function ChildSummary({
               data: {
                 messageToProvider: formData.messageToProvider,
                 acceptedTerms: formData.acceptedTerms,
+                generatedSummary: formData.generatedSummary,
               },
             })
           );

@@ -156,15 +156,19 @@ export const markAsRead = createAsyncThunk(
 // ─────────────────────────────────────────────────────────────────────────────
 export const createConversation = createAsyncThunk(
   "messenger/createConversation",
-  async (otherUserId, { rejectWithValue }) => {
+  async (target, { rejectWithValue }) => {
     try {
+      const body =
+        target && typeof target === "object"
+          ? target
+          : { other_user_id: target };
       const res = await fetchWithAuth(`${BASE_URL}/api/conversations/create/`, {
         method: "POST",
         headers: {
           ...getAuthHeaders(),
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ other_user_id: otherUserId }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const text = await res.text();

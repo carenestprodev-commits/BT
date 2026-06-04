@@ -1,17 +1,19 @@
 /* eslint-disable no-unused-vars */
 import React from "react";
 import Girl from "../../../../public/girl.svg";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { buildJobPayload, postJob } from "../../../Redux/BookaService";
 import {
   formatCurrencyAmount,
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
 
-function CareProvidersNearYou() {
+function CareProvidersNearYou({ formData = {} }) {
   const [showSubscribePopup, setShowSubscribePopup] = React.useState(false);
   const [showPaymentPopup, setShowPaymentPopup] = React.useState(false);
   const [selectedPlan, setSelectedPlan] = React.useState(null);
+  const [publishing, setPublishing] = React.useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -28,6 +30,16 @@ function CareProvidersNearYou() {
       defaultCurrency.currencyCode,
       defaultCurrency.currencySymbol,
     );
+
+  const handlePublish = async () => {
+    setPublishing(true);
+    try {
+      await dispatch(postJob(buildJobPayload(formData))).unwrap();
+      navigate("/careseekers/dashboard/careproviders");
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   return (
     <>
@@ -193,11 +205,13 @@ function CareProvidersNearYou() {
               </div>
             </div>
 
-            <Link to="/careseekers/dashboard/careproviders">
-              <button className="w-full bg-[#0093d1] text-white py-3 rounded-lg">
-                Proceed
-              </button>
-            </Link>
+            <button
+              className="w-full bg-[#0093d1] text-white py-3 rounded-lg disabled:opacity-60"
+              disabled={publishing}
+              onClick={handlePublish}
+            >
+              {publishing ? "Publishing..." : "Publish request and view providers"}
+            </button>
           </div>
         </div>
       )}
