@@ -34,6 +34,34 @@ const avatarFromName = (name) => {
   return `https://ui-avatars.com/api/?name=${safe}&background=E5E7EB&color=374151&size=64`
 }
 
+const providerImage = (provider) =>
+  provider?.image_url ||
+  provider?.imageUrl ||
+  provider?.provider_image_url ||
+  provider?.user?.profile_image_url ||
+  provider?.user?.image_url ||
+  ''
+
+const normalizeApplications = (applications) =>
+  (Array.isArray(applications) ? applications : []).map((item) => ({
+    ...item,
+    id: item.id || item.booking_id,
+    providerName:
+      item.provider_name ||
+      item.providerName ||
+      item.provider?.user?.full_name ||
+      item.provider?.full_name ||
+      'Care Provider',
+    providerImageUrl:
+      item.provider_image_url ||
+      item.providerImageUrl ||
+      providerImage(item.provider) ||
+      '',
+    isVerified: Boolean(item.is_verified ?? item.provider?.is_verified),
+    isEngaged: Boolean(item.is_engaged ?? item.provider?.user?.is_engaged),
+    createdAt: item.created_at || item.createdAt || '',
+  }))
+
 export const fetchSeekerActiveRequests = createAsyncThunk(
   'seekerRequests/fetchActive',
   async (_, { rejectWithValue }) => {
@@ -48,6 +76,7 @@ export const fetchSeekerActiveRequests = createAsyncThunk(
       const arr = Array.isArray(parsed) ? parsed : []
       // normalize to UI shape
       const mapped = arr.map(item => ({
+        ...item,
         id: item.id,
         day: formatDateShort(item.date || item.created_at),
         date: item.date ? (new Date(item.date).getDate()) : (item.created_at ? new Date(item.created_at).getDate() : ''),
@@ -55,6 +84,7 @@ export const fetchSeekerActiveRequests = createAsyncThunk(
         time: formatTimeRange(item.start_time || item.hired_at, item.end_time || item.completed_at) || '',
         avatar: item.provider?.user?.full_name ? avatarFromName(item.provider.user.full_name) : avatarFromName('Provider'),
         provider: item.provider,
+        raw: item,
       }))
       return mapped
     } catch (err) {
@@ -76,13 +106,17 @@ export const fetchSeekerClosedRequests = createAsyncThunk(
       if (!res.ok) return rejectWithValue(parsed)
       const arr = Array.isArray(parsed) ? parsed : []
       const mapped = arr.map(item => ({
+        ...item,
         id: item.id,
         name: item.provider?.user?.full_name || item.title || 'Provider',
         dateRange: item.hired_at || item.completed_at ? `${formatDateShort(item.hired_at)} - ${formatDateShort(item.completed_at)}` : (item.posted_ago || item.posted || ''),
         rating: Math.round(item.provider?.average_rating ?? item.review?.rating ?? 0),
         review: item.review?.text || item.provider?.about_me || item.summary || '',
-        avatar: item.provider?.user?.full_name ? avatarFromName(item.provider.user.full_name) : avatarFromName('Provider'),
+        avatar: providerImage(item.provider) || (item.provider?.user?.full_name ? avatarFromName(item.provider.user.full_name) : avatarFromName('Provider')),
         provider: item.provider,
+        reviewFromProvider: item.review_from_provider || item.provider_review,
+        completedAt: item.completed_at,
+        raw: item,
       }))
       return mapped
     } catch (err) {
@@ -104,12 +138,20 @@ export const fetchSeekerPendingRequests = createAsyncThunk(
       if (!res.ok) return rejectWithValue(parsed)
       const arr = Array.isArray(parsed) ? parsed : []
       const mapped = arr.map(item => ({
+        ...item,
         id: item.id,
         posted: item.posted_ago || item.posted || 'Posted just now',
         title: item.title || item.summary || '',
         desc: item.summary || item.message_to_provider || '',
         price_min: item.price_min,
         price_max: item.price_max,
+        applications: normalizeApplications(item.applications),
+        applicationCount:
+          item.application_count ||
+          item.applications_count ||
+          item.total_applications ||
+          (Array.isArray(item.applications) ? item.applications.length : 0),
+        raw: item,
       }))
       return mapped
     } catch (err) {

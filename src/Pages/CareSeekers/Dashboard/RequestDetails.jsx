@@ -10,6 +10,7 @@ import {
   clearCurrentRequest,
 } from "../../../Redux/SeekerRequest";
 import { BASE_URL } from "../../../Redux/config";
+import { DetailRows } from "../../../Components/CareRequestSections";
 
 function RequestDetails() {
   const navigate = useNavigate();
@@ -23,8 +24,7 @@ function RequestDetails() {
   const routeId = params?.id || params?.requestId || params?.bookingId;
 
   useEffect(() => {
-    const id = routeId || 11;
-    dispatch(fetchSeekerRequestDetails(id));
+    if (routeId) dispatch(fetchSeekerRequestDetails(routeId));
     return () => dispatch(clearCurrentRequest());
   }, [dispatch, routeId]);
 
@@ -49,11 +49,10 @@ function RequestDetails() {
     <div className="flex min-h-screen bg-white font-sfpro">
       <Sidebar active="Requests" />
 
-      {/*
-        pt-24 on mobile (96px) clears the fixed top navbar (~56px) with room to breathe.
-        md:pt-8 resets on desktop where the sidebar is on the left, not top.
-      */}
       <div className="flex-1 font-sfpro px-6 pt-24 pb-8 md:pt-8 md:px-8 md:ml-64">
+        {!routeId && (
+          <div className="mb-4 text-sm text-red-600">Missing request id.</div>
+        )}
         {/* Back arrow + page title in one row so both are always visible */}
         <div className="flex items-center gap-3 mb-8">
           <button
@@ -155,6 +154,20 @@ function RequestDetails() {
           </div>
         </div>
 
+        <DetailRows
+          title="Job Summary"
+          rows={[currentRequest?.summary || currentRequest?.job?.summary || ""]}
+        />
+        <DetailRows
+          title="Feedback from Provider"
+          rows={[
+            currentRequest?.review_from_provider?.comment ||
+              currentRequest?.provider_review?.comment ||
+              currentRequest?.review?.comment ||
+              "No feedback submitted yet",
+          ]}
+        />
+
         {/* Feedback textarea + star rating */}
         <div className="mb-8">
           <div className="text-gray-700 font-medium mb-2">
@@ -187,18 +200,6 @@ function RequestDetails() {
           </div>
         </div>
 
-        {/* Testimonials */}
-        <div className="mb-8">
-          <div className="text-gray-700 font-medium mb-2">Testimonials</div>
-          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 text-gray-700 text-base">
-            I had a wonderful experience caring for Mr. and Mrs. Johnson over
-            the past 8 months. They are such a sweet couple who treated me like
-            family from day one. Mrs. Johnson always had interesting stories to
-            share, and Mr. Johnson kept me entertained with his sense of humor
-            during our daily walks.
-          </div>
-        </div>
-
         {/* Action buttons — side by side on BOTH mobile and desktop */}
         <div className="flex gap-3">
           <button
@@ -210,7 +211,11 @@ function RequestDetails() {
           <button
             className="flex-1 bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition"
             onClick={() => {
-              const booking_id = currentRequest?.id || routeId || 11;
+              const booking_id = currentRequest?.id || routeId;
+              if (!feedback.trim() || !rating) {
+                alert("Please add a rating and feedback before submitting.");
+                return;
+              }
               dispatch(submitReview({ booking_id, rating, comment: feedback }));
             }}
           >

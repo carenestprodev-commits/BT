@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL, getAuthHeaders } from "./config";
-import { buildSchedulePayload } from "../lib/jobPayload";
+import { buildPublishPayload, buildSeekerJobData } from "../lib/seekerRequestPayload";
 
 const LS_KEY = "seeker_onboarding";
 
@@ -126,89 +126,7 @@ const initialState = readLS();
 
 // Helper to build API payload from current steps
 export const buildPayloadFromSteps = (steps) => {
-  const service_category = steps.careCategory?.toLowerCase() || "childcare";
-  const location_information = {
-    use_current_location: steps.location?.useCurrentLocation || false,
-    preferred_language: steps.location?.preferredLanguage || "English",
-    country: steps.location?.country || "",
-    state: steps.location?.state || "",
-    city: steps.location?.city || "",
-    zip_code: steps.location?.zipCode || "",
-    nationality: steps.location?.nationality || "",
-  };
-
-  const schedule = buildSchedulePayload({
-    scheduleType: steps.timeDetails?.scheduleType,
-    startDate: steps.timeDetails?.startDate,
-    endDate: steps.timeDetails?.endDate,
-    repeatEvery: steps.timeDetails?.repeatEvery,
-    repeatFrequency: steps.timeDetails?.repeatFrequency,
-    repeatDays: steps.timeDetails?.repeatDays || ["Monday", "Wednesday", "Friday"],
-    startTime: steps.timeDetails?.startTime,
-    endTime: steps.timeDetails?.endTime,
-  });
-
-  const payload = {
-    service_category,
-    details: { location_information },
-    schedule,
-    budget: {
-      price_min: steps.timeDetails?.priceMin || "35.00",
-      price_max: steps.timeDetails?.priceMax || "55.00",
-    },
-  };
-
-  // Add service-specific details
-  if (steps.careCategory === "Childcare") {
-    payload.details.child_information = {
-      who_needs_care: steps.childInfo?.whoNeedsCare || "Nanny",
-      childcare_type: steps.childInfo?.childcareType || "Full-Time Care",
-      number_of_children: steps.childInfo?.numberOfChildren || "1 child",
-      children: (steps.childInfo?.childrenDetails || []).map((child) => ({
-        age: child.age || child.birthDate || "2021-05-15",
-        gender: child.gender || "Male",
-      })),
-    };
-    payload.details.provider_experience_requirements = {
-      communication_and_language: steps.experience?.communicationLanguage || [
-        "Fluent in English",
-      ],
-      special_preferences: steps.experience?.specialPreferences || [],
-      preferred_option: steps.experience?.preferredOption || ["Live-Out"],
-      additional_care_categories:
-        steps.experience?.additionalCareCategories || [],
-    };
-  } else if (steps.careCategory === "Housekeeping") {
-    payload.details.housekeeping_information = {
-      kind_of_housekeeping: steps.housekeeping?.housekeepingServices || [],
-      size_of_your_house: steps.housekeeping?.homeSize || "",
-      number_of_bedrooms: steps.housekeeping?.numberOfBedrooms || "",
-      number_of_bathrooms: steps.housekeeping?.numberOfBathrooms || "",
-      number_of_toilets: steps.housekeeping?.numberOfToilets || "",
-      pets_present: steps.housekeeping?.petsPresent || "No",
-      specify_pet_present: steps.housekeeping?.petDetails || "",
-      additional_care: steps.housekeeping?.additionalCare || [],
-    };
-  } else if (
-    steps.careCategory === "elderlycare" ||
-    steps.careCategory === "Elderly Care"
-  ) {
-    payload.details.elderly_information = {
-      care_type: steps.elderlyInfo?.elderlyCareType || "Companion",
-      relationship: steps.elderlyInfo?.relationshipWithElderly || "",
-      age: steps.elderlyInfo?.ageOfElderly || "",
-      gender: steps.elderlyInfo?.genderOfElderly || "",
-      health_condition: steps.elderlyInfo?.healthCondition || "",
-    };
-  } else if (steps.careCategory === "Tutoring") {
-    payload.details.tutoring_information = {
-      subjects: steps.tutoringInfo?.tutoringSubjects || [],
-      student_age: steps.tutoringInfo?.studentAge || "",
-      current_grade: steps.tutoringInfo?.currentGrade || "",
-    };
-  }
-
-  return payload;
+  return buildSeekerJobData({}, steps);
 };
 
 // Helper to build register-and-publish payload with user_data and job_data structure
@@ -222,6 +140,12 @@ export const buildRegisterAndPublishPayload = (steps, userCredentials = {}) => {
     }
   })();
 
+  const publishPayload = buildPublishPayload({
+    steps,
+    preview: onboarding.preview,
+    formData: steps.summary || {},
+  });
+
   const payload = {
     user_data: {
       first_name: userCredentials.firstName || steps.signup?.firstName || "",
@@ -231,9 +155,7 @@ export const buildRegisterAndPublishPayload = (steps, userCredentials = {}) => {
       password: userCredentials.password || steps.signup?.password || "",
       user_type: "seeker",
     },
-    job_data: buildPayloadFromSteps(steps),
-    title: onboarding.preview?.title || "Job Posting",
-    summary: onboarding.preview?.summary || "Looking for care services",
+    ...publishPayload,
   };
 
   return payload;

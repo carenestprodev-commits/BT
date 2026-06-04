@@ -7,6 +7,13 @@ import {
   deletePendingRequest,
   patchPendingRequest,
 } from "../../../Redux/SeekerRequest";
+import { createConversation } from "../../../Redux/Messenger";
+import {
+  ChipPanel,
+  DetailRows,
+  requestDetailSections,
+  resolveImage,
+} from "../../../Components/CareRequestSections";
 
 function PendingDetails() {
   const navigate = useNavigate();
@@ -26,6 +33,7 @@ function PendingDetails() {
   const [summary, setSummary] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
   const [editMode, setEditMode] = useState(false);
+  const [openingApplicationId, setOpeningApplicationId] = useState(null);
 
   useEffect(() => {
     const id = params.id || params.requestId || null;
@@ -48,6 +56,26 @@ function PendingDetails() {
   const skills = source?.skills_and_expertise ?? source?.skills ?? [];
   const title = source?.title ?? source?.summary ?? "";
   const posted = source?.posted_ago || source?.posted || "";
+  const applications = source?.applications || [];
+  const sections = requestDetailSections(source);
+
+  const handleMessageApplicant = async (application) => {
+    const bookingId = application.id || application.booking_id;
+    if (!bookingId) return alert("Missing booking id for this applicant.");
+    setOpeningApplicationId(bookingId);
+    const res = await dispatch(createConversation({ booking_id: bookingId }));
+    setOpeningApplicationId(null);
+    if (res.error) {
+      alert(res.payload || res.error.message || "Could not open conversation.");
+      return;
+    }
+    const conversationId = res.payload?.id || res.payload?.conversation_id;
+    navigate(
+      conversationId
+        ? `/careseekers/dashboard/message/${conversationId}`
+        : "/careseekers/dashboard/message",
+    );
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
@@ -90,6 +118,39 @@ function PendingDetails() {
                 </div>
               )}
 
+              <ChipPanel
+                label="Personality and interpersonal skills"
+                values={sections.requirements.personality_interpersonal_skills}
+              />
+              <ChipPanel
+                label="Communication and language"
+                values={sections.requirements.communication_language}
+              />
+              <ChipPanel
+                label="Special preferences"
+                values={sections.requirements.special_preferences}
+              />
+              <ChipPanel
+                label="Preferred option"
+                values={
+                  sections.requirements.preferred_options_list ||
+                  sections.requirements.preferred_option
+                }
+              />
+              <ChipPanel
+                label="Additional care"
+                values={sections.requirements.additional_care}
+              />
+              <DetailRows title="Care details" rows={sections.careRows} />
+              <DetailRows title="Schedule and budget" rows={sections.scheduleRows} />
+              <DetailRows title="Location" rows={sections.locationRows} />
+              {source.message_to_provider && (
+                <DetailRows
+                  title="Message to care provider"
+                  rows={[source.message_to_provider]}
+                />
+              )}
+
               {/* Skills */}
               {skills.length > 0 && (
                 <div className="mb-8">
@@ -104,6 +165,55 @@ function PendingDetails() {
                       >
                         {s}
                       </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {applications.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                    Providers who applied
+                  </h3>
+                  <div className="space-y-3">
+                    {applications.map((application) => (
+                      <div
+                        key={application.id || application.providerName}
+                        className="flex items-center gap-3 rounded-lg bg-white border border-gray-100 p-3"
+                      >
+                        <img
+                          src={resolveImage(
+                            application.providerImageUrl,
+                            application.providerName,
+                          )}
+                          alt={application.providerName}
+                          className="h-11 w-11 rounded-full object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-800 truncate">
+                              {application.providerName}
+                            </p>
+                            {application.isVerified && (
+                              <span className="text-[#0093d1]" title="Verified">
+                                ●
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400">
+                            {application.createdAt || "Applied"}
+                          </p>
+                        </div>
+                        <button
+                          className="rounded-md bg-[#0093d1] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                          disabled={openingApplicationId === application.id}
+                          onClick={() => handleMessageApplicant(application)}
+                        >
+                          {openingApplicationId === application.id
+                            ? "Opening..."
+                            : "Message"}
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>

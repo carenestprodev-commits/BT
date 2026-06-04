@@ -11,15 +11,7 @@ import {
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
 import { formatDisplayName } from "../../../utils/formatDisplayName";
-
-const resolveImage = (url, name = "Provider") => {
-  if (!url) {
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=E5E7EB&color=374151&size=100`;
-  }
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  if (url.startsWith("/")) return `${import.meta.env.VITE_API_BASE_URL}${url}`;
-  return url;
-};
+import { resolveImage } from "../../../Components/CareRequestSections";
 
 function CareProvidersNearYou() {
   const navigate = useNavigate();
@@ -98,7 +90,18 @@ function CareProvidersNearYou() {
               )}
               {error && (
                 <div className="text-sm text-red-600">
-                  {error.error || "Failed to load"}
+                  <p>{error.error || "Failed to load providers."}</p>
+                  <button
+                    className="mt-2 text-[#0093d1] font-semibold"
+                    onClick={() => dispatch(fetchProviders())}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+              {!loading && !error && providers.length === 0 && (
+                <div className="text-sm text-gray-500">
+                  No matched providers yet. Check back soon or adjust your request.
                 </div>
               )}
 

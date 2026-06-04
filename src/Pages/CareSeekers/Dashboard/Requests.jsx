@@ -7,6 +7,10 @@ import {
   fetchSeekerClosedRequests,
   fetchSeekerPendingRequests,
 } from "../../../Redux/SeekerRequest";
+import {
+  ApplicantsAvatarStack,
+  resolveImage,
+} from "../../../Components/CareRequestSections";
 
 const tabs = ["Active", "Closed", "Pending"];
 
@@ -127,7 +131,10 @@ function Requests() {
                   }
                 >
                   <img
-                    src={req.avatar}
+                    src={resolveImage(
+                      req.avatar,
+                      req.provider?.user?.full_name || req.name,
+                    )}
                     alt="avatar"
                     className="w-12 h-12 rounded-full mr-4"
                   />
@@ -156,8 +163,8 @@ function Requests() {
           )}
           {selectedTab === 2 && (
             <div>
-              {pendingRequests.map((req, i) => (
-                <PendingRequestCard key={i} req={req} />
+              {pendingRequests.map((req) => (
+                <PendingRequestCard key={req.id} req={req} />
               ))}
             </div>
           )}
@@ -185,7 +192,9 @@ function PendingRequestCard({ req }) {
     <div
       className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4 relative cursor-pointer"
       onClick={() =>
-        navigate(`/careseekers/dashboard/pending_details/${req.id}`)
+        navigate(`/careseekers/dashboard/pending_details/${req.id}`, {
+          state: { details: req },
+        })
       }
     >
       <div className="absolute top-3 right-3">
@@ -223,8 +232,14 @@ function PendingRequestCard({ req }) {
         )}
       </div>
       <div className="text-xs text-gray-400 mb-1">{req.posted}</div>
-      <div className="font-medium text-gray-800 mb-1">{req.title}</div>
-      <div className="text-sm text-gray-600">{req.desc}</div>
+      <div className="font-medium text-gray-800 mb-1 pr-10">{req.title}</div>
+      <div className="text-sm text-gray-600 mb-4">{req.desc}</div>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium text-gray-600">
+          {req.applicationCount || 0} care providers applied
+        </span>
+        <ApplicantsAvatarStack applications={req.applications || []} />
+      </div>
     </div>
   );
 }
