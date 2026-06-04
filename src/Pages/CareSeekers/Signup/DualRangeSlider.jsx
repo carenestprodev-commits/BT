@@ -29,15 +29,6 @@ export default function DualRangeSlider({
     setValue(valueEnd ?? valueStart ?? defaultMinValue);
   }, [valueEnd, valueStart, defaultMinValue]);
 
-  useEffect(() => {
-    if (onChange) {
-      onChange({
-        hourlyRateStart: value,
-        hourlyRateEnd: value,
-      });
-    }
-  }, [value, onChange]);
-
   const formatValue = (v) => `${config.symbol}${Number(v || 0).toLocaleString()}`;
 
   const handleInputChange = (event) => {
