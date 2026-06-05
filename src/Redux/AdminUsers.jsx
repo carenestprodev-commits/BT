@@ -6,10 +6,7 @@ export const fetchAdminStats = createAsyncThunk(
   "adminUsers/fetchAdminStats",
   async (_, { rejectWithValue }) => {
     try {
-      const access =
-        localStorage.getItem("accessToken") || localStorage.getItem("access");
-      const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetch(`${BASE_URL}/api/admin/stats`, { headers });
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/stats/`);
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
       return data;
