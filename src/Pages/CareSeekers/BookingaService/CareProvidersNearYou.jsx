@@ -4,6 +4,11 @@ import Girl from "../../../../public/girl.svg";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { buildJobPayload, postJob } from "../../../Redux/BookaService";
+import { useAuth } from "../../../Context/AuthContext";
+import {
+  isValidProfilePhoto,
+  uploadProfilePhoto,
+} from "../Signup/uploadProfilePhoto";
 import {
   formatCurrencyAmount,
   getUserCurrencyInfo,
@@ -14,10 +19,14 @@ function CareProvidersNearYou({ formData = {} }) {
   const [showPaymentPopup, setShowPaymentPopup] = React.useState(false);
   const [selectedPlan, setSelectedPlan] = React.useState(null);
   const [publishing, setPublishing] = React.useState(false);
+  const [profilePhoto, setProfilePhoto] = React.useState(null);
+  const [photoError, setPhotoError] = React.useState("");
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const defaultCurrency = getUserCurrencyInfo();
+  const hasProfilePhoto = Boolean(user?.profile_image_url);
 
   const paymentDetails = {
     Free: { rate: 0, hours: 0, fee: 0, total: 0 },
@@ -32,10 +41,20 @@ function CareProvidersNearYou({ formData = {} }) {
     );
 
   const handlePublish = async () => {
+    if (!hasProfilePhoto && !isValidProfilePhoto(profilePhoto)) {
+      setPhotoError("Upload a JPG or PNG profile photo first.");
+      return;
+    }
+
     setPublishing(true);
     try {
+      if (!hasProfilePhoto) {
+        await uploadProfilePhoto(profilePhoto);
+      }
       await dispatch(postJob(buildJobPayload(formData))).unwrap();
       navigate("/careseekers/dashboard/careproviders");
+    } catch (error) {
+      setPhotoError(error?.message || "Failed to publish request");
     } finally {
       setPublishing(false);
     }
@@ -196,6 +215,38 @@ function CareProvidersNearYou({ formData = {} }) {
               Proceed to Payment
             </h2>
 
+            <div className="mb-5 rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Profile photo
+              </label>
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setProfilePhoto(file);
+                  setPhotoError(
+                    file && !isValidProfilePhoto(file)
+                      ? "Upload a JPG or PNG profile photo."
+                      : "",
+                  );
+                }}
+                className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-[#0093d1] file:px-4 file:py-2 file:text-white hover:file:bg-[#007bb0]"
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                JPG or PNG only. Profile photo is required if your account
+                does not already have one.
+              </p>
+              {profilePhoto && (
+                <p className="mt-2 text-sm text-gray-700 truncate">
+                  Selected: {profilePhoto.name}
+                </p>
+              )}
+              {photoError && (
+                <p className="mt-2 text-sm text-red-500">{photoError}</p>
+              )}
+            </div>
+
             <div className="mb-6">
               <div className="flex justify-between">
                 <span className="text-gray-500">Total</span>
@@ -207,7 +258,9 @@ function CareProvidersNearYou({ formData = {} }) {
 
             <button
               className="w-full bg-[#0093d1] text-white py-3 rounded-lg disabled:opacity-60"
-              disabled={publishing}
+              disabled={
+                publishing || (!hasProfilePhoto && !isValidProfilePhoto(profilePhoto))
+              }
               onClick={handlePublish}
             >
               {publishing ? "Publishing..." : "Publish request and view providers"}
