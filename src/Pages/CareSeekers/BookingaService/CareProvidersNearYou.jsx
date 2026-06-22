@@ -9,6 +9,7 @@ import {
   isValidProfilePhoto,
   uploadProfilePhoto,
 } from "../Signup/uploadProfilePhoto";
+import { syncAuthProfileImage } from "../../../lib/syncAuthProfileImage";
 import {
   formatCurrencyAmount,
   getUserCurrencyInfo,
@@ -49,7 +50,12 @@ function CareProvidersNearYou({ formData = {} }) {
     setPublishing(true);
     try {
       if (!hasProfilePhoto) {
-        await uploadProfilePhoto(profilePhoto);
+        const uploadResult = await uploadProfilePhoto(profilePhoto);
+        syncAuthProfileImage({
+          setUser,
+          baseUser: user,
+          profileImageUrl: uploadResult?.profile_image_url,
+        });
       }
       await dispatch(postJob(buildJobPayload(formData))).unwrap();
       navigate("/careseekers/dashboard/careproviders");
