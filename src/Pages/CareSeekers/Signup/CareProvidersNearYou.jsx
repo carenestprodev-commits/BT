@@ -9,6 +9,11 @@ import {
 } from "../../../Redux/CareSeekerAuth";
 import { useAuth } from "../../../Context/AuthContext";
 import {
+  isValidProfilePhoto,
+  uploadProfilePhoto,
+} from "./uploadProfilePhoto";
+import { syncAuthProfileImage } from "../../../lib/syncAuthProfileImage";
+import {
   formatCurrencyAmount,
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
@@ -123,7 +128,12 @@ function CareProvidersNearYou() {
 
     if (registered) {
       try {
-        await uploadProfilePhoto(profilePhoto);
+        const uploadResult = await uploadProfilePhoto(profilePhoto);
+        syncAuthProfileImage({
+          setUser,
+          baseUser: user,
+          profileImageUrl: uploadResult?.profile_image_url,
+        });
         setShowPaymentPopup(false);
         setShowSubscribePopup(false);
         setShowSignupPopup(false);
@@ -186,7 +196,12 @@ function CareProvidersNearYou() {
       registered = true;
       setSignupComplete(true);
 
-      await uploadProfilePhoto(profilePhoto);
+      const uploadResult = await uploadProfilePhoto(profilePhoto);
+      syncAuthProfileImage({
+        setUser,
+        baseUser: userData,
+        profileImageUrl: uploadResult?.profile_image_url,
+      });
       setShowPaymentPopup(false);
       setShowSubscribePopup(false);
       setShowSignupPopup(false);
