@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL } from "./config";
 import { fetchWithAuth } from "../lib/fetchWithAuth.js";
+import { MAX_FILE_SIZE } from "../lib/constants.js";
 
 export const fetchVerifications = createAsyncThunk(
   "verification/fetchVerifications",
@@ -105,6 +106,9 @@ export const postVerificationAction = createAsyncThunk(
 export const uploadVerificationId = createAsyncThunk(
   "verification/uploadVerificationId",
   async ({ file, type = "id" }, { rejectWithValue, dispatch }) => {
+    if (file && file.size > MAX_FILE_SIZE) {
+      return rejectWithValue({ error: "File must be 10MB or smaller." });
+    }
     // type: 'id' -> government id upload (existing behavior)
     // type: 'image' -> profile image upload (PATCH to upload_image endpoint)
     // type: 'certificate' -> provider training certificate upload

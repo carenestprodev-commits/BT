@@ -1,3 +1,5 @@
+import { MAX_FILE_SIZE } from "../../../lib/constants";
+
 function TrainingCertificateUpload({ file, onChange, error }) {
   return (
     <div>
@@ -7,7 +9,15 @@ function TrainingCertificateUpload({ file, onChange, error }) {
       <input
         type="file"
         accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-        onChange={(e) => onChange(e.target.files?.[0] || null)}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f && f.size > MAX_FILE_SIZE) {
+            alert("File must be 10MB or smaller.");
+            e.target.value = "";
+            return;
+          }
+          onChange(f || null);
+        }}
         className="block w-full rounded-md border border-dashed border-gray-300 bg-white p-3 text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-[#0093d1] file:px-4 file:py-2 file:text-white hover:file:bg-[#007bb0]"
       />
       <p className="mt-2 text-xs text-gray-500">PDF, JPG or PNG.</p>

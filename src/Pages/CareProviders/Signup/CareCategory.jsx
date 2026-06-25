@@ -15,6 +15,7 @@ import {
   uploadProfilePhoto,
 } from "../../CareSeekers/Signup/uploadProfilePhoto";
 import { providerDashboardPaths } from "../../../Routes/providerRoutes";
+import { MAX_FILE_SIZE } from "../../../lib/constants";
 
 // --- Sub-component: The "I'll do this later" Modal ---
 const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
@@ -420,7 +421,14 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
             type="file"
             accept=".jpg,.jpeg,.png,image/jpeg,image/png"
             onChange={(e) => {
-              setProfilePhoto(e.target.files?.[0] || null);
+              const f = e.target.files?.[0];
+              if (f && f.size > MAX_FILE_SIZE) {
+                alert("File must be 10MB or smaller.");
+                setUploadError("File must be 10MB or smaller.");
+                e.target.value = "";
+                return;
+              }
+              setProfilePhoto(f || null);
               setUploadError("");
             }}
             className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-[#0093d1] file:px-4 file:py-2 file:text-white hover:file:bg-[#007bb0]"
@@ -443,9 +451,15 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
           <input
             type="file"
             accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-            onChange={(e) =>
-              setTrainingCertificate(e.target.files?.[0] || null)
-            }
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f && f.size > MAX_FILE_SIZE) {
+                alert("File must be 10MB or smaller.");
+                e.target.value = "";
+                return;
+              }
+              setTrainingCertificate(f || null);
+            }}
             className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-[#0093d1] file:px-4 file:py-2 file:text-white hover:file:bg-[#007bb0]"
           />
           <p className="mt-2 text-xs text-gray-500">PDF, JPG or PNG.</p>
