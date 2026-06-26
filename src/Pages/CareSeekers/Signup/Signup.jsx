@@ -1,594 +1,314 @@
 /* eslint-disable no-unused-vars */
 import React, { useState } from "react";
-import SidebarSignup, { getStepsForCategory } from "./SidebarSignup";
-import CareCategory from "./CareCategory";
-import ChildInformation from "./ChildInformation";
-import ElderlyInformation from "./ElderlyInformation";
-import TutoringInformation from "./TutoringInformation";
-import HousekeeperInformation from "./HousekeeperInformation";
-import ChildCareProviderExperience from "./ChildCareProviderExperience";
-import ElderlyCareProviderExperience from "./ElderlyCareProviderExperience";
-import ChildTimeDetails from "./ChildTimeDetails";
-import ElderlyTimeDetails from "./ElderlyTimeDetails";
-import TutoringTimeDetails from "./TutoringTimeDetails";
-import HouseKeepingTimeDetails from "./HouseKeepingTimeDetails";
-import ChildSummary from "./ChildSummary";
-import ElderlySummary from "./ElderlySummary";
-import TutoringSummary from "./TutoringSummary";
-import HousekeepingSummary from "./HousekeepingSummary";
-import CareProvidersNearYou from "./CareProvidersNearYou";
-import EmailStep from "./EmailStep";
-import PasswordStep from "./PasswordStep";
+import { useNavigate } from "react-router-dom";
+import {
+  registerAndPublish,
+  buildRegisterAndPublishPayload,
+} from "../../../Redux/CareSeekerAuth";
+import { useAuth } from "../../../Context/AuthContext";
+import { useDispatch } from "react-redux";
 
 function Signup() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [showEmailPopup, setShowEmailPopup] = useState(false);
-  const [showPasswordPopup, setShowPasswordPopup] = useState(false);
-  const [isEmailComplete, setIsEmailComplete] = useState(false);
-  const [isPasswordComplete, setIsPasswordComplete] = useState(false);
-  const [showLocationPopup, setShowLocationPopup] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
-    // Category
-    careCategory: "",
-
-    // Location data
-    useCurrentLocation: false,
-    country: "",
-    state: "",
-    city: "",
-    zipCode: "",
-
-    // Child care specific
-    numberOfChildren: "",
-    childrenDetails: [],
-
-    // Elderly care specific
-    elderlyCareType: "",
-    relationshipWithElderly: "",
-    ageOfElderly: "",
-    genderOfElderly: "",
-    healthCondition: "",
-    otherHealthCondition: "",
-    assistanceForm: "",
-
-    // Tutoring specific
-    tutoringSubjects: [],
-    studentAge: "",
-    currentGrade: "",
-
-    // Housekeeping specific
-    housekeepingServices: [],
-    homeSize: "",
-    cleaningFrequency: "",
-
-    // Experience and preferences
-    careProviderQualities: [],
-    careProviderExperience: [],
-
-    // Time details
-    scheduleType: "Reoccurring",
-    startDate: "",
-    endDate: "",
-    repeatEvery: "",
-    repeatFrequency: "Weekly",
-    repeatDays: [],
-    startTime: "",
-    endTime: "",
-    billingCycle: "hourly",
-    hourlyRateStart: "",
-    hourlyRateEnd: "",
-
-    // Summary
-    messageToProvider: "",
-    acceptedTerms: false,
-
-    // Auth
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
 
-  const updateFormData = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (field === "useCurrentLocation" && value === true) {
-      setShowLocationPopup(true);
-    }
-  };
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  const handleNext = () => {
-    const nextStep = getNextStep();
-    if (nextStep) {
-      setCurrentStep(nextStep);
-    }
-  };
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
 
-  const handleBack = () => {
-    const prevStep = getPreviousStep();
-    if (prevStep) {
-      setCurrentStep(prevStep);
-    }
-  };
+  const isValidEmail = (value) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || "");
 
-  const getNextStep = () => {
-    switch (selectedCategory) {
-      case "Childcare":
-        switch (currentStep) {
-          case 1:
-            return 2; // CareCategory → ChildInformation
-          case 2:
-            return 3; // ChildInformation → ChildCareProviderExperience
-          case 3:
-            return 4; // ChildCareProviderExperience → ChildTimeDetails
-          case 4:
-            return 5; // ChildTimeDetails → ChildSummary
-          case 5:
-            return 6; // ChildSummary → CareProvidersNearYou
-          default:
-            return null;
-        }
-      case "Adult & Senior Care":
-        switch (currentStep) {
-          case 1:
-            return 2; // CareCategory → ElderlyInformation
-          case 2:
-            return 3; // ElderlyInformation → ElderlyCareProviderExperience
-          case 3:
-            return 4; // ElderlyCareProviderExperience → ElderlyTimeDetails
-          case 4:
-            return 5; // ElderlyTimeDetails → ElderlySummary
-          case 5:
-            return 6; // ElderlySummary → CareProvidersNearYou
-          default:
-            return null;
-        }
-      case "Tutoring":
-        switch (currentStep) {
-          case 1:
-            return 2; // CareCategory → TutoringInformation
-          case 2:
-            return 3; // TutoringInformation → TutoringTimeDetails
-          case 3:
-            return 4; // TutoringTimeDetails → TutoringSummary
-          case 4:
-            return 5; // TutoringSummary → CareProvidersNearYou
-          default:
-            return null;
-        }
-      case "Housekeeping":
-        switch (currentStep) {
-          case 1:
-            return 2; // CareCategory → HousekeeperInformation
-          case 2:
-            return 3; // HousekeeperInformation → HouseKeepingTimeDetails
-          case 3:
-            return 4; // HouseKeepingTimeDetails → HousekeepingSummary
-          case 4:
-            return 5; // HousekeepingSummary → CareProvidersNearYou
-          default:
-            return null;
-        }
-      default:
-        // If no category is selected, only allow moving from step 1 to step 2
-        return currentStep === 1 && selectedCategory ? 2 : null;
-    }
-  };
+  const isStrongPassword = (pw) =>
+    pw && /^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(pw);
 
-  const getPreviousStep = () => {
-    return currentStep > 1 ? currentStep - 1 : null;
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const handleEmailComplete = () => {
-    // Validate email before marking complete
-    const isValidEmail = (email) =>
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || "");
-    if (isValidEmail(formData.email)) {
-      setIsEmailComplete(true);
-    }
-    setShowEmailPopup(false);
-  };
-
-  const handlePasswordComplete = () => {
-    const isStrongPassword = (pw) =>
-      pw && /^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(pw);
-    if (
-      isStrongPassword(formData.password) &&
-      formData.password === formData.confirmPassword
-    ) {
-      setIsPasswordComplete(true);
-    }
-    setShowPasswordPopup(false);
-  };
-
-  const handleEmailPopupClose = () => {
-    setShowEmailPopup(false);
-  };
-
-  const handlePasswordPopupClose = () => {
-    setShowPasswordPopup(false);
-  };
-
-  const renderStepContent = () => {
-    const totalSteps = getStepsForCategory(selectedCategory).length;
-
-    // Step 1 is always CareCategory
-    if (currentStep === 1) {
-      return (
-        <CareCategory
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-          updateFormData={updateFormData}
-          handleNext={handleNext}
-          currentStep={currentStep}
-          totalSteps={totalSteps}
-        />
-      );
+    if (!form.firstName || !form.lastName || !form.email || !form.password) {
+      alert("Please fill in all fields");
+      return;
     }
 
-    // For subsequent steps, render based on selected category
-    switch (selectedCategory) {
-      case "Childcare":
-        switch (currentStep) {
-          case 2:
-            return (
-              <ChildInformation
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                showLocationPopup={showLocationPopup}
-                setShowLocationPopup={setShowLocationPopup}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 3:
-            return (
-              <ChildCareProviderExperience
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 4:
-            return (
-              <ChildTimeDetails
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 5:
-            return (
-              <ChildSummary
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 6:
-            return (
-              <CareProvidersNearYou
-                formData={formData}
-                isEmailComplete={isEmailComplete}
-                isPasswordComplete={isPasswordComplete}
-                onShowEmailPopup={() => setShowEmailPopup(true)}
-                onShowPasswordPopup={() => setShowPasswordPopup(true)}
-              />
-            );
-          default:
-            return (
-              <CareCategory
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-              />
-            );
-        }
+    if (!isValidEmail(form.email)) {
+      alert("Please enter a valid email address");
+      return;
+    }
 
-      case "Adult & Senior Care":
-        switch (currentStep) {
-          case 2:
-            return (
-              <ElderlyInformation
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                showLocationPopup={showLocationPopup}
-                setShowLocationPopup={setShowLocationPopup}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 3:
-            return (
-              <ElderlyCareProviderExperience
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 4:
-            return (
-              <ElderlyTimeDetails
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 5:
-            return (
-              <ElderlySummary
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 6:
-            return (
-              <CareProvidersNearYou
-                formData={formData}
-                isEmailComplete={isEmailComplete}
-                isPasswordComplete={isPasswordComplete}
-                onShowEmailPopup={() => setShowEmailPopup(true)}
-                onShowPasswordPopup={() => setShowPasswordPopup(true)}
-              />
-            );
-          default:
-            return (
-              <CareCategory
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-              />
-            );
-        }
+    if (form.password !== form.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
 
-      case "Tutoring":
-        switch (currentStep) {
-          case 2:
-            return (
-              <TutoringInformation
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                showLocationPopup={showLocationPopup}
-                setShowLocationPopup={setShowLocationPopup}
-              />
-            );
-          case 3:
-            return (
-              <TutoringTimeDetails
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 4:
-            return (
-              <TutoringSummary
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 5:
-            return (
-              <CareProvidersNearYou
-                formData={formData}
-                isEmailComplete={isEmailComplete}
-                isPasswordComplete={isPasswordComplete}
-                onShowEmailPopup={() => setShowEmailPopup(true)}
-                onShowPasswordPopup={() => setShowPasswordPopup(true)}
-              />
-            );
-          default:
-            return (
-              <CareCategory
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-              />
-            );
-        }
+    if (!isStrongPassword(form.password)) {
+      alert("Password must be at least 8 characters and include a number");
+      return;
+    }
 
-      case "Housekeeping":
-        switch (currentStep) {
-          case 2:
-            return (
-              <HousekeeperInformation
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                showLocationPopup={showLocationPopup}
-                setShowLocationPopup={setShowLocationPopup}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 3:
-            return (
-              <HouseKeepingTimeDetails
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 4:
-            return (
-              <HousekeepingSummary
-                formData={formData}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-                handleBack={handleBack}
-                currentStep={currentStep}
-                totalSteps={totalSteps}
-              />
-            );
-          case 5:
-            return (
-              <CareProvidersNearYou
-                formData={formData}
-                isEmailComplete={isEmailComplete}
-                isPasswordComplete={isPasswordComplete}
-                onShowEmailPopup={() => setShowEmailPopup(true)}
-                onShowPasswordPopup={() => setShowPasswordPopup(true)}
-              />
-            );
-          default:
-            return (
-              <CareCategory
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                updateFormData={updateFormData}
-                handleNext={handleNext}
-              />
-            );
-        }
+    if (!acceptedTerms) {
+      alert("Please accept the Terms of Use and Privacy Policy to continue");
+      return;
+    }
 
-      default:
-        // Default fallback - always show CareCategory if no valid category is selected
-        return (
-          <CareCategory
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-            updateFormData={updateFormData}
-            handleNext={handleNext}
-          />
+    setIsLoading(true);
+
+    try {
+      const userCredentials = {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        password: form.password,
+      };
+
+      const payload = buildRegisterAndPublishPayload({}, userCredentials);
+
+      const resultAction = await dispatch(registerAndPublish(payload));
+
+      if (resultAction.error) {
+        alert(
+          "Registration failed: " +
+            (resultAction.payload || resultAction.error.message),
         );
+        return;
+      }
+
+      if (resultAction.payload?.user) {
+        setUser({
+          ...resultAction.payload.user,
+          user_type: "seeker",
+          email: form.email,
+        });
+      }
+
+      navigate("/careseekers/dashboard/home");
+    } catch (err) {
+      alert("Unexpected error: " + err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const isFormValid =
+    form.firstName &&
+    form.lastName &&
+    isValidEmail(form.email) &&
+    isStrongPassword(form.password) &&
+    form.password === form.confirmPassword &&
+    acceptedTerms;
 
   return (
-    <div className="flex lg:grid lg:grid-cols-[440px_1fr] min-h-screen bg-white">
-      {/* Mobile Header with Hamburger */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white z-30 p-4 border-b border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <img
-              src="/CareLogo.png"
-              alt="CareNestPro Logo"
-              className="h-8 mr-2"
-            />
-            <h1 className="text-lg font-semibold text-[#024a68]">
-              CareNest<span className="text-[#00b3a4]">Pro</span>
-            </h1>
-          </div>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-md hover:bg-gray-100"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Sidebar - Desktop: Fixed, Mobile: Overlay */}
-      <div
-        className={`${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 fixed lg:relative z-40 transition-transform duration-300 ease-in-out`}
-      >
-        <SidebarSignup
-          activeStep={currentStep}
-          selectedCategory={selectedCategory}
-        />
-      </div>
-
-      {/* Overlay for mobile sidebar */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        ></div>
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center min-h-screen font-sfpro pt-16 lg:pt-0">
-        <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center py-12 px-4 lg:px-8">
-          <h2 className="text-2xl lg:text-4xl font-semibold text-gray-800 mb-6 lg:mb-8 text-center font-sfpro">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4 font-sfpro">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <img
+            src="/CareLogo.png"
+            alt="CareNestPro"
+            className="h-12 mx-auto mb-4"
+          />
+          <h1 className="text-2xl font-bold text-gray-800">
             Create an account
-          </h2>
-          <div className="w-full flex justify-center">
-            {renderStepContent()}
-          </div>
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Sign up to find the right care provider
+          </p>
         </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex gap-4">
+            <div className="w-full">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                First Name
+              </label>
+              <input
+                type="text"
+                placeholder="First name"
+                value={form.firstName}
+                onChange={(e) =>
+                  setForm({ ...form, firstName: e.target.value })
+                }
+                className="w-full border rounded-lg px-4 py-3 border-gray-300 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm focus:border-transparent transition"
+                required
+              />
+            </div>
+            <div className="w-full">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Last Name
+              </label>
+              <input
+                type="text"
+                placeholder="Last name"
+                value={form.lastName}
+                onChange={(e) =>
+                  setForm({ ...form, lastName: e.target.value })
+                }
+                className="w-full border rounded-lg px-4 py-3 border-gray-300 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm focus:border-transparent transition"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address
+            </label>
+            <input
+              type="email"
+              placeholder="Input email address"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="w-full border rounded-lg px-4 py-3 border-gray-300 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm focus:border-transparent transition"
+              required
+            />
+            {form.email && !isValidEmail(form.email) && (
+              <p className="text-xs text-red-500 mt-1">
+                Please enter a valid email address
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Input password"
+                value={form.password}
+                onChange={(e) =>
+                  setForm({ ...form, password: e.target.value })
+                }
+                className="w-full border rounded-lg px-4 py-3 border-gray-300 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm focus:border-transparent transition pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0 1 12 19c-5.523 0-10-4.477-10-10a9.96 9.96 0 0 1 1.175-4.875M6.1 6.1A9.958 9.958 0 0 1 12 5c5.523 0 10 4.477 10 10 0 1.096-.18 2.15-.519 3.124M3 3l18 18" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            {form.password && !isStrongPassword(form.password) && (
+              <p className="text-xs text-red-500 mt-1">
+                Password must be at least 8 characters and include a number
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Confirm password"
+                value={form.confirmPassword}
+                onChange={(e) =>
+                  setForm({ ...form, confirmPassword: e.target.value })
+                }
+                className="w-full border rounded-lg px-4 py-3 border-gray-300 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm focus:border-transparent transition pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirmPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0 1 12 19c-5.523 0-10-4.477-10-10a9.96 9.96 0 0 1 1.175-4.875M6.1 6.1A9.958 9.958 0 0 1 12 5c5.523 0 10 4.477 10 10 0 1.096-.18 2.15-.519 3.124M3 3l18 18" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            {form.confirmPassword && form.password !== form.confirmPassword && (
+              <p className="text-xs text-red-500 mt-1">
+                Passwords do not match
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-start">
+            <input
+              type="checkbox"
+              id="terms"
+              className="mr-3 mt-1"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+            />
+            <label htmlFor="terms" className="text-sm text-gray-700">
+              I acknowledge that I have read and accepted{" "}
+              <a
+                href="https://carenestpro.com/terms-of-service/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#0093d1] underline"
+              >
+                CareNestPro&apos;s Terms of Use
+              </a>
+              ,{" "}
+              <a
+                href="https://carenestpro.com/privacy-policy/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#0093d1] underline"
+              >
+                Privacy Policy
+              </a>
+              .
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={!isFormValid || isLoading}
+            className={`w-full font-semibold py-3 rounded-lg mt-4 transition shadow-md ${
+              isFormValid && !isLoading
+                ? "bg-[#0093d1] hover:bg-[#007bb0] text-white"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
+          >
+            {isLoading ? "Signing Up..." : "Sign Up"}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-gray-600 mt-6">
+          Already have an account?{" "}
+          <a
+            href="https://app.carenestpro.com/careseekers/login"
+            className="text-[#0093d1] font-medium hover:underline"
+          >
+            Sign In
+          </a>
+        </p>
       </div>
-
-      {/* Email Popup */}
-      {showEmailPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[400px] p-6 lg:p-8">
-            <EmailStep
-              formData={formData}
-              updateFormData={updateFormData}
-              onClose={handleEmailPopupClose}
-              onComplete={handleEmailComplete}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Password Popup */}
-      {showPasswordPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[400px] p-6 lg:p-8">
-            <PasswordStep
-              formData={formData}
-              updateFormData={updateFormData}
-              onClose={handlePasswordPopupClose}
-              onComplete={handlePasswordComplete}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
