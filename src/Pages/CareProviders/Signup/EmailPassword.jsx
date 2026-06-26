@@ -13,6 +13,7 @@ import {
   uploadProfilePhoto,
 } from "../../CareSeekers/Signup/uploadProfilePhoto";
 import { providerDashboardPaths } from "../../../Routes/providerRoutes";
+import { MAX_FILE_SIZE } from "../../../lib/constants";
 
 function EmailPassword({ formData, updateFormData, handleBack }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -399,7 +400,14 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
             type="file"
             accept=".jpg,.jpeg,.png,image/jpeg,image/png"
             onChange={(e) => {
-              setProfilePhoto(e.target.files?.[0] || null);
+              const f = e.target.files?.[0];
+              if (f && f.size > MAX_FILE_SIZE) {
+                alert("File must be 10MB or smaller.");
+                setUploadError("File must be 10MB or smaller.");
+                e.target.value = "";
+                return;
+              }
+              setProfilePhoto(f || null);
               setUploadError("");
             }}
             className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-[#0093d1] file:px-4 file:py-2 file:text-white hover:file:bg-[#007bb0]"

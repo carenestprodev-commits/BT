@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { uploadVerificationId } from "../../../Redux/Verification";
+import { validateFileSize } from "../../../lib/constants";
 
 function CertificateUploadGate() {
   const navigate = useNavigate();
@@ -13,6 +14,12 @@ function CertificateUploadGate() {
   const handleFilePick = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    const error = validateFileSize(file);
+    if (error) {
+      alert(error);
+      event.target.value = "";
+      return;
+    }
     setSelectedFile(file);
   };
 

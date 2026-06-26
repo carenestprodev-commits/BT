@@ -16,6 +16,7 @@ import { useUserProfileRefreshOnFocus } from "../../../hooks/useUserProfileRefre
 import SubscriptionModal from "./SubscriptionModal";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { formatDisplayName } from "../../../utils/formatDisplayName";
+import LiveCareSessionCard from "../../../Components/LiveCareSessionCard";
 
 function Home() {
   const dispatch = useDispatch();
@@ -23,6 +24,7 @@ function Home() {
     greeting_name,
     new_care_provider_requests,
     total_amount_spent,
+    active_session,
     loading,
   } = useSelector((state) => state.seekerDashboard || {});
 
@@ -146,6 +148,20 @@ function Home() {
             </button>
           </Link>
         </div>
+
+        {active_session && (
+          <LiveCareSessionCard
+            bookingId={active_session.booking_id}
+            counterpartName={active_session.counterpart_name}
+            counterpartProfileImageUrl={active_session.counterpart_profile_image}
+            counterpartId={active_session.counterpart_id}
+            serviceCategory={active_session.service_category}
+            startTimeIso={active_session.start_time}
+            hourlyRate={active_session.hourly_rate}
+            conversationId={active_session.conversation_id}
+            userType="seeker"
+          />
+        )}
 
         {/* Verify Identity */}
         <div className="bg-white rounded-xl p-4 mt-5 flex items-center justify-between border border-gray-100 shadow-sm">

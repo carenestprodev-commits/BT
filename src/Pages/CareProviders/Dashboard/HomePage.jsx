@@ -9,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchJobsFeed } from "../../../Redux/JobsFeed";
+import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
+import LiveCareSessionCard from "../../../Components/LiveCareSessionCard";
 import avatar_user from "../../../../public/avatar_user.png";
 import { useAppNotifications } from "../../../hooks/useAppNotifications.js";
 import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
@@ -32,6 +34,10 @@ export default function HomePage() {
   );
 
   console.log("HomePage - Redux jobs state:", { jobs, loading, error });
+
+  const { profile } = useSelector(
+    (s) => s.providerSettings || { profile: null },
+  );
 
   // ✅ SIMPLIFIED: Direct Redux subscription with proper re-render on verification changes
   const authUser = useSelector((state) => state.auth?.user);
@@ -87,6 +93,7 @@ export default function HomePage() {
   // ✅ SIMPLIFIED: Only fetch jobs on mount (profile already fetched in login)
   useEffect(() => {
     dispatch(fetchJobsFeed());
+    dispatch(fetchProviderProfile());
   }, [dispatch]);
 
   useEffect(() => {
@@ -365,6 +372,19 @@ export default function HomePage() {
 
         {/* Jobs List */}
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+          {profile?.active_session && (
+            <LiveCareSessionCard
+              bookingId={profile.active_session.booking_id}
+              counterpartName={profile.active_session.counterpart_name}
+              counterpartProfileImageUrl={profile.active_session.counterpart_profile_image}
+              counterpartId={profile.active_session.counterpart_id}
+              serviceCategory={profile.active_session.service_category}
+              startTimeIso={profile.active_session.start_time}
+              hourlyRate={profile.active_session.hourly_rate}
+              conversationId={profile.active_session.conversation_id}
+              userType="provider"
+            />
+          )}
           {loading && (
             <div className="p-6 text-sm text-gray-500">Loading jobs…</div>
           )}

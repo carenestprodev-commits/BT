@@ -3,6 +3,7 @@ import Sidebar from "./Sidebar";
 import UploadIcon from "../../../../public/upload.svg";
 import { BASE_URL } from "../../../Redux/config";
 import {fetchWithAuth} from "../../../lib/fetchWithAuth.js";
+import { MAX_FILE_SIZE } from "../../../lib/constants";
 
 function VerifyIdentity() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -10,9 +11,13 @@ function VerifyIdentity() {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
+    if (!file) return;
+    if (file.size > MAX_FILE_SIZE) {
+      alert("File must be 10MB or smaller.");
+      e.target.value = "";
+      return;
     }
+    setSelectedFile(file);
   };
 
   const handleRemoveFile = () => {
@@ -105,7 +110,7 @@ function VerifyIdentity() {
                 <div className="text-gray-400 text-sm text-center">
                   Supported format: jpg, png
                   <br />
-                  Maximum Size: 3MB
+                  Maximum Size: 10MB
                 </div>
               </>
             ) : (
@@ -164,7 +169,7 @@ function VerifyIdentity() {
                 <div className="text-gray-400 text-sm text-center">
                   Supported format: jpg, png
                   <br />
-                  Maximum Size: 3MB
+                  Maximum Size: 10MB
                 </div>
               </>
             ) : (

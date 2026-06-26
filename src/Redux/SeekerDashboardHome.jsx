@@ -28,6 +28,7 @@ const initialState = {
   greeting_name: null,
   new_care_provider_requests: 0,
   total_amount_spent: 0,
+  active_session: null,
 }
 
 const slice = createSlice({
@@ -46,6 +47,7 @@ const slice = createSlice({
         state.greeting_name = action.payload.greeting_name || state.greeting_name
         state.new_care_provider_requests = action.payload.new_care_provider_requests ?? state.new_care_provider_requests
         state.total_amount_spent = action.payload.total_amount_spent ?? state.total_amount_spent
+        state.active_session = action.payload.active_session ?? null
       })
       .addCase(fetchSeekerDashboard.rejected, (state, action) => {
         state.loading = false
