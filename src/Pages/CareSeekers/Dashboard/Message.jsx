@@ -33,6 +33,7 @@ import {
   formatCurrencyAmount,
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
+import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import { useNotifications } from "../../../Context/NotificationContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -316,6 +317,7 @@ const MobileChatView = ({
   audioCallRoute,
   videoCallRoute,
   isCallLive,
+  startActivityIfVerified,
 }) => {
   return (
     // FIX: Added pt-16 so the chat header is not hidden behind the Sidebar mobile top bar
@@ -404,7 +406,7 @@ const MobileChatView = ({
                         onClick={() => {
                           try {
                             if (bookingId)
-                              dispatch(startActivity(String(bookingId)));
+                              startActivityIfVerified(bookingId);
                           } catch (e) {
                             console.error("Failed to start activity:", e);
                           }
@@ -580,6 +582,7 @@ function Message() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [totalHours, setTotalHours] = useState("1");
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
@@ -815,6 +818,15 @@ function Message() {
   }, [dispatch, latestNotificationId, latestNotificationType]);
 
   const currentUserId = getCurrentUserIdFromProfile(authUser);
+  const startActivityIfVerified = (bookingId) => {
+    if (!authUser?.is_verified) {
+      setShowVerification(true);
+      return;
+    }
+    if (bookingId) {
+      dispatch(startActivity(String(bookingId)));
+    }
+  };
 
   const displayMessages = useMemo(
     () =>
@@ -1014,6 +1026,7 @@ function Message() {
                 audioCallRoute={audioCallRoute}
                 videoCallRoute={videoCallRoute}
                 isCallLive={Boolean(activeCallSession)}
+                startActivityIfVerified={startActivityIfVerified}
               />
             )}
           </div>
@@ -1228,7 +1241,7 @@ function Message() {
                           onClick={() => {
                             try {
                               if (bookingId)
-                                dispatch(startActivity(String(bookingId)));
+                                startActivityIfVerified(bookingId);
                             } catch (e) {
                               console.error("Failed to start activity:", e);
                             }
@@ -1514,6 +1527,14 @@ function Message() {
             </div>
           </div>
         )}
+        <VerificationCheckModal
+          isOpen={showVerification}
+          user={authUser}
+          userType="seeker"
+          actionType="hire"
+          onCancel={() => setShowVerification(false)}
+          isVerified={authUser?.is_verified || false}
+        />
       </div>
     </div>
   );
