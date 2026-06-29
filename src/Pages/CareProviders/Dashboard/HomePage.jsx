@@ -372,18 +372,35 @@ export default function HomePage() {
 
         {/* Jobs List */}
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-          {profile?.active_session && (
-            <LiveCareSessionCard
-              bookingId={profile.active_session.booking_id}
-              counterpartName={profile.active_session.counterpart_name}
-              counterpartProfileImageUrl={profile.active_session.counterpart_profile_image}
-              counterpartId={profile.active_session.counterpart_id}
-              serviceCategory={profile.active_session.service_category}
-              startTimeIso={profile.active_session.start_time}
-              hourlyRate={profile.active_session.hourly_rate}
-              conversationId={profile.active_session.conversation_id}
-              userType="provider"
-            />
+          {profile?.active_sessions && profile.active_sessions.length > 0 ? (
+            profile.active_sessions.map((session) => (
+              <LiveCareSessionCard
+                key={session.booking_id}
+                bookingId={session.booking_id}
+                counterpartName={session.counterpart_name}
+                counterpartProfileImageUrl={session.counterpart_profile_image}
+                counterpartId={session.counterpart_id}
+                serviceCategory={session.service_category}
+                startTimeIso={session.start_time}
+                hourlyRate={session.hourly_rate}
+                conversationId={session.conversation_id}
+                userType="provider"
+              />
+            ))
+          ) : (
+            profile?.active_session && (
+              <LiveCareSessionCard
+                bookingId={profile.active_session.booking_id}
+                counterpartName={profile.active_session.counterpart_name}
+                counterpartProfileImageUrl={profile.active_session.counterpart_profile_image}
+                counterpartId={profile.active_session.counterpart_id}
+                serviceCategory={profile.active_session.service_category}
+                startTimeIso={profile.active_session.start_time}
+                hourlyRate={profile.active_session.hourly_rate}
+                conversationId={profile.active_session.conversation_id}
+                userType="provider"
+              />
+            )
           )}
           {loading && (
             <div className="p-6 text-sm text-gray-500">Loading jobs…</div>

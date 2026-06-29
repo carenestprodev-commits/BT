@@ -7,6 +7,9 @@ import {
   useState,
 } from "react";
 import { AuthContext } from "./AuthContext";
+import { useDispatch } from "react-redux";
+import { fetchSeekerDashboard } from "../Redux/SeekerDashboardHome";
+import { fetchProviderProfile } from "../Redux/ProviderSettings";
 
 export const NotificationContext = createContext();
 
@@ -20,6 +23,7 @@ export const NotificationProvider = ({ children }) => {
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
   const { user } = useContext(AuthContext);
+  const dispatch = useDispatch();
 
   // Get access token from any possible storage location
   const getAccessToken = useCallback(() => {
@@ -100,6 +104,16 @@ export const NotificationProvider = ({ children }) => {
 
           setNotifications((prev) => [newNotification, ...prev]);
           setUnreadCount((prev) => prev + 1);
+
+          // Trigger dashboard/profile reload on session changes
+          const userType = user?.user_type || user?.userType;
+          if (data.type === "activity_started" || data.type === "activity_ended") {
+            if (userType === "seeker") {
+              dispatch(fetchSeekerDashboard());
+            } else if (userType === "provider") {
+              dispatch(fetchProviderProfile());
+            }
+          }
 
           console.log("📬 New notification:", newNotification);
         } catch (err) {
