@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import PaymentModal from "./PaymentModal";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
 import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
@@ -40,6 +40,7 @@ async function assertOkResponse(res, fallback = "Save failed") {
 function Settings() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
 
   const {
@@ -848,10 +849,13 @@ function Settings() {
   }, [profile, otherDetails]);
 
   useEffect(() => {
-    if (location?.state?.activeTab) {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "verify") {
+      setActiveTab("verify");
+    } else if (location?.state?.activeTab) {
       setActiveTab(location.state.activeTab);
     }
-  }, [location]);
+  }, [location, searchParams]);
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro pb-24 md:pb-0">

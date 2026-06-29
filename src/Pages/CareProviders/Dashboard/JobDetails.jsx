@@ -131,7 +131,6 @@ function JobDetails() {
   };
 
   const handleApplyClick = () => {
-    // ✅ Re-check verification status with fresh data
     if (!currentUser?.is_verified) {
       setShowVerificationModal(true);
       return;
@@ -164,21 +163,12 @@ function JobDetails() {
   };
 
   const handleVerificationProceed = async () => {
-    // ✅ Refresh user profile before proceeding
     const result = await dispatch(fetchUserProfile());
-
-    // Check again if user is now verified
-    const freshUser = result?.payload;
-    if (freshUser?.is_verified) {
+    if (result?.payload?.is_verified) {
       handleSubmitApplication();
     } else {
-      // Still not verified, navigate to verification page
       navigate(providerDashboardPaths.verifyIdentity);
     }
-    setShowVerificationModal(false);
-  };
-
-  const handleVerificationCancel = () => {
     setShowVerificationModal(false);
   };
 
@@ -354,15 +344,13 @@ function JobDetails() {
           )}
         </div>
       </div>
-
-      {/* Verification Check Modal */}
       <VerificationCheckModal
         isOpen={showVerificationModal}
         user={currentUser}
         userType="provider"
         actionType="apply"
         onProceed={handleVerificationProceed}
-        onCancel={handleVerificationCancel}
+        onCancel={() => setShowVerificationModal(false)}
         isLoading={bookingLoading}
         isVerified={currentUser?.is_verified || false}
         isSubscribed={currentUser?.is_subscribed || false}

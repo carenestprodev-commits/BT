@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { AiOutlineCheckCircle } from "react-icons/ai";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
 import { IoMdClose } from "react-icons/io";
@@ -35,6 +36,7 @@ export default function VerificationCheckModal({
   isSubscribed = false,
 }) {
   const navigate = useNavigate();
+  const [showOutstanding, setShowOutstanding] = useState(false);
 
   if (!isOpen) return null;
 
@@ -72,12 +74,13 @@ export default function VerificationCheckModal({
         hire: {
           title: "Verify Your Account",
           description:
-            "To access and connect with verified care providers, we need to confirm your identity.",
-          subtitle: "Help us keep the care community safe and trusted.",
-          benefit1: "Access to all verified care providers",
-          benefit2: "Priority support from providers",
-          benefit3: "Secure booking and payment",
-          buttonText: "Proceed to Verification",
+            "To keep caregivers and families safe, and to start care activity, you are required to complete account verification.",
+          subtitle:
+            "To keep caregivers and families safe, and to have access to verified care providers you are required to complete account verification.",
+          benefit1: "Identity Verification",
+          benefit2: "Background checks",
+          benefit3: "Secure activity start",
+          buttonText: "Proceed to Payment",
           skipText: "Maybe Later",
         },
         message: {
@@ -123,16 +126,63 @@ export default function VerificationCheckModal({
       }
       return;
     }
-    navigate(settingRoute, {
-      state: { activeTab: "verify" },
-    });
+    navigate(`${settingRoute}?tab=verify`);
     if (onCancel) {
       onCancel();
     }
   };
 
+  const handleMaybeLater = () => {
+    if (userType === "seeker") {
+      setShowOutstanding(true);
+      return;
+    }
+    onCancel?.();
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      {showOutstanding && (
+        <div className="absolute inset-0 flex items-center justify-center p-4 z-10">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative">
+            <button
+              onClick={() => setShowOutstanding(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              <IoMdClose className="w-6 h-6" />
+            </button>
+            <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-full bg-amber-50">
+              <span className="text-5xl text-amber-400">!</span>
+            </div>
+            <h2 className="mb-2 text-center text-2xl font-semibold text-gray-900">
+              Before You Continue
+            </h2>
+            <p className="mb-6 text-center text-sm text-gray-500">
+              We&apos;re allowing you to defer your verification payment for now
+              so you can continue using the platform.
+            </p>
+            <div className="mb-3 rounded-lg border border-cyan-100 bg-cyan-50 p-4 text-sm font-medium text-gray-800">
+              However, your verification fee remains outstanding
+            </div>
+            <div className="mb-6 rounded-lg border border-amber-100 bg-amber-50 p-4 text-sm font-medium text-gray-800">
+              This fee has not been waived, cancelled or removed, it is
+              expected to be paid later
+            </div>
+            <button
+              onClick={onCancel}
+              className="mb-3 w-full rounded-lg bg-[#0093d1] py-3.5 font-semibold text-white"
+            >
+              Continue for Now
+            </button>
+            <button
+              onClick={handleProceedClick}
+              className="w-full rounded-lg border border-gray-300 bg-white py-3.5 font-semibold text-gray-700"
+            >
+              Pay & Verify Now
+            </button>
+          </div>
+        </div>
+      )}
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative">
         {/* Close Button */}
         <button
@@ -228,7 +278,7 @@ export default function VerificationCheckModal({
           </button>
           {!pendingProviderReview && (
             <button
-              onClick={onCancel}
+              onClick={handleMaybeLater}
               disabled={isLoading}
               className="w-full bg-white text-gray-600 py-3.5 rounded-lg font-semibold border border-gray-300 hover:bg-gray-50 transition-colors"
             >

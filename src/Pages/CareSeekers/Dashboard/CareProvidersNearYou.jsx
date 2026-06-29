@@ -1,10 +1,9 @@
 /* eslint-disable no-unused-vars */
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./../Dashboard/Sidebar";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProviders } from "../../../Redux/CareProviderNearYou";
-import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import { AuthContext } from "../../../Context/AuthContext";
 import {
   formatCurrencyAmount,
@@ -18,8 +17,6 @@ function CareProvidersNearYou() {
   const dispatch = useDispatch();
   const { user } = useContext(AuthContext);
   const defaultCurrency = getUserCurrencyInfo();
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [selectedProviderId, setSelectedProviderId] = useState(null);
 
   const { providers, loading, error } = useSelector(
     (s) =>
@@ -56,18 +53,7 @@ function CareProvidersNearYou() {
   }, [dispatch]);
 
   const handleMessageClick = (providerId) => {
-    if (!user?.is_verified) {
-      setSelectedProviderId(providerId);
-      setShowVerificationModal(true);
-    } else {
-      navigate("/careseekers/dashboard/message_provider/" + providerId);
-    }
-  };
-
-  const handleVerificationProceed = () => setShowVerificationModal(false);
-  const handleVerificationCancel = () => {
-    setShowVerificationModal(false);
-    setSelectedProviderId(null);
+    navigate("/careseekers/dashboard/message_provider/" + providerId);
   };
 
   return (
@@ -227,15 +213,6 @@ function CareProvidersNearYou() {
           </div>
         </div>
       </div>
-
-      <VerificationCheckModal
-        isOpen={showVerificationModal}
-        user={user}
-        userType="seeker"
-        actionType="message"
-        onProceed={handleVerificationProceed}
-        onCancel={handleVerificationCancel}
-      />
     </div>
   );
 }

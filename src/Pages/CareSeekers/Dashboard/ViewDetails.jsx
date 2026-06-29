@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { FaStar } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import Sidebar from "./Sidebar";
-import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import {
   fetchProviderDetails,
   clearProviderDetails,
@@ -18,7 +17,6 @@ function ViewDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
   const defaultCurrency = getUserCurrencyInfo();
 
   // Check plan from localStorage
@@ -57,13 +55,6 @@ function ViewDetails() {
   }, [dispatch, location, params]);
 
   const handleMessageClick = () => {
-    // Check if user is verified
-    if (!currentUser?.is_verified) {
-      setShowVerificationModal(true);
-      return;
-    }
-
-    // If verified, proceed with messaging
     proceedToMessage();
   };
 
@@ -79,10 +70,6 @@ function ViewDetails() {
     } catch (err) {
       console.error("Failed to navigate to message page", err);
     }
-  };
-
-  const handleVerificationCancel = () => {
-    setShowVerificationModal(false);
   };
 
   return (
@@ -270,16 +257,6 @@ function ViewDetails() {
               Message
             </button>
 
-            {/* Verification Check Modal */}
-            <VerificationCheckModal
-              isOpen={showVerificationModal}
-              user={currentUser}
-              userType="seeker"
-              actionType="message"
-              onProceed={proceedToMessage}
-              onCancel={handleVerificationCancel}
-              isVerified={currentUser?.is_verified || false}
-            />
           </>
         )}
       </div>

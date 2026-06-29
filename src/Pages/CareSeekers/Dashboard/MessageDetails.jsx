@@ -216,6 +216,15 @@ function MessageDetails() {
     currentConversation?.booking_id ||
     currentConversation?.id;
   const currentUserId = getCurrentUserIdFromProfile(currentUser);
+  const startActivityIfVerified = () => {
+    if (!currentUser?.is_verified) {
+      setShowVerification(true);
+      return;
+    }
+    if (bookingId) {
+      dispatch(startActivity(String(bookingId)));
+    }
+  };
 
   useEffect(() => {
     if (!showPayment || !bookingId) return;
@@ -382,9 +391,7 @@ function MessageDetails() {
 
       // Start the activity via API
       try {
-        if (bookingId) {
-          dispatch(startActivity(String(bookingId)));
-        }
+        startActivityIfVerified();
       } catch (e) {
         console.error("Failed to start activity:", e);
       }
@@ -463,9 +470,7 @@ function MessageDetails() {
   const handleMenuAction = async (action) => {
     if (action === "start") {
       try {
-        if (bookingId) {
-          dispatch(startActivity(String(bookingId)));
-        }
+        startActivityIfVerified();
       } catch (e) {
         console.error("Failed to start activity:", e);
       }
@@ -1047,6 +1052,14 @@ function MessageDetails() {
             </div>
           </div>
         )}
+        <VerificationCheckModal
+          isOpen={showVerification}
+          user={currentUser}
+          userType="seeker"
+          actionType="hire"
+          onCancel={() => setShowVerification(false)}
+          isVerified={currentUser?.is_verified || false}
+        />
       </div>
     </div>
   );
