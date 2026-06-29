@@ -25,6 +25,7 @@ function Home() {
     new_care_provider_requests,
     total_amount_spent,
     active_session,
+    active_sessions,
     loading,
   } = useSelector((state) => state.seekerDashboard || {});
 
@@ -149,18 +150,35 @@ function Home() {
           </Link>
         </div>
 
-        {active_session && (
-          <LiveCareSessionCard
-            bookingId={active_session.booking_id}
-            counterpartName={active_session.counterpart_name}
-            counterpartProfileImageUrl={active_session.counterpart_profile_image}
-            counterpartId={active_session.counterpart_id}
-            serviceCategory={active_session.service_category}
-            startTimeIso={active_session.start_time}
-            hourlyRate={active_session.hourly_rate}
-            conversationId={active_session.conversation_id}
-            userType="seeker"
-          />
+        {active_sessions && active_sessions.length > 0 ? (
+          active_sessions.map((session) => (
+            <LiveCareSessionCard
+              key={session.booking_id}
+              bookingId={session.booking_id}
+              counterpartName={session.counterpart_name}
+              counterpartProfileImageUrl={session.counterpart_profile_image}
+              counterpartId={session.counterpart_id}
+              serviceCategory={session.service_category}
+              startTimeIso={session.start_time}
+              hourlyRate={session.hourly_rate}
+              conversationId={session.conversation_id}
+              userType="seeker"
+            />
+          ))
+        ) : (
+          active_session && (
+            <LiveCareSessionCard
+              bookingId={active_session.booking_id}
+              counterpartName={active_session.counterpart_name}
+              counterpartProfileImageUrl={active_session.counterpart_profile_image}
+              counterpartId={active_session.counterpart_id}
+              serviceCategory={active_session.service_category}
+              startTimeIso={active_session.start_time}
+              hourlyRate={active_session.hourly_rate}
+              conversationId={active_session.conversation_id}
+              userType="seeker"
+            />
+          )
         )}
 
         {/* Verify Identity */}
