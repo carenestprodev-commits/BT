@@ -1,9 +1,11 @@
 /* eslint-disable no-undef */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
+import { providerDashboardPaths } from "../../../Routes/providerRoutes";
+import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import {
   fetchJobById,
   clearSelectedJob,
@@ -17,6 +19,7 @@ function JobDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   const {
     selectedJob: job,
@@ -128,6 +131,11 @@ function JobDetails() {
   };
 
   const handleApplyClick = () => {
+    if (!currentUser?.is_verified) {
+      setShowVerificationModal(true);
+      return;
+    }
+
     handleSubmitApplication();
   };
 
@@ -152,6 +160,16 @@ function JobDetails() {
     } catch {
       alert("Failed to submit application");
     }
+  };
+
+  const handleVerificationProceed = async () => {
+    const result = await dispatch(fetchUserProfile());
+    if (result?.payload?.is_verified) {
+      handleSubmitApplication();
+    } else {
+      navigate(providerDashboardPaths.verifyIdentity);
+    }
+    setShowVerificationModal(false);
   };
 
   return (
@@ -326,6 +344,17 @@ function JobDetails() {
           )}
         </div>
       </div>
+      <VerificationCheckModal
+        isOpen={showVerificationModal}
+        user={currentUser}
+        userType="provider"
+        actionType="apply"
+        onProceed={handleVerificationProceed}
+        onCancel={() => setShowVerificationModal(false)}
+        isLoading={bookingLoading}
+        isVerified={currentUser?.is_verified || false}
+        isSubscribed={currentUser?.is_subscribed || false}
+      />
     </div>
   );
 }

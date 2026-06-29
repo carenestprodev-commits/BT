@@ -126,9 +126,7 @@ export default function VerificationCheckModal({
       }
       return;
     }
-    navigate(settingRoute, {
-      state: { activeTab: "verify" },
-    });
+    navigate(`${settingRoute}?tab=verify`);
     if (onCancel) {
       onCancel();
     }
