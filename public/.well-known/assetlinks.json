@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.carenestpro.care_app",
+      "sha256_cert_fingerprints": [
+        "81:D8:0F:68:85:90:CA:FD:32:DD:56:7C:DD:84:6B:F6:0E:B5:D9:F1:B5:9B:07:E6:98:B6:5C:98:22:BD"
+      ]
+    }
+  }
+]
