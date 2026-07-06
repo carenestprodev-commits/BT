@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useCallback,
@@ -10,6 +11,16 @@ import { AuthContext } from "./AuthContext";
 import { useDispatch } from "react-redux";
 import { fetchSeekerDashboard } from "../Redux/SeekerDashboardHome";
 import { fetchProviderProfile } from "../Redux/ProviderSettings";
+import {
+  fetchSeekerActiveRequests,
+  fetchSeekerClosedRequests,
+  fetchSeekerPendingRequests,
+} from "../Redux/SeekerRequest";
+import {
+  fetchActiveRequests,
+  fetchClosedRequests,
+  fetchPendingRequests,
+} from "../Redux/CareProviderRequest";
 
 export const NotificationContext = createContext();
 
@@ -57,6 +68,23 @@ export const NotificationProvider = ({ children }) => {
     // Exponential backoff: 1s, 2s, 4s, 8s, 16s
     return Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 16000);
   }, []);
+
+  const refreshRequestCaches = useCallback(
+    (userType) => {
+      if (userType === "seeker") {
+        dispatch(fetchSeekerPendingRequests());
+        dispatch(fetchSeekerActiveRequests());
+        dispatch(fetchSeekerClosedRequests());
+        return;
+      }
+      if (userType === "provider") {
+        dispatch(fetchPendingRequests());
+        dispatch(fetchActiveRequests());
+        dispatch(fetchClosedRequests());
+      }
+    },
+    [dispatch],
+  );
 
   // Connect WebSocket
   const connectWebSocket = useCallback(() => {
@@ -107,16 +135,22 @@ export const NotificationProvider = ({ children }) => {
 
           // Trigger dashboard/profile reload on session changes
           const userType = user?.user_type || user?.userType;
-          if (data.type === "activity_started" || data.type === "activity_ended") {
+          if (
+            data.type === "activity_started" ||
+            data.type === "activity_ended" ||
+            data.type === "booking_completed" ||
+            data.type === "wallet_credit"
+          ) {
             if (userType === "seeker") {
               dispatch(fetchSeekerDashboard());
             } else if (userType === "provider") {
               dispatch(fetchProviderProfile());
             }
+            refreshRequestCaches(userType);
           }
 
           console.log("📬 New notification:", newNotification);
-        } catch (err) {
+        } catch {
           console.warn("❌ Invalid WebSocket message:", event.data);
         }
       };
@@ -158,7 +192,15 @@ export const NotificationProvider = ({ children }) => {
       console.error("❌ Failed to create WebSocket:", err);
       setIsDegraded(true);
     }
-  }, [getAccessToken, getWSHost, calculateBackoff]);
+  }, [
+    calculateBackoff,
+    dispatch,
+    getAccessToken,
+    getWSHost,
+    refreshRequestCaches,
+    user?.userType,
+    user?.user_type,
+  ]);
 
   // Auto-connect when user is available
   useEffect(() => {
