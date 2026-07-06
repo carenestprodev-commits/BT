@@ -33,6 +33,8 @@ import {
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
 import { useNotifications } from "../../../Context/NotificationContext";
+import VerificationCheckModal from "../../../Components/VerificationCheckModal";
+import { containsPhoneNumber } from "../../../utils/phoneUtils";
 
 // Helper functions
 const resolveImage = (url) => {
@@ -310,6 +312,7 @@ const MobileChatView = ({
   audioCallRoute,
   videoCallRoute,
   isCallLive,
+  handleCallPress,
 }) => {
   return (
     <div className="flex flex-col bg-white h-full overflow-hidden pt-16">
@@ -344,7 +347,7 @@ const MobileChatView = ({
                     : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
                 }`}
                 aria-label="Start audio call"
-                onClick={() => audioCallRoute && navigate(audioCallRoute)}
+                onClick={() => handleCallPress(audioCallRoute)}
                 disabled={!audioCallRoute}
               >
                 <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -359,7 +362,7 @@ const MobileChatView = ({
                     : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
                 }`}
                 aria-label="Start video call"
-                onClick={() => videoCallRoute && navigate(videoCallRoute)}
+                onClick={() => handleCallPress(videoCallRoute)}
                 disabled={!videoCallRoute}
               >
                 <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -556,6 +559,7 @@ function Message() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [totalHours, setTotalHours] = useState("1");
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
@@ -770,9 +774,6 @@ function Message() {
         "new_message",
         "call_started",
         "call_ended",
-        "recording_processing",
-        "recording_uploaded",
-        "recording_errored",
       ].includes(latestNotificationType)
     ) {
       return;
@@ -811,6 +812,25 @@ function Message() {
   }, [dispatch, notificationFallbackActive, currentConversationId]);
 
   const currentUserId = getCurrentUserIdFromProfile(authUser);
+  const hasUsedFreeCall = useMemo(
+    () =>
+      !authUser?.is_verified &&
+      currentMessages.some(
+        (message) =>
+          message.kind === "system" &&
+          (message.payload?.event || "").toLowerCase() === "call_started",
+      ),
+    [authUser?.is_verified, currentMessages],
+  );
+
+  const handleCallPress = (route) => {
+    if (!route) return;
+    if (!authUser?.is_verified && hasUsedFreeCall) {
+      setShowVerification(true);
+      return;
+    }
+    navigate(route);
+  };
 
   const displayMessages = useMemo(
     () =>
@@ -896,6 +916,10 @@ function Message() {
   const handleSendMessage = async () => {
     if (!input.trim() || !currentConversation || sendingMessage) return;
     const messageContent = input.trim();
+    if (containsPhoneNumber(messageContent)) {
+      alert("Phone numbers and email addresses are not allowed in chat.");
+      return;
+    }
     setInput("");
     scrollToBottom({ behavior: "auto" });
     try {
@@ -1107,7 +1131,7 @@ function Message() {
                       : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
                   }`}
                   aria-label="Start audio call"
-                  onClick={() => audioCallRoute && navigate(audioCallRoute)}
+                  onClick={() => handleCallPress(audioCallRoute)}
                   disabled={!audioCallRoute}
                 >
                   <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1122,7 +1146,7 @@ function Message() {
                       : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
                   }`}
                   aria-label="Start video call"
-                  onClick={() => videoCallRoute && navigate(videoCallRoute)}
+                  onClick={() => handleCallPress(videoCallRoute)}
                   disabled={!videoCallRoute}
                 >
                   <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1249,6 +1273,7 @@ function Message() {
                 audioCallRoute={audioCallRoute}
                 videoCallRoute={videoCallRoute}
                 isCallLive={Boolean(activeCallSession)}
+                handleCallPress={handleCallPress}
               />
             ) : (
               <MobileConversationsList
@@ -1433,6 +1458,14 @@ function Message() {
             </div>
           </div>
         )}
+        <VerificationCheckModal
+          isOpen={showVerification}
+          user={authUser}
+          userType="provider"
+          actionType="call"
+          onCancel={() => setShowVerification(false)}
+          isVerified={authUser?.is_verified || false}
+        />
       </div>
     </div>
   );

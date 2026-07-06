@@ -11,9 +11,6 @@ export const getNotificationIcon = (type) => {
     new_message: "💬",
     call_started: "📞",
     call_ended: "📴",
-    recording_processing: "⏳",
-    recording_uploaded: "🎥",
-    recording_errored: "⚠️",
     notification_status: "ℹ️",
   };
   return icons[type] || "📬";
@@ -37,12 +34,6 @@ export const getNotificationTitle = (notification) => {
       return "Call started";
     case "call_ended":
       return "Call ended";
-    case "recording_processing":
-      return "Recording processing";
-    case "recording_uploaded":
-      return "Recording ready";
-    case "recording_errored":
-      return "Recording unavailable";
     case "notification_status":
       return notification.message || "Notification status";
     default:
@@ -68,12 +59,6 @@ export const getNotificationDescription = (notification) => {
       return message || "A call has started";
     case "call_ended":
       return message || "A call has ended";
-    case "recording_processing":
-      return message || "Recording is processing";
-    case "recording_uploaded":
-      return message || "Recording is ready";
-    case "recording_errored":
-      return message || "Recording could not be saved";
     case "notification_status":
       return notification.message || "System notification";
     default:
@@ -154,27 +139,6 @@ export const handleNotificationNavigation = (
         navigate(`${basePath}/message`);
       }
     },
-    recording_processing: () => {
-      if (conversation_id) {
-        navigate(`${basePath}/message/${conversation_id}`);
-      } else {
-        navigate(`${basePath}/message`);
-      }
-    },
-    recording_uploaded: () => {
-      if (conversation_id) {
-        navigate(`${basePath}/message/${conversation_id}`);
-      } else {
-        navigate(`${basePath}/message`);
-      }
-    },
-    recording_errored: () => {
-      if (conversation_id) {
-        navigate(`${basePath}/message/${conversation_id}`);
-      } else {
-        navigate(`${basePath}/message`);
-      }
-    },
     notification_status: () => {
       // Stay on notifications page
       navigate(`${basePath}/notifications`);
@@ -204,9 +168,6 @@ export const getNotificationStyles = (type, read) => {
     new_message: "border-l-4 border-l-purple-500",
     call_started: "border-l-4 border-l-cyan-500",
     call_ended: "border-l-4 border-l-slate-500",
-    recording_processing: "border-l-4 border-l-amber-500",
-    recording_uploaded: "border-l-4 border-l-emerald-500",
-    recording_errored: "border-l-4 border-l-red-500",
     notification_status: "border-l-4 border-l-yellow-500",
   };
 

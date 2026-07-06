@@ -17,20 +17,6 @@ const resolveJoinHref = (url) => {
   return url.startsWith("/") ? url : `/${url}`;
 };
 
-const formatDuration = (value) => {
-  const duration = Number(value);
-  if (!Number.isFinite(duration) || duration <= 0) return "";
-  if (duration < 60) return `${duration}s`;
-  const minutes = Math.floor(duration / 60);
-  const seconds = duration % 60;
-  if (minutes < 60) {
-    return `${minutes}m${seconds ? ` ${seconds}s` : ""}`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return `${hours}h${remainingMinutes ? ` ${remainingMinutes}m` : ""}`;
-};
-
 function ChatMessageItem({ message, currentConversation, currentUserId }) {
   if (message.kind === "system") {
     const payload = message.payload || {};
@@ -132,60 +118,6 @@ function ChatMessageItem({ message, currentConversation, currentUserId }) {
             Info
           </div>
           <div>{message.text}</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (message.kind === "recording") {
-    const payload = message.payload || {};
-    const status = (payload.status || "uploaded").toLowerCase();
-    const accessUrl = resolveHref(getRecordingAccessUrl(message));
-    const title = payload.title || "Call recording";
-    const duration =
-      payload.duration_label ||
-      formatDuration(payload.duration_seconds || payload.duration || 0);
-    const ready = Boolean(accessUrl) && status !== "processing" && status !== "errored";
-
-    return (
-      <div className="flex justify-center my-4">
-        <div className="w-full max-w-[420px] rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-gray-900">{title}</div>
-              <div className="mt-1 text-xs text-gray-500">
-                {status === "processing"
-                  ? "Recording is processing"
-                  : status === "errored"
-                    ? "Recording unavailable"
-                    : "Recording ready"}
-                {duration ? ` · ${duration}` : ""}
-              </div>
-            </div>
-            <span className="text-xs text-gray-400 whitespace-nowrap">
-              {message.time}
-            </span>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <div className="text-xs uppercase tracking-wide text-gray-400">
-              {payload.kind || "Recording"}
-            </div>
-            {ready ? (
-              <a
-                href={accessUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center rounded-full bg-[#0d99c9] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#007bb0]"
-              >
-                View recording
-              </a>
-            ) : (
-              <span className="inline-flex items-center rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-500">
-                View recording
-              </span>
-            )}
-          </div>
         </div>
       </div>
     );

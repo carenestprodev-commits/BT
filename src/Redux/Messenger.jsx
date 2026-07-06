@@ -623,7 +623,7 @@ export const connectWebSocket = (conversationId) => (dispatch) => {
         new Date().toISOString();
       const messageText = payload?.message ?? payload?.content ?? payload?.text;
 
-      if (messageText || kind === "system" || kind === "recording" || kind === "info") {
+      if (messageText || kind === "system" || kind === "info") {
         dispatch(
           addRealtimeMessage({
             conversationId,
