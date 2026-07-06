@@ -52,6 +52,7 @@ function Settings() {
   );
 
   const [plans, setPlans] = useState([]);
+  const [billingCycle, setBillingCycle] = useState("hourly");
 
   const [activeTab, setActiveTab] = useState("personal");
 
@@ -87,6 +88,7 @@ function Settings() {
 
   const [formData, setFormData] = useState(emptyForm);
   const hourlyRateConfig = useHourlyRateConfig(formData.country);
+  const hoursPerMonth = 160;
   const [originalFormData, setOriginalFormData] = useState(emptyForm);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -151,6 +153,29 @@ function Settings() {
 
   const togglePasswordVisibility = (field) => {
     setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  const formatRateInput = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "";
+    return numeric === Math.trunc(numeric)
+      ? String(Math.trunc(numeric))
+      : String(numeric.toFixed(2)).replace(/\.?0+$/, "");
+  };
+
+  const setRateBillingCycle = (nextCycle) => {
+    if (nextCycle === billingCycle) return;
+    const currentRate = Number(formData.hourlyRate) || 0;
+    const nextRate =
+      nextCycle === "monthly"
+        ? currentRate * hoursPerMonth
+        : currentRate / hoursPerMonth;
+    setBillingCycle(nextCycle);
+    setFormData((prev) => ({
+      ...prev,
+      hourlyRate: nextRate ? formatRateInput(nextRate) : "",
+    }));
+    setHasChanges(true);
   };
 
   const tabs = [
@@ -481,11 +506,19 @@ function Settings() {
           category_specific_details: buildCategoryPayload(categoryState),
         };
 
-        if (formData.hourlyRate) {
-          payload.hourly_rate = String(formData.hourlyRate).replace(
-            /[^\d.]/g,
-            "",
-          );
+        const rate = String(formData.hourlyRate).replace(/[^\d.]/g, "");
+        if (rate) {
+          if (billingCycle === "monthly") {
+            payload.monthly_rate = rate;
+            payload.hourly_rate = String(
+              Math.round(Number(rate) / hoursPerMonth),
+            );
+          } else {
+            payload.hourly_rate = rate;
+            payload.monthly_rate = String(
+              Math.round(Number(rate) * hoursPerMonth),
+            );
+          }
         }
 
         if (categoryState.serviceCategory === "housekeeping") {
@@ -771,13 +804,21 @@ function Settings() {
             ? `${info.years_of_experience} years`
             : "");
 
+        const nextBillingCycle =
+          info.monthly_rate && !info.hourly_rate ? "monthly" : "hourly";
+        const nextRate =
+          nextBillingCycle === "monthly"
+            ? info.monthly_rate ?? info.hourly_rate
+            : info.hourly_rate;
+
+        setBillingCycle(nextBillingCycle);
         setFormData((prev) => ({
           ...prev,
           about: info.about_me ?? prev.about,
           title: info.profile_title ?? prev.title,
           yearsOfExperience: yearsLabel || prev.yearsOfExperience,
           nativeLanguage: info.native_language ?? prev.nativeLanguage,
-          hourlyRate: info.hourly_rate ?? prev.hourlyRate,
+          hourlyRate: nextRate ?? prev.hourlyRate,
           otherServices: info.additional_services ?? prev.otherServices,
           otherLanguages: info.languages ?? prev.otherLanguages,
         }));
@@ -787,7 +828,7 @@ function Settings() {
           title: info.profile_title ?? prev.title,
           yearsOfExperience: yearsLabel || prev.yearsOfExperience,
           nativeLanguage: info.native_language ?? prev.nativeLanguage,
-          hourlyRate: info.hourly_rate ?? prev.hourlyRate,
+          hourlyRate: nextRate ?? prev.hourlyRate,
           otherServices: info.additional_services ?? prev.otherServices,
           otherLanguages: info.languages ?? prev.otherLanguages,
         }));
@@ -823,7 +864,10 @@ function Settings() {
       yearsOfExperience: profile.years_of_experience ?? "",
       nativeLanguage: profile.native_language ?? "",
       housekeeping: profile.housekeeping ?? "",
-      hourlyRate: profile.hourly_rate ?? "",
+      hourlyRate:
+        profile.monthly_rate && !profile.hourly_rate
+          ? profile.monthly_rate
+          : profile.hourly_rate ?? "",
       otherServices: profile.other_services ?? "",
       otherLanguages: profile.other_languages ?? "",
       autoSend: profile.auto_send ?? false,
@@ -831,6 +875,9 @@ function Settings() {
       uploadedId: profile.government_id ?? null,
     };
 
+    setBillingCycle(
+      profile.monthly_rate && !profile.hourly_rate ? "monthly" : "hourly",
+    );
     setFormData(populated);
     setOriginalFormData(populated);
     setHasChanges(false);
@@ -1883,31 +1930,57 @@ function Settings() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                        Hourly rates
+                        Billing cycle
                       </label>
-                      <select
+                      <div className="grid grid-cols-2 gap-2 mb-3 rounded-xl bg-gray-100 p-1">
+                        <button
+                          type="button"
+                          onClick={() => setRateBillingCycle("hourly")}
+                          className={`rounded-lg py-2 text-sm font-semibold ${
+                            billingCycle === "hourly"
+                              ? "bg-white text-blue-600 shadow-sm"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          Hourly
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRateBillingCycle("monthly")}
+                          className={`rounded-lg py-2 text-sm font-semibold ${
+                            billingCycle === "monthly"
+                              ? "bg-white text-blue-600 shadow-sm"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          Monthly
+                        </button>
+                      </div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                        {billingCycle === "monthly" ? "Monthly rate" : "Hourly rate"}
+                      </label>
+                      <input
                         name="hourlyRate"
+                        inputMode="decimal"
                         value={formData.hourlyRate}
                         onChange={handleInputChange}
+                        placeholder={`${hourlyRateConfig.symbol}${billingCycle === "monthly" ? hourlyRateConfig.averageMonthlyRate : hourlyRateConfig.averageHourlyRate}`}
                         className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
-                      >
-                        <option value="">Select rate</option>
-                        <option>
-                          {hourlyRateConfig.symbol}
-                          {hourlyRateConfig.minRate}
-                        </option>
-                        <option>
-                          {hourlyRateConfig.symbol}
-                          {hourlyRateConfig.averageHourlyRate}
-                        </option>
-                        <option>
-                          {hourlyRateConfig.symbol}
-                          {hourlyRateConfig.maxRate}
-                        </option>
-                      </select>
+                      />
                       <p className="text-xs sm:text-sm text-green-600 mt-2">
-                        {hourlyRateConfig.description}
+                        {billingCycle === "monthly"
+                          ? hourlyRateConfig.monthlyDescription
+                          : hourlyRateConfig.description}
                       </p>
+                      {billingCycle === "hourly" && formData.hourlyRate ? (
+                        <p className="text-xs text-gray-500 mt-1">
+                          ≈ {hourlyRateConfig.symbol}
+                          {formatRateInput(
+                            Number(formData.hourlyRate) * hoursPerMonth,
+                          )}
+                          /month
+                        </p>
+                      ) : null}
                     </div>
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">

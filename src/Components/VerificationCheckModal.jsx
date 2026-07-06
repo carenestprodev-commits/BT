@@ -94,6 +94,17 @@ export default function VerificationCheckModal({
           buttonText: "Proceed to Verification",
           skipText: "Maybe Later",
         },
+        call: {
+          title: "Verify Your Account",
+          description:
+            "To start calls with care providers, we need to confirm your identity.",
+          subtitle: "Help us keep the care community safe and trusted.",
+          benefit1: "Direct calls with care providers",
+          benefit2: "Display verified badge on your profile",
+          benefit3: "Secure transactions and support",
+          buttonText: "Proceed to Verification",
+          skipText: "Maybe Later",
+        },
       },
     };
 

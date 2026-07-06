@@ -34,6 +34,7 @@ import {
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
+import { containsPhoneNumber } from "../../../utils/phoneUtils";
 
 const resolveImage = (url) => {
   if (!url)
@@ -344,6 +345,10 @@ function MessageDetails() {
 
   const handleSendMessage = async () => {
     if (!currentConversation || !input.trim()) return;
+    if (containsPhoneNumber(input)) {
+      alert("Phone numbers and email addresses are not allowed in chat.");
+      return;
+    }
 
     if (messageCount === 0) {
       setShowActivityModal(true);
