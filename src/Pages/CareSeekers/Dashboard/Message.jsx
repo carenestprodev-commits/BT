@@ -162,7 +162,6 @@ const MobileConversationsList = ({
   }, [conversations, search]);
 
   return (
-    // FIX: Added pt-16 to push content below the Sidebar mobile top bar
     <div className="w-full bg-white flex flex-col h-full pt-16">
       <div className="px-4 py-4 border-b border-gray-100">
         <div className="flex items-center mb-4">
@@ -323,9 +322,7 @@ const MobileChatView = ({
   handleCallPress,
 }) => {
   return (
-    // FIX: Added pt-16 so the chat header is not hidden behind the Sidebar mobile top bar
     <div className="flex flex-col bg-white h-full overflow-hidden pt-16">
-      {/* FIX: Chat header now visible with Call + Video icons added */}
       <div className="flex items-center px-4 py-3 border-b border-gray-100 bg-white flex-shrink-0">
         <button
           className="mr-3 text-gray-600 hover:text-gray-800 text-xl"
@@ -445,7 +442,6 @@ const MobileChatView = ({
         )}
       </div>
 
-      {/* FIX: Removed sm:mt-40 that was pushing body content down incorrectly */}
       <div
         ref={chatBodyRef}
         className="flex-1 px-4 py-6 overflow-y-auto bg-white pb-24"
@@ -750,12 +746,8 @@ function Message() {
     const convId = String(currentConversation.id);
     if (activityStartedSentForRef.current === convId) return;
     activityStartedSentForRef.current = convId;
-    dispatch(
-      sendMessage({
-        conversationId: currentConversation.id,
-        content: "Activity has started",
-      }),
-    );
+    dispatch(fetchMessages(currentConversation.id));
+    dispatch(fetchConversations());
     dispatch(clearPaymentState());
     dispatch(clearActivityStarted());
   }, [activityStarted, currentConversation, dispatch]);
@@ -763,12 +755,8 @@ function Message() {
   const { activityEnded } = useSelector((state) => state.startActivity);
   useEffect(() => {
     if (activityEnded && currentConversation) {
-      dispatch(
-        sendMessage({
-          conversationId: currentConversation.id,
-          content: "Activity has ended",
-        }),
-      );
+      dispatch(fetchMessages(currentConversation.id));
+      dispatch(fetchConversations());
       setTimeout(() => dispatch(clearActivityEnded()), 1000);
     }
   }, [activityEnded, currentConversation, dispatch]);
@@ -783,7 +771,12 @@ function Message() {
       }
     }
     return () => dispatch(disconnectWebSocket());
-  }, [dispatch, currentConversationId]);
+  }, [
+    dispatch,
+    currentConversation,
+    currentConversation?.unread_count,
+    currentConversationId,
+  ]);
 
   const notificationFallbackActive = useMemo(
     () => isDegraded || wsFallbackActive,
@@ -810,6 +803,10 @@ function Message() {
         "new_message",
         "call_started",
         "call_ended",
+        "activity_started",
+        "activity_ended",
+        "booking_completed",
+        "wallet_credit",
       ].includes(latestNotificationType)
     ) {
       return;
@@ -897,7 +894,7 @@ function Message() {
       setTimeout(() => {
         el.scrollTop = el.scrollHeight;
       }, 50);
-  }, [currentConversationId, displayMessages]);
+  }, [currentConversation, currentConversationId, displayMessages]);
 
   useEffect(() => {
     const lastMessageId =
@@ -921,7 +918,7 @@ function Message() {
       }
     }
     prevLastMessageIdRef.current = lastMessageId;
-  }, [displayMessages]);
+  }, [currentConversation, displayMessages]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !currentConversation || sendingMessage) return;
@@ -1546,6 +1543,20 @@ function Message() {
                     }}
                   >
                     Close
+                  </button>
+                  <button
+                    className="w-full mt-3 border border-[#0d99c9] text-[#0d99c9] py-3 rounded-md font-semibold bg-white hover:bg-[#f7fafd] transition text-sm sm:text-base"
+                    onClick={() => {
+                      dispatch(clearPaymentState());
+                      setShowPayment(false);
+                      setPaymentSuccess(false);
+                      setTotalHours("1");
+                      navigate(
+                        `/careseekers/dashboard/request_details/${bookingId}`,
+                      );
+                    }}
+                  >
+                    View Request Details
                   </button>
                 </div>
               )}

@@ -7,6 +7,7 @@ export const getNotificationIcon = (type) => {
     provider_application: "🔔",
     activity_started: "▶️",
     activity_ended: "⏹️",
+    booking_completed: "✅",
     wallet_credit: "💰",
     new_message: "💬",
     call_started: "📞",
@@ -26,6 +27,8 @@ export const getNotificationTitle = (notification) => {
       return "Activity started";
     case "activity_ended":
       return "Activity ended";
+    case "booking_completed":
+      return "Booking completed";
     case "wallet_credit":
       return `Credit: ₦${amount || "0"}`;
     case "new_message":
@@ -51,6 +54,8 @@ export const getNotificationDescription = (notification) => {
       return message || "An activity has started";
     case "activity_ended":
       return message || "An activity has ended";
+    case "booking_completed":
+      return message || "A booking has been completed";
     case "wallet_credit":
       return `₦${amount || "0"} credited to your wallet. Balance: ₦${balance || "0"}`;
     case "new_message":
@@ -96,7 +101,7 @@ export const handleNotificationNavigation = (
     activity_started: () => {
       // Navigate to bookings/activity details
       if (booking_id) {
-        navigate(`${basePath}/requests/${booking_id}`);
+        navigate(`${basePath}/request_details/${booking_id}`);
       } else {
         navigate(`${basePath}/requests`);
       }
@@ -104,7 +109,14 @@ export const handleNotificationNavigation = (
     activity_ended: () => {
       // Navigate to bookings/activity details
       if (booking_id) {
-        navigate(`${basePath}/requests/${booking_id}`);
+        navigate(`${basePath}/request_details/${booking_id}`);
+      } else {
+        navigate(`${basePath}/requests`);
+      }
+    },
+    booking_completed: () => {
+      if (booking_id) {
+        navigate(`${basePath}/request_details/${booking_id}`);
       } else {
         navigate(`${basePath}/requests`);
       }
@@ -164,6 +176,7 @@ export const getNotificationStyles = (type, read) => {
     provider_application: "border-l-4 border-l-blue-500",
     activity_started: "border-l-4 border-l-green-500",
     activity_ended: "border-l-4 border-l-orange-500",
+    booking_completed: "border-l-4 border-l-emerald-500",
     wallet_credit: "border-l-4 border-l-emerald-500",
     new_message: "border-l-4 border-l-purple-500",
     call_started: "border-l-4 border-l-cyan-500",

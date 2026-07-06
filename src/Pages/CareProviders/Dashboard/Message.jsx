@@ -158,7 +158,6 @@ const MobileConversationsList = ({
   }, [conversations, search]);
 
   return (
-    // FIX: Added pt-16 to push content below the Sidebar mobile top bar
     <div className="w-full bg-white flex flex-col h-full pt-16">
       <div className="px-4 py-4 border-b border-gray-100">
         <div className="flex items-center mb-4">
@@ -741,12 +740,8 @@ function Message() {
     const convId = String(currentConversation.id);
     if (activityStartedSentForRef.current === convId) return;
     activityStartedSentForRef.current = convId;
-    dispatch(
-      sendMessage({
-        conversationId: currentConversation.id,
-        content: "Activity has started",
-      }),
-    );
+    dispatch(fetchMessages(currentConversation.id));
+    dispatch(fetchConversations());
     dispatch(clearPaymentState());
     dispatch(clearActivityStarted());
   }, [activityStarted, currentConversation, dispatch]);
@@ -754,12 +749,8 @@ function Message() {
   const { activityEnded } = useSelector((state) => state.startActivity);
   useEffect(() => {
     if (activityEnded && currentConversation) {
-      dispatch(
-        sendMessage({
-          conversationId: currentConversation.id,
-          content: "Activity has ended",
-        }),
-      );
+      dispatch(fetchMessages(currentConversation.id));
+      dispatch(fetchConversations());
       setTimeout(() => {
         dispatch(clearActivityEnded());
       }, 1000);
@@ -775,6 +766,10 @@ function Message() {
         "new_message",
         "call_started",
         "call_ended",
+        "activity_started",
+        "activity_ended",
+        "booking_completed",
+        "wallet_credit",
       ].includes(latestNotificationType)
     ) {
       return;
@@ -794,7 +789,12 @@ function Message() {
     return () => {
       dispatch(disconnectWebSocket());
     };
-  }, [dispatch, currentConversationId]);
+  }, [
+    dispatch,
+    currentConversation,
+    currentConversation?.unread_count,
+    currentConversationId,
+  ]);
 
   const notificationFallbackActive = useMemo(
     () => isDegraded || wsFallbackActive,
@@ -885,7 +885,7 @@ function Message() {
         el.scrollTop = el.scrollHeight;
       }, 50);
     }
-  }, [currentConversationId, displayMessages]);
+  }, [currentConversation, currentConversationId, displayMessages]);
 
   useEffect(() => {
     const lastMessageId =
@@ -912,7 +912,7 @@ function Message() {
       }
     }
     prevLastMessageIdRef.current = lastMessageId;
-  }, [displayMessages]);
+  }, [currentConversation, displayMessages]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !currentConversation || sendingMessage) return;
