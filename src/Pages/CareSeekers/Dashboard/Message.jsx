@@ -143,6 +143,7 @@ const MobileConversationsList = ({
   conversationsLoading,
   conversationsError,
   navigate,
+  handleCallPress,
   resolveImage,
   formatTime,
 }) => {
@@ -267,7 +268,7 @@ const MobileConversationsList = ({
                       className="inline-flex cursor-pointer items-center rounded-full bg-[#0d99c9] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#007bb0]"
                       onClick={(event) => {
                         event.stopPropagation();
-                        navigate(callRoute);
+                        handleCallPress(callRoute);
                       }}
                     >
                       Join
@@ -1017,6 +1018,7 @@ function Message() {
                 conversationsLoading={conversationsLoading}
                 conversationsError={conversationsError}
                 navigate={navigate}
+                handleCallPress={handleCallPress}
                 resolveImage={resolveImage}
                 formatTime={formatTime}
               />
@@ -1148,7 +1150,7 @@ function Message() {
                               className="mt-1 inline-flex cursor-pointer items-center rounded-full bg-[#0d99c9] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#007bb0]"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                navigate(callRoute);
+                                handleCallPress(callRoute);
                               }}
                             >
                               Join

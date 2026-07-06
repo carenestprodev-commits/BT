@@ -139,6 +139,7 @@ const MobileConversationsList = ({
   conversationsLoading,
   conversationsError,
   navigate,
+  handleCallPress,
   resolveImage,
   formatTime,
 }) => {
@@ -261,7 +262,7 @@ const MobileConversationsList = ({
                       className="mt-1 inline-flex cursor-pointer items-center rounded-full bg-[#0d99c9] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#007bb0]"
                       onClick={(event) => {
                         event.stopPropagation();
-                        navigate(callRoute);
+                        handleCallPress(callRoute);
                       }}
                     >
                       Join
@@ -1064,16 +1065,16 @@ function Message() {
                             ? formatTime(conversation.last_message.timestamp)
                             : ""}
                         </span>
-                        {activeCall && callRoute ? (
-                          <span
-                            className="mt-1 inline-flex cursor-pointer items-center rounded-full bg-[#0d99c9] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#007bb0]"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              navigate(callRoute);
-                            }}
-                          >
-                            Join
-                          </span>
+                          {activeCall && callRoute ? (
+                            <span
+                              className="mt-1 inline-flex cursor-pointer items-center rounded-full bg-[#0d99c9] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#007bb0]"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleCallPress(callRoute);
+                              }}
+                            >
+                              Join
+                            </span>
                         ) : null}
                         {conversation.unread_count > 0 && (
                           <span className="bg-[#0d99c9] text-white text-xs rounded-full px-2 py-1 mt-1">
@@ -1286,6 +1287,7 @@ function Message() {
                 conversationsLoading={conversationsLoading}
                 conversationsError={conversationsError}
                 navigate={navigate}
+                handleCallPress={handleCallPress}
                 resolveImage={resolveImage}
                 formatTime={formatTime}
               />

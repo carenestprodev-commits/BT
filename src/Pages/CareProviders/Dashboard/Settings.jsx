@@ -504,6 +504,7 @@ function Settings() {
           languages,
           skills: skillsForCategory(categoryState),
           category_specific_details: buildCategoryPayload(categoryState),
+          billing_cycle: billingCycle,
         };
 
         const rate = String(formData.hourlyRate).replace(/[^\d.]/g, "");
@@ -805,7 +806,9 @@ function Settings() {
             : "");
 
         const nextBillingCycle =
-          info.monthly_rate && !info.hourly_rate ? "monthly" : "hourly";
+          info.billing_cycle ||
+          info.category_specific_details?.billing_cycle ||
+          (info.monthly_rate && !info.hourly_rate ? "monthly" : "hourly");
         const nextRate =
           nextBillingCycle === "monthly"
             ? info.monthly_rate ?? info.hourly_rate
@@ -865,8 +868,9 @@ function Settings() {
       nativeLanguage: profile.native_language ?? "",
       housekeeping: profile.housekeeping ?? "",
       hourlyRate:
-        profile.monthly_rate && !profile.hourly_rate
-          ? profile.monthly_rate
+        (profile.billing_cycle || profile.category_specific_details?.billing_cycle) ===
+        "monthly"
+          ? profile.monthly_rate ?? profile.hourly_rate ?? ""
           : profile.hourly_rate ?? "",
       otherServices: profile.other_services ?? "",
       otherLanguages: profile.other_languages ?? "",
@@ -876,7 +880,9 @@ function Settings() {
     };
 
     setBillingCycle(
-      profile.monthly_rate && !profile.hourly_rate ? "monthly" : "hourly",
+      profile.billing_cycle ||
+        profile.category_specific_details?.billing_cycle ||
+        "hourly",
     );
     setFormData(populated);
     setOriginalFormData(populated);
