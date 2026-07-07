@@ -95,29 +95,75 @@ function Requests() {
           )}
           {selectedTab === 0 && (
             <div>
-              {activeRequests.map((req, i) => (
-                <div
-                  key={i}
-                  className="flex items-center bg-gray-50 rounded-lg shadow-sm p-4 mb-4"
-                >
-                  <div className="flex flex-col items-center mr-4">
-                    <span className="text-gray-400 text-sm">{req.day}</span>
-                    <span className="text-[#0d99c9] font-bold text-lg">
-                      {req.date}
-                    </span>
-                  </div>
-                  <div className="py-8 px-0.5 mr-2 bg-[#0d99c9] rounded-l-lg"></div>
-                  <img
-                    src={req.avatar}
-                    alt="avatar"
-                    className="w-10 h-10 rounded-full mr-4"
-                  />
-                  <div>
-                    <div className="font-medium text-gray-800">{req.title}</div>
-                    <div className="text-xs text-gray-400 mt-1">{req.time}</div>
-                  </div>
-                </div>
-              ))}
+              {activeRequests.length === 0 && !loading ? (
+                <div className="text-sm text-gray-500">No active requests.</div>
+              ) : null}
+
+              {activeRequests.map((req, i) => {
+                const raw = req.raw || req;
+                const isInProgress = raw.is_activity_in_progress ?? false;
+                const hasEnded = raw.has_ended_activity ?? false;
+                const providerName =
+                  raw.provider?.user?.full_name || raw.providerName || "Provider";
+                const providerAvatar =
+                  resolveImage(
+                    raw.provider?.user?.profile_image_url ||
+                      raw.provider?.provider_image_url ||
+                      raw.providerImageUrl,
+                    providerName,
+                  ) || req.avatar;
+
+                return (
+                  <button
+                    key={i}
+                    onClick={() =>
+                      navigate(
+                        `/careseekers/dashboard/request_details/${req.id || raw.id}`,
+                      )
+                    }
+                    className="w-full text-left flex items-center bg-gray-50 rounded-lg shadow-sm p-4 mb-4 hover:bg-gray-100 transition"
+                  >
+                    <div className="flex flex-col items-center mr-4 flex-shrink-0">
+                      <span className="text-gray-400 text-sm">{req.day}</span>
+                      <span className="text-[#0d99c9] font-bold text-lg">
+                        {req.date}
+                      </span>
+                    </div>
+                    <div className="py-8 px-0.5 mr-3 bg-[#0d99c9] rounded-l-lg"></div>
+                    <img
+                      src={providerAvatar}
+                      alt={providerName}
+                      className="w-10 h-10 rounded-full mr-4 object-cover flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-800 truncate">
+                        {req.title || raw.title || "Active care"}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-0.5 truncate">
+                        {providerName}
+                      </div>
+                      {req.time ? (
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          {req.time}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="ml-3 flex-shrink-0">
+                      {isInProgress && !hasEnded && (
+                        <span className="flex items-center gap-1 bg-blue-50 text-blue-600 text-xs font-semibold px-2.5 py-1 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                          Session running
+                        </span>
+                      )}
+                      {hasEnded && !isInProgress && (
+                        <span className="bg-amber-50 text-amber-600 text-xs font-semibold px-2.5 py-1 rounded-full">
+                          ⏳ Awaiting payment
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
           {selectedTab === 1 && (

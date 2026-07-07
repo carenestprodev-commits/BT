@@ -11,6 +11,10 @@ import {
 } from "../../../Redux/SeekerRequest";
 import { BASE_URL } from "../../../Redux/config";
 import { DetailRows } from "../../../Components/CareRequestSections";
+import {
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
 
 function RequestDetails() {
   const navigate = useNavigate();
@@ -22,6 +26,8 @@ function RequestDetails() {
   );
   const params = useParams();
   const routeId = params?.id || params?.requestId || params?.bookingId;
+
+  const userCurrency = getUserCurrencyInfo();
 
   useEffect(() => {
     if (routeId) dispatch(fetchSeekerRequestDetails(routeId));
@@ -110,7 +116,14 @@ function RequestDetails() {
             <span className="text-gray-500 text-xs mb-1">Rate</span>
             <span className="text-gray-800 font-semibold text-lg">
               {currentRequest?.provider?.hourly_rate
-                ? `₦${currentRequest.provider.hourly_rate}`
+                ? formatCurrencyAmount(
+                    currentRequest.provider.localized_hourly_rate ??
+                      currentRequest.provider.hourly_rate,
+                    currentRequest.provider.display_currency_code ??
+                      userCurrency.currencyCode,
+                    currentRequest.provider.display_currency_symbol ??
+                      userCurrency.currencySymbol,
+                  )
                 : "N/A"}
             </span>
           </div>
