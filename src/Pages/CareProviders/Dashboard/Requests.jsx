@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -21,6 +21,7 @@ function Requests() {
   const [selectedTab, setSelectedTab] = useState(initialTab);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
   const { active, closed, pending, loading } = useSelector(
     (s) =>
       s.careProviderRequests || {
@@ -37,12 +38,37 @@ function Requests() {
     dispatch(fetchPendingRequests());
   }, [dispatch]);
 
-  const resolveImage = (url) => {
-    if (!url)
-      return "https://ui-avatars.com/api/?name=User&background=E5E7EB&color=374151&size=64";
+  const resolveImage = (url, name = "User") => {
+    if (!url) {
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=E5E7EB&color=374151&size=64`;
+    }
     if (url.startsWith("http") || url.startsWith("https")) return url;
     if (url.startsWith("/")) return `${BASE_URL}${url}`;
     return url;
+  };
+
+  const renderActiveBadge = (req) => {
+    const isInProgress = req.is_activity_in_progress ?? false;
+    const hasEnded = req.has_ended_activity ?? false;
+
+    if (isInProgress && !hasEnded) {
+      return (
+        <span className="flex items-center gap-1 bg-blue-50 text-blue-600 text-xs font-semibold px-2.5 py-1 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+          Session running
+        </span>
+      );
+    }
+
+    if (hasEnded && !isInProgress) {
+      return (
+        <span className="bg-amber-50 text-amber-600 text-xs font-semibold px-2.5 py-1 rounded-full">
+          ⏳ Awaiting payment
+        </span>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -50,12 +76,7 @@ function Requests() {
       <Sidebar active="Requests" />
 
       <div className="flex-1 md:ml-64">
-        {/*
-          Sticky sub-header: on mobile sits just below the fixed Sidebar top
-          navbar (~57px tall). On desktop top-0 is correct — no top navbar.
-        */}
         <div className="sticky top-[57px] md:top-0 z-30 bg-white border-b border-gray-100 px-6 py-4 flex flex-col">
-          {/* Back arrow + title */}
           <div className="flex items-center gap-3 mb-4">
             <button
               className="text-gray-500 hover:text-[#0d99c9] text-2xl font-bold leading-none"
@@ -67,13 +88,15 @@ function Requests() {
             <h1 className="text-2xl font-semibold text-gray-800">Request</h1>
           </div>
 
-          {/* Tabs live inside the sticky bar so they stay visible too */}
           <div className="flex border-b border-gray-100 -mb-[1px]">
             {tabs.map((tab, idx) => {
-              let count = 0;
-              if (tab === "Active") count = active.length;
-              else if (tab === "Closed") count = closed.length;
-              else if (tab === "Pending") count = pending.length;
+              const count =
+                tab === "Active"
+                  ? active.length
+                  : tab === "Closed"
+                    ? closed.length
+                    : pending.length;
+
               return (
                 <button
                   key={tab}
@@ -92,136 +115,147 @@ function Requests() {
           </div>
         </div>
 
-        {/* Scrollable tab content */}
         <div className="px-4 md:px-8 pt-6 overflow-y-auto">
-          {/* Active */}
+          {loading && (
+            <div className="text-sm text-gray-500 mb-4">Loading...</div>
+          )}
+
           {selectedTab === 0 && (
             <div>
-              {loading && (
-                <div className="text-sm text-gray-500 mb-4">Loading...</div>
-              )}
-              {active.map((req) => (
-                <button
-                  key={req.id}
-                  onClick={() =>
-                    navigate(
-                      `/careproviders/dashboard/request_details/${req.id}`,
-                    )
-                  }
-                  className="w-full text-left flex items-center bg-gray-50 rounded-lg shadow-sm p-4 mb-4 hover:bg-gray-100 transition"
-                >
-                  <div className="flex flex-col items-center mr-4">
-                    <span className="text-gray-400 text-sm">
-                      {req.date
-                        ? new Date(req.date).toLocaleString("en-US", {
-                            weekday: "short",
-                          })
-                        : ""}
-                    </span>
-                    <span className="text-[#0d99c9] font-bold text-lg">
-                      {req.date ? new Date(req.date).getDate() : ""}
-                    </span>
-                  </div>
-                  <div className="py-8 px-0.5 mr-2 bg-[#0d99c9] rounded-l-lg" />
-                  <img
-                    src={resolveImage(
-                      req.seeker && req.seeker.profile_image_url,
-                    )}
-                    alt="avatar"
-                    className="w-10 h-10 rounded-full mr-4"
-                  />
-                  <div>
-                    <div className="font-medium text-gray-800">
-                      {req.title || (req.job_details && req.job_details.title)}
+              {active.length === 0 && !loading ? (
+                <div className="text-sm text-gray-500">No active requests.</div>
+              ) : null}
+
+              {active.map((req) => {
+                const seekerName = formatDisplayName(req.seeker?.full_name);
+                const title = req.title || req.job_details?.title || "Untitled request";
+                const dateLabel = req.date
+                  ? new Date(req.date).toLocaleDateString(undefined, {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })
+                  : "Date not specified";
+                const timeLabel =
+                  req.start_time || req.end_time
+                    ? `${req.start_time || ""}${req.start_time && req.end_time ? " - " : ""}${req.end_time || ""}`
+                    : "";
+
+                return (
+                  <button
+                    key={req.id}
+                    onClick={() =>
+                      navigate(`/careproviders/dashboard/active_details/${req.id}`)
+                    }
+                    className="w-full text-left flex items-center bg-gray-50 rounded-lg shadow-sm p-4 mb-4 hover:bg-gray-100 transition"
+                  >
+                    <div className="flex flex-col items-center mr-4 flex-shrink-0">
+                      <span className="text-gray-400 text-sm">{dateLabel}</span>
+                      <span className="text-[#0d99c9] font-bold text-lg">
+                        {req.date ? new Date(req.date).getDate() : ""}
+                      </span>
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      {formatDisplayName(req.seeker?.full_name)}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">
-                      {req.date
-                        ? new Date(req.date).toLocaleDateString()
-                        : "Date: Not specified"}
-                      {(req.start_time || req.end_time) && (
-                        <span className="ml-2">
-                          {req.start_time || ""}
-                          {req.start_time && req.end_time
-                            ? ` - ${req.end_time}`
-                            : req.end_time || ""}
-                        </span>
+
+                    <div className="py-8 px-0.5 mr-3 bg-[#0d99c9] rounded-l-lg" />
+
+                    <img
+                      src={resolveImage(
+                        req.seeker?.profile_image_url,
+                        seekerName || "User",
                       )}
+                      alt={seekerName || "avatar"}
+                      className="w-10 h-10 rounded-full mr-4 object-cover flex-shrink-0"
+                    />
+
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-800 truncate">
+                        {title}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-0.5 truncate">
+                        {seekerName || "Care seeker"}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-0.5">
+                        {timeLabel || "Time not specified"}
+                      </div>
                     </div>
-                  </div>
-                </button>
-              ))}
+
+                    <div className="ml-3 flex-shrink-0">{renderActiveBadge(req)}</div>
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          {/* Closed */}
           {selectedTab === 1 && (
             <div>
-              {loading && (
-                <div className="text-sm text-gray-500 mb-4">Loading...</div>
-              )}
-              {closed.map((req) => (
-                <button
-                  key={req.id}
-                  className="w-full text-left bg-gray-50 rounded-lg shadow-sm p-6 mb-4 flex hover:bg-gray-100 transition"
-                  onClick={() =>
-                    navigate(
-                      `/careproviders/dashboard/request_details/${req.id}`,
-                    )
-                  }
-                >
-                  <img
-                    src={resolveImage(
-                      req.seeker && req.seeker.profile_image_url,
-                    )}
-                    alt="avatar"
-                    className="w-12 h-12 rounded-full mr-4"
-                  />
-                  <div>
-                    <div className="font-semibold text-gray-800">
-                      {(req.job_details && req.job_details.title) ||
-                        formatDisplayName(req.seeker?.full_name) ||
-                        req.name ||
-                        ""}
+              {closed.length === 0 && !loading ? (
+                <div className="text-sm text-gray-500">No closed requests.</div>
+              ) : null}
+
+              {closed.map((req) => {
+                const seekerName = formatDisplayName(req.seeker?.full_name);
+                const title = req.job_details?.title || req.title || "Untitled request";
+                const summary = req.job_details?.summary || req.review || "";
+                const postedAt =
+                  req.job_details?.posted_ago ||
+                  (req.created_at ? `Posted ${new Date(req.created_at).toLocaleString()}` : "");
+
+                return (
+                  <button
+                    key={req.id}
+                    className="w-full text-left bg-gray-50 rounded-lg shadow-sm p-6 mb-4 flex items-start hover:bg-gray-100 transition"
+                    onClick={() =>
+                      navigate(`/careproviders/dashboard/request_details/${req.id}`)
+                    }
+                  >
+                    <img
+                      src={resolveImage(
+                        req.seeker?.profile_image_url,
+                        seekerName || "User",
+                      )}
+                      alt={seekerName || "avatar"}
+                      className="w-12 h-12 rounded-full mr-4 flex-shrink-0 object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-gray-800 truncate">
+                        {seekerName || title}
+                      </div>
+                      <div className="text-xs text-gray-400 mb-1">{postedAt}</div>
+                      <div className="text-sm text-gray-500 font-medium mb-1 truncate">
+                        {title}
+                      </div>
+                      <div className="text-sm text-gray-600 leading-relaxed line-clamp-2">
+                        {summary}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      {req.job_details && req.job_details.posted_ago
-                        ? req.job_details.posted_ago
-                        : req.created_at
-                          ? `Posted ${new Date(req.created_at).toLocaleString()}`
-                          : ""}
-                    </div>
-                    <div className="text-sm text-gray-600 leading-relaxed">
-                      {(req.job_details && req.job_details.summary) ||
-                        req.review ||
-                        ""}
-                    </div>
-                  </div>
-                </button>
-              ))}
+                    <span className="ml-3 flex-shrink-0 bg-red-50 text-red-600 text-xs font-semibold px-2.5 py-1 rounded-full self-start">
+                      Closed
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          {/* Pending */}
           {selectedTab === 2 && (
             <div>
-              {loading && (
-                <div className="text-sm text-gray-500 mb-4">Loading...</div>
-              )}
+              {pending.length === 0 && !loading ? (
+                <div className="text-sm text-gray-500">No pending requests.</div>
+              ) : null}
+
               {pending.map((req) => (
                 <PendingRequestCard
                   key={req.id}
                   req={{
+                    id: req.id,
                     posted:
-                      req.job_details && req.job_details.posted_ago
-                        ? req.job_details.posted_ago
-                        : req.created_at
-                          ? `Posted ${new Date(req.created_at).toLocaleString()}`
-                          : "",
-                    title: req.job_details && req.job_details.title,
-                    desc: req.job_details && req.job_details.summary,
+                      req.job_details?.posted_ago ||
+                      (req.created_at
+                        ? `Posted ${new Date(req.created_at).toLocaleString()}`
+                        : ""),
+                    title: req.job_details?.title || req.title || "Untitled request",
+                    desc: req.job_details?.summary || req.summary || "",
+                    raw: req,
                   }}
                 />
               ))}
@@ -234,16 +268,28 @@ function Requests() {
 }
 
 function PendingRequestCard({ req }) {
-  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
+
   const handleMenu = (e) => {
     e.stopPropagation();
     setMenuOpen((v) => !v);
   };
-  const handleClose = () => setMenuOpen(false);
-  const handleEdit = () => setMenuOpen(false);
+
+  const handleClose = (e) => {
+    e.stopPropagation();
+    setMenuOpen(false);
+  };
 
   return (
-    <div className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4 relative">
+    <div
+      className="bg-gray-50 rounded-lg shadow-sm p-4 mb-4 relative cursor-pointer hover:bg-gray-100 transition"
+      onClick={() =>
+        navigate(`/careproviders/dashboard/pending_details/${req.id}`, {
+          state: { details: req.raw },
+        })
+      }
+    >
       <div className="absolute top-3 right-3">
         <button
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 focus:outline-none"
@@ -269,18 +315,13 @@ function PendingRequestCard({ req }) {
             >
               Close
             </button>
-            <button
-              className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 text-sm"
-              onClick={handleEdit}
-            >
-              Edit
-            </button>
           </div>
         )}
       </div>
-      <div className="text-xs text-gray-400 mb-1">{req.posted}</div>
-      <div className="font-medium text-gray-800 mb-1">{req.title}</div>
-      <div className="text-sm text-gray-600">{req.desc}</div>
+
+      <div className="text-xs text-gray-400 mb-1 pr-10">{req.posted}</div>
+      <div className="font-medium text-gray-800 mb-1 pr-10 truncate">{req.title}</div>
+      <div className="text-sm text-gray-600 leading-relaxed line-clamp-2">{req.desc}</div>
     </div>
   );
 }

@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { FaStar } from "react-icons/fa";
-import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchRequestById,
@@ -21,7 +20,7 @@ function RequestDetails() {
   const { id } = useParams();
   const dispatch = useDispatch();
   const { current } = useSelector(
-    (s) => s.careProviderRequests || { current: null }
+    (s) => s.careProviderRequests || { current: null },
   );
   const [submitting, setSubmitting] = useState(false);
   const defaultCurrency = getUserCurrencyInfo();
@@ -31,6 +30,13 @@ function RequestDetails() {
     current?.display_currency_code || defaultCurrency.currencyCode;
   const rateCurrencySymbol =
     current?.display_currency_symbol || defaultCurrency.currencySymbol;
+  const seekerName = current?.seeker?.full_name || current?.job_title || "";
+  const seekerAvatar = current?.seeker?.profile_image_url;
+  const showReviewForm = Boolean(
+    current?.has_ended_activity === true || current?.status === "closed",
+  );
+  const showExperience = current?.experience_years != null;
+  const showRating = current?.seeker_average_rating != null;
 
   useEffect(() => {
     if (id) dispatch(fetchRequestById({ id, status: "closed" }));
@@ -58,31 +64,31 @@ function RequestDetails() {
         <div className="flex items-center mb-6">
           <img
             src={
-              current && current.seeker
-                ? resolveImage(current.seeker.profile_image_url)
+              seekerAvatar
+                ? resolveImage(seekerAvatar)
                 : "https://ui-avatars.com/api/?name=User&background=E5E7EB&color=374151&size=64"
             }
-            alt={current && current.seeker ? current.seeker.full_name : "User"}
+            alt={seekerName || "User"}
             className="w-16 h-16 rounded-full object-cover mr-6"
           />
           <div>
             <div className="text-xl font-semibold text-gray-800">
-              {current
-                ? current.seeker
-                  ? current.seeker.full_name
-                  : current.job_title || ""
-                : "Loading..."}
+              {current ? seekerName || current.job_title || "" : "Loading..."}
             </div>
             <div className="text-gray-500 text-sm mt-1">
               {current ? current.date_range_for_task || "" : ""}
             </div>
           </div>
         </div>
-        <div className="flex gap-6 mb-8">
-          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
-            <span className="text-gray-500 text-xs mb-1">Experience</span>
-            <span className="text-gray-800 font-semibold text-lg">8 years</span>
-          </div>
+        <div className="flex gap-6 mb-8 flex-wrap">
+          {showExperience && (
+            <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
+              <span className="text-gray-500 text-xs mb-1">Experience</span>
+              <span className="text-gray-800 font-semibold text-lg">
+                {current.experience_years} years
+              </span>
+            </div>
+          )}
           <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
             <span className="text-gray-500 text-xs mb-1">Rate</span>
             <span className="text-gray-800 font-semibold text-lg">
@@ -95,15 +101,24 @@ function RequestDetails() {
                 : "Rate not set"}
             </span>
           </div>
-          <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
-            <span className="text-gray-500 text-xs mb-1">Rating</span>
-            <span className="text-gray-800 font-semibold text-lg flex items-center gap-2">
-              5.0{" "}
-              {Array.from({ length: 5 }).map((_, i) => (
-                <FaStar key={i} className="text-[#cb9e49] text-base" />
-              ))}
-            </span>
-          </div>
+          {showRating && (
+            <div className="bg-white border border-gray-100 rounded-lg px-6 py-4 flex flex-col items-start min-w-[120px]">
+              <span className="text-gray-500 text-xs mb-1">Rating</span>
+              <span className="text-gray-800 font-semibold text-lg flex items-center gap-2">
+                {current.seeker_average_rating}
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <FaStar
+                    key={i}
+                    className={
+                      i < Math.round(Number(current.seeker_average_rating) || 0)
+                        ? "text-[#cb9e49] text-base"
+                        : "text-gray-300 text-base"
+                    }
+                  />
+                ))}
+              </span>
+            </div>
+          )}
         </div>
         <div className="mb-8">
           <div className="text-gray-700 font-medium mb-2">
@@ -115,24 +130,26 @@ function RequestDetails() {
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
           />
-          <div className="flex gap-1 mb-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setRating(i + 1)}
-                className="focus:outline-none -mt-20 ml-5"
-              >
-                <FaStar
-                  className={
-                    i < rating
-                      ? "text-[#cb9e49] text-xl"
-                      : "text-gray-300 text-xl"
-                  }
-                />
-              </button>
-            ))}
-          </div>
+          {showReviewForm && (
+            <div className="flex gap-1 mb-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setRating(i + 1)}
+                  className="focus:outline-none -mt-20 ml-5"
+                >
+                  <FaStar
+                    className={
+                      i < rating
+                        ? "text-[#cb9e49] text-xl"
+                        : "text-gray-300 text-xl"
+                    }
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="mb-8">
           <div className="text-gray-700 font-medium mb-2">Request details</div>
@@ -172,48 +189,49 @@ function RequestDetails() {
             </div>
           </div>
         </div>
-        <button
-          className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition disabled:opacity-50"
-          disabled={submitting}
-          onClick={async () => {
-            const booking_id = current?.id || current?.booking_id || Number(id);
-            const ratingValue = rating;
-            const comment = feedback;
-            if (!booking_id) {
-              alert("Missing booking id");
-              return;
-            }
-            setSubmitting(true);
-            try {
-              const res = await dispatch(
-                postReview({ booking_id, rating: ratingValue, comment })
-              );
-              if (res && res.payload && res.payload.message) {
-                alert(res.payload.message);
-                // clear inputs and navigate to requests list
-                setFeedback("");
-                setRating(0);
-                navigate("/careproviders/dashboard/requests");
-                return;
-              } else if (res && res.error && res.error.message) {
-                alert(res.error.message);
-              } else {
-                alert("Submitted");
-                setFeedback("");
-                setRating(0);
-                navigate("/careproviders/dashboard/requests");
+        {showReviewForm && (
+          <button
+            className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition disabled:opacity-50"
+            disabled={submitting}
+            onClick={async () => {
+              const booking_id = current?.id || current?.booking_id || Number(id);
+              const ratingValue = rating;
+              const comment = feedback;
+              if (!booking_id) {
+                alert("Missing booking id");
                 return;
               }
-            } catch (err) {
-              console.error(err);
-              alert("Submit failed");
-            } finally {
-              setSubmitting(false);
-            }
-          }}
-        >
-          {submitting ? "Submitting..." : "Submit"}
-        </button>
+              setSubmitting(true);
+              try {
+                const res = await dispatch(
+                  postReview({ booking_id, rating: ratingValue, comment }),
+                );
+                if (res && res.payload && res.payload.message) {
+                  alert(res.payload.message);
+                  setFeedback("");
+                  setRating(0);
+                  navigate("/careproviders/dashboard/requests");
+                  return;
+                } else if (res && res.error && res.error.message) {
+                  alert(res.error.message);
+                } else {
+                  alert("Submitted");
+                  setFeedback("");
+                  setRating(0);
+                  navigate("/careproviders/dashboard/requests");
+                  return;
+                }
+              } catch (err) {
+                console.error(err);
+                alert("Submit failed");
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+          >
+            {submitting ? "Submitting..." : "Submit"}
+          </button>
+        )}
       </div>
     </div>
   );

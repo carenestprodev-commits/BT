@@ -33,6 +33,7 @@ import MessageProvider from "../Pages/CareProviders/Dashboard/Message";
 import NotificationsProvider from "../Pages/CareProviders/Dashboard/Notifications";
 import RequestsProvider from "../Pages/CareProviders/Dashboard/Requests";
 import RequestDetailsProvider from "../Pages/CareProviders/Dashboard/RequestDetails";
+import ActiveDetailsProvider from "../Pages/CareProviders/Dashboard/ActiveDetails";
 import SettingsProvider from "../Pages/CareProviders/Dashboard/Settings";
 import VerifyIdentityProvider from "../Pages/CareProviders/Dashboard/VerifyIdentity";
 import CertificateUploadGate from "../Pages/CareProviders/Dashboard/CertificateUploadGate";
@@ -334,6 +335,14 @@ export const router = createBrowserRouter([
     element: (
       <RoleProtectedRoute allowedRole="provider">
         <RequestsProvider />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
+    path: "/careproviders/dashboard/active_details/:id",
+    element: (
+      <RoleProtectedRoute allowedRole="provider">
+        <ActiveDetailsProvider />
       </RoleProtectedRoute>
     ),
   },
