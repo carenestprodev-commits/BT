@@ -82,8 +82,7 @@ export default function DualRangeSlider({
           <input
             type="number"
             inputMode="numeric"
-            min={defaultMin}
-            max={defaultMax}
+            min={0}
             value={value}
             onChange={handleInputChange}
             className="mt-4 w-full rounded-2xl border border-gray-200 px-5 py-4 text-2xl font-medium text-gray-700 shadow-sm outline-none focus:border-[#0d99c9] focus:ring-2 focus:ring-[#0d99c9]/15"

@@ -450,10 +450,10 @@ function ElderlyTimeDetails({
             billingCycle,
             priceMin: formData.hourlyRateStart
               ? Number(formData.hourlyRateStart).toFixed(2)
-              : String(hourlyRateConfig.minRate),
+              : null,
             priceMax: formData.hourlyRateEnd
               ? Number(formData.hourlyRateEnd).toFixed(2)
-              : String(hourlyRateConfig.maxRate),
+              : null,
           };
 
           dispatch(
