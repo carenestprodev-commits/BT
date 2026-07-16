@@ -101,7 +101,7 @@ const PaymentModal = ({
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message || "Payment initiation failed");
+        alert(data.error || data.message || "Payment initiation failed");
         setIsProcessing(false);
         return;
       }
