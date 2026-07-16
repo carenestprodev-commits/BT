@@ -48,11 +48,15 @@ function SubscriptionModal({ onClose, imageSrc }) {
 
         const data = await res.json();
 
-        setPlans(data);
+        const subscriptionPlans = (data || []).filter(
+          (plan) =>
+            plan.plan_kind === "subscription" && plan.audience === "seeker",
+        );
+        setPlans(subscriptionPlans);
 
         // Auto-select first plan
-        if (data.length > 0) {
-          setSelectedPlanId(data[0].id);
+        if (subscriptionPlans.length > 0) {
+          setSelectedPlanId(subscriptionPlans[0].id);
         }
       } catch (err) {
         console.error(err);

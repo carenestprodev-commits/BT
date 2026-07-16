@@ -112,7 +112,7 @@ export const paystackService = {
 
       try {
         const err = JSON.parse(text);
-        message = err.message || err.detail || message;
+        message = err.error || err.message || err.detail || message;
         // Check for gateway availability error
         supportedGateways = err.supported_gateways || err.supportedGateways;
       } catch {
@@ -205,7 +205,7 @@ export const paystackService = {
     const userCurrency = getUserCurrencyInfo();
 
     if (!response.ok) {
-      let message = data.message || "Checkout initiation failed";
+      let message = data.error || data.message || "Checkout initiation failed";
       let supportedGateways = null;
 
       // Check for gateway availability error

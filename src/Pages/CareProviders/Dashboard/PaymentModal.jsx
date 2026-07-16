@@ -92,7 +92,10 @@ const PaymentModal = ({ isOpen, onClose, selectedPlan, plan }) => {
       setIsProcessing(false);
       alert("Payment initiation failed. No checkout URL returned");
     } catch (err) {
-      alert(err.message || "Payment initiation failed");
+      alert(
+        (typeof err === "string" ? err : err?.message) ||
+          "Payment initiation failed",
+      );
       setIsProcessing(false);
     }
   };
