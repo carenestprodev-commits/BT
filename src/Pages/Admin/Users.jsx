@@ -82,6 +82,11 @@ const formatText = (value) => {
 const formatDate = (value) => (value ? dayjs(value).format("DD MMM YYYY") : EMPTY_VALUE);
 const formatDateTime = (value) =>
   value ? dayjs(value).format("DD MMM YYYY, h:mm A") : EMPTY_VALUE;
+const userName = (user) =>
+  user?.full_name || user?.name ||
+  [user?.onboarding_details?.first_name, user?.onboarding_details?.last_name]
+    .filter(Boolean)
+    .join(" ") || EMPTY_VALUE;
 const formatCurrency = (value) => {
   if (value === null || value === undefined || value === "") return EMPTY_VALUE;
   const numeric = Number(value);
@@ -210,16 +215,16 @@ const buildProviderSections = (user) => {
 
   return [
     makeSection("Identity", [
-      makeField("Full name", user?.full_name),
+      makeField("Full name", userName(user)),
       makeField("First name", profile.first_name),
       makeField("Last name", profile.last_name),
       makeField("Date of birth", formatDate(profile.date_of_birth)),
       makeField("Email", user?.email),
-      makeField("Phone number", user?.phone_number || profile.phone_number),
+      makeField("Phone number", user?.phone_number || user?.phone || profile.phone_number),
       makeField("User type", userTypeLabel(user?.user_type)),
       makeField("Account status", user?.is_active ? "Active" : "Suspended"),
-      makeField("Joined", formatDateTime(user?.date_joined)),
-      makeField("Last login", formatDateTime(user?.last_login)),
+      makeField("Joined", formatDateTime(user?.date_joined || user?.onboardDate)),
+      makeField("Last login", formatDateTime(user?.last_login || user?.lastLoginDate)),
     ]),
     makeSection("Location", [
       makeField("Country", profile.country || user?.location_details?.country),
@@ -321,13 +326,13 @@ const buildSeekerSections = (user) => {
 
   return [
     makeSection("Identity", [
-      makeField("Full name", user?.full_name),
+      makeField("Full name", userName(user)),
       makeField("Email", user?.email),
-      makeField("Phone number", user?.phone_number),
+      makeField("Phone number", user?.phone_number || user?.phone),
       makeField("User type", userTypeLabel(user?.user_type)),
       makeField("Account status", user?.is_active ? "Active" : "Suspended"),
-      makeField("Joined", formatDateTime(user?.date_joined)),
-      makeField("Last login", formatDateTime(user?.last_login)),
+      makeField("Joined", formatDateTime(user?.date_joined || user?.onboardDate)),
+      makeField("Last login", formatDateTime(user?.last_login || user?.lastLoginDate)),
     ]),
     makeSection("Location", [
       makeField("Use current location", location.use_current_location ? "Yes" : "No"),
@@ -368,13 +373,13 @@ const buildSeekerSections = (user) => {
 
 const buildAdminSections = (user) => [
     makeSection("Identity", [
-      makeField("Full name", user?.full_name),
+      makeField("Full name", userName(user)),
       makeField("Email", user?.email),
-      makeField("Phone number", user?.phone_number),
+      makeField("Phone number", user?.phone_number || user?.phone),
       makeField("User type", userTypeLabel(user?.user_type || (user?.is_staff ? "admin" : ""))),
       makeField("Account status", user?.is_active ? "Active" : "Suspended"),
-      makeField("Joined", formatDateTime(user?.date_joined)),
-      makeField("Last login", formatDateTime(user?.last_login)),
+      makeField("Joined", formatDateTime(user?.date_joined || user?.onboardDate)),
+      makeField("Last login", formatDateTime(user?.last_login || user?.lastLoginDate)),
     ]),
 ];
 
@@ -477,21 +482,23 @@ function Users({ initialStat = "all" }) {
   useEffect(() => {
     if (currentUser && currentUser.id === selectedUserId) {
       const u = currentUser;
+      const profile = u.onboarding_details || {};
+      const location = u.location_details || {};
       setEditRow({
         ...u,
         id: u.id,
-        name: u.full_name || `User ${u.id}`,
+        name: userName(u),
         userType: userTypeLabel(u.user_type),
         email: u.email,
-        phone: u.phone_number || "",
+        phone: u.phone_number || profile.phone_number || "",
         onboard: u.date_joined ? dayjs(u.date_joined).format("DD-MM-YYYY") : "",
         lastLogin: u.last_login ? dayjs(u.last_login).format("DD-MM-YYYY") : "",
         profileImageUrl: u.profile_image_url || "",
         requestHistory: u.request_count ?? 0,
         requestsMade: u.request_count ?? 0,
-        country: u.location_details?.country || "",
-        city: u.location_details?.city || "",
-        nationality: u.location_details?.nationality || "",
+        country: u.country || profile.country || location.country || "",
+        city: profile.city || location.city || "",
+        nationality: profile.nationality || location.nationality || "",
         accountStatus: u.is_active ? "Active" : "Suspended",
         is_suspend: !u.is_active,
         earnings: u.earnings || "-",
@@ -1973,7 +1980,7 @@ function Users({ initialStat = "all" }) {
         )}
 
         {/* Mobile cards */}
-        <div className="grid gap-3 md:hidden">
+        <div className="hidden">
           {paginated.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500">
               No results
@@ -2048,7 +2055,7 @@ function Users({ initialStat = "all" }) {
         </div>
 
         {/* Table */}
-        <div className="hidden overflow-x-auto rounded-xl border border-slate-200/90 bg-white text-black shadow-[0_10px_24px_-20px_rgba(15,23,42,0.45)] md:block">
+        <div className="overflow-x-auto rounded-xl border border-slate-200/90 bg-white text-black shadow-[0_10px_24px_-20px_rgba(15,23,42,0.45)]">
           <table className="w-full text-[13px]">
             <thead className="border-b border-slate-200 bg-slate-50/80 text-[10px] uppercase tracking-[0.13em] text-slate-500">
               <tr>
