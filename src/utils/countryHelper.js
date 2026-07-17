@@ -163,8 +163,7 @@ export const getCountryFromIP = async () => {
  * Detect user's country with fallback chain
  * 1. Check user profile
  * 2. Fallback to IP detection
- * 3. Default to Nigeria
- * @returns {Promise<string>} ISO2 country code (guaranteed non-null)
+ * @returns {Promise<string|null>} ISO2 country code or null
  */
 export const detectUserCountry = async () => {
   // Try user profile first
@@ -182,8 +181,7 @@ export const detectUserCountry = async () => {
     return ipCountry.toUpperCase();
   }
 
-  // Default fallback
-  return "NG"; // Default to Nigeria
+  return null;
 };
 
 /**
@@ -195,8 +193,8 @@ export const detectUserCountry = async () => {
  */
 export const formatCurrencyAmount = (
   amount,
-  currencyCode = "NGN",
-  currencySymbol = "₦",
+  currencyCode = "",
+  currencySymbol = "",
 ) => {
   try {
     const numericAmount = parseFloat(amount);
@@ -211,6 +209,7 @@ export const formatCurrencyAmount = (
     }
 
     // For other currencies, use standard Intl formatting
+    if (!currencyCode) return `${currencySymbol}${numericAmount.toLocaleString()}`;
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currencyCode,
@@ -246,8 +245,8 @@ export const getCurrencySymbol = (currencyCode) => {
 };
 
 export const getCurrencyInfoForCountry = (countryInput) => {
-  const countryIso2 = resolveCountryIso2Sync(countryInput) || "NG";
-  const currencyCode = COUNTRY_TO_CURRENCY[countryIso2] || "NGN";
+  const countryIso2 = resolveCountryIso2Sync(countryInput) || "";
+  const currencyCode = COUNTRY_TO_CURRENCY[countryIso2] || "";
   return {
     countryIso2,
     currencyCode,

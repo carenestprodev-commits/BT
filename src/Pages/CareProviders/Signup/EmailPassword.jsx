@@ -14,6 +14,7 @@ import {
 } from "../../CareSeekers/Signup/uploadProfilePhoto";
 import { providerDashboardPaths } from "../../../Routes/providerRoutes";
 import { MAX_FILE_SIZE } from "../../../lib/constants";
+import { isValidPhoneNumber } from "../../../utils/phoneValidation";
 
 function EmailPassword({ formData, updateFormData, handleBack }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -64,8 +65,8 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
       alert("Please provide a valid email address");
       return;
     }
-    if (!phone) {
-      alert("Please provide a phone number");
+    if (!isValidPhoneNumber(phone)) {
+      alert("Enter a valid phone number, including country code for international numbers");
       return;
     }
     if (!isStrongPassword(password)) {

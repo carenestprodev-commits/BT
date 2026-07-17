@@ -20,7 +20,7 @@ function ViewDetails() {
     dispatch(fetchProviderProfile());
   }, [dispatch]);
 
-  const currencyInfo = getCurrencyInfoForCountry(profile?.country || "NG");
+  const currencyInfo = getCurrencyInfoForCountry(profile?.country);
   const hourlyRate = profile?.hourly_rate;
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">

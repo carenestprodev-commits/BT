@@ -17,6 +17,7 @@ import {
   formatCurrencyAmount,
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
+import { isValidPhoneNumber } from "../../../utils/phoneValidation";
 
 function CareProvidersNearYou() {
   const [showSubscribePopup, setShowSubscribePopup] = React.useState(false);
@@ -120,6 +121,11 @@ function CareProvidersNearYou() {
       alert(
         "Please provide first name, last name, phone number, valid email and matching passwords",
       );
+      return;
+    }
+
+    if (!isValidPhoneNumber(signupForm.phone)) {
+      alert("Enter a valid phone number, including country code for international numbers");
       return;
     }
 

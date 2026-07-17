@@ -7,21 +7,21 @@ import {
 
 const hourlyRateCache = {};
 const hourlyRateListeners = new Set();
-const DEFAULT_COUNTRY_CODE = "NG";
+const DEFAULT_COUNTRY_CODE = "";
 const HOURS_PER_MONTH = 160;
 const DEFAULT_HOURLY_RATE_POLICY = {
-  country_name: "Nigeria",
-  currency_code: "NGN",
-  currency_symbol: "₦",
-  min_rate: 900,
-  max_rate: 1200,
-  average_rate: 1000,
-  monthly_min_rate: 900 * HOURS_PER_MONTH,
-  monthly_max_rate: 1200 * HOURS_PER_MONTH,
-  monthly_average_rate: 1000 * HOURS_PER_MONTH,
+  country_name: "",
+  currency_code: "",
+  currency_symbol: "",
+  min_rate: 0,
+  max_rate: 0,
+  average_rate: 0,
+  monthly_min_rate: 0,
+  monthly_max_rate: 0,
+  monthly_average_rate: 0,
 };
 
-const normalizeCountryCode = (countryInput = "NG") =>
+const normalizeCountryCode = (countryInput = "") =>
   resolveCountryIso2Sync(countryInput) ||
   (countryInput || "").toString().trim().toUpperCase() ||
   "";

@@ -161,6 +161,7 @@ function Home() {
               serviceCategory={session.service_category}
               startTimeIso={session.start_time}
               hourlyRate={session.hourly_rate}
+              currencySymbol={session.display_currency_symbol}
               conversationId={session.conversation_id}
               userType="seeker"
             />
@@ -175,6 +176,7 @@ function Home() {
               serviceCategory={active_session.service_category}
               startTimeIso={active_session.start_time}
               hourlyRate={active_session.hourly_rate}
+              currencySymbol={active_session.display_currency_symbol}
               conversationId={active_session.conversation_id}
               userType="seeker"
             />
