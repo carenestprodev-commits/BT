@@ -1,0 +1,39 @@
+.care-phone-input {
+  display: flex;
+  min-height: 44px;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #fff;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.care-phone-input:focus-within {
+  border-color: #20a9d1;
+  box-shadow: 0 0 0 3px rgb(32 169 209 / 14%);
+}
+
+.care-phone-input .PhoneInputCountry {
+  margin: 0;
+  padding: 0 0.75rem;
+  border-right: 1px solid #e5e7eb;
+  background: transparent;
+}
+
+.care-phone-input .PhoneInputCountrySelectArrow {
+  margin-left: 0.5rem;
+  color: #547080;
+}
+
+.care-phone-input .PhoneInputInput {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  padding: 0.7rem 0.85rem;
+  background: transparent;
+  color: #1f2937;
+}
+
+.care-phone-input--muted {
+  background: #f3f4f6;
+}
