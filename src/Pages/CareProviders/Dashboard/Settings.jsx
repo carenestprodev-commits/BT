@@ -673,8 +673,8 @@ function Settings() {
                 <p className="text-[#0093d1] font-bold">
                   {formatCurrencyAmount(
                     plan.localized_price ?? plan.localizedPrice ?? plan.price,
-                    plan.currency_code ?? plan.currencyCode ?? "NGN",
-                    plan.currency_symbol ?? plan.currencySymbol ?? "₦",
+                    plan.currency_code ?? plan.currencyCode ?? "",
+                    plan.currency_symbol ?? plan.currencySymbol ?? "",
                   )}
                 </p>
               </div>

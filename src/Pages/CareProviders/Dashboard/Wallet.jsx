@@ -133,7 +133,7 @@ function TransactionDetailsModal({ isOpen, onClose, transaction }) {
           ? new Date(transaction.transaction_date).toLocaleTimeString()
           : "N/A"
       }
-      Amount Paid: ₦${Number(transaction.amount).toLocaleString(undefined, {
+      Amount Paid: ${transaction.display_currency_symbol || ""}${Number(transaction.amount_display ?? transaction.amount).toLocaleString(undefined, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}
@@ -216,8 +216,8 @@ function TransactionDetailsModal({ isOpen, onClose, transaction }) {
             <div className="flex justify-between items-center pt-4 border-t border-gray-200">
               <span className="text-gray-500 text-sm">Amount Paid</span>
               <span className="text-gray-800 font-bold text-lg">
-                ₦
-                {Number(transaction.amount).toLocaleString(undefined, {
+                {transaction.display_currency_symbol || ""}
+                {Number(transaction.amount_display ?? transaction.amount).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
@@ -405,9 +405,9 @@ function Wallet() {
               {/* Balance Section */}
               <div className="mb-4 lg:mb-0 w-full lg:w-auto">
                 <div className="text-3xl lg:text-4xl xl:text-5xl font-bold text-[#0093d1] flex items-center">
-                  <span className="mr-2">₦</span>
-                  {dashboard && typeof dashboard.current_balance !== "undefined"
-                    ? Number(dashboard.current_balance).toLocaleString(
+                  <span className="mr-2">{dashboard?.display_currency_symbol || ""}</span>
+                  {dashboard && typeof dashboard.current_balance_display !== "undefined"
+                    ? Number(dashboard.current_balance_display).toLocaleString(
                         undefined,
                         {
                           minimumFractionDigits: 2,
@@ -569,8 +569,8 @@ function Wallet() {
                         color: Number(tx.amount) >= 0 ? "#22c55e" : "#ef4444",
                       }}
                     >
-                      ₦
-                      {Number(tx.amount).toLocaleString(undefined, {
+                      {tx.display_currency_symbol || ""}
+                      {Number(tx.amount_display ?? tx.amount).toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}

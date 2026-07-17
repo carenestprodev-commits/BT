@@ -10,6 +10,7 @@ export default function LiveCareSessionCard({
   serviceCategory,
   startTimeIso,
   hourlyRate,
+  currencySymbol = "",
   conversationId,
   userType, // 'seeker' or 'provider'
 }) {
@@ -148,7 +149,7 @@ export default function LiveCareSessionCard({
               Estimated Cost
             </p>
             <p className="text-lg font-black text-sky-600 mt-0.5">
-              ₦{formatCurrency(estimatedCost)}
+              {currencySymbol}{formatCurrency(estimatedCost)}
             </p>
           </div>
         </div>
@@ -160,7 +161,7 @@ export default function LiveCareSessionCard({
               {hoursUsedDecimal.toFixed(1)} hours used
             </p>
             <p className="text-lg font-black text-gray-800 mt-0.5">
-              ₦{formatCurrency(hourlyRate)}/hr
+              {currencySymbol}{formatCurrency(hourlyRate)}/hr
             </p>
           </div>
         </div>

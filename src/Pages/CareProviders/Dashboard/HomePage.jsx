@@ -383,6 +383,7 @@ export default function HomePage() {
                 serviceCategory={session.service_category}
                 startTimeIso={session.start_time}
                 hourlyRate={session.hourly_rate}
+                currencySymbol={session.display_currency_symbol}
                 conversationId={session.conversation_id}
                 userType="provider"
               />
@@ -397,6 +398,7 @@ export default function HomePage() {
                 serviceCategory={profile.active_session.service_category}
                 startTimeIso={profile.active_session.start_time}
                 hourlyRate={profile.active_session.hourly_rate}
+                currencySymbol={profile.active_session.display_currency_symbol}
                 conversationId={profile.active_session.conversation_id}
                 userType="provider"
               />
