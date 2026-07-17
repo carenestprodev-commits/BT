@@ -47,6 +47,14 @@ function ProfileVerificationSeeker() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
+
   const makePageButtons = () => {
     const pages = [];
     if (pageCount <= 7) {
@@ -64,7 +72,7 @@ function ProfileVerificationSeeker() {
   };
 
   return (
-    <div className="bg-white font-sfpro">
+    <div className="min-h-full bg-[#f3f7fb] p-4 text-slate-900 font-sfpro sm:p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="relative w-1/3">
           <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -72,55 +80,55 @@ function ProfileVerificationSeeker() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="search care provider"
-            className="pl-10 pr-3 py-2 w-full rounded border border-gray-200 bg-white text-sm text-black"
+            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 shadow-[0_1px_3px_rgba(15,47,67,0.05)] placeholder:text-slate-400"
           />
         </div>
       </div>
 
       <div className="flex flex-col min-h-[60vh]">
-        <div className="overflow-hidden rounded border border-gray-100 text-black flex-1">
+        <div className="flex-1 overflow-x-auto rounded-xl border border-slate-200/80 bg-white text-slate-900 shadow-[0_4px_16px_rgba(15,47,67,0.04)]">
           <table className="w-full table-auto text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f5f9fc] text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="p-3 text-left w-12">
+                <th className="w-12 px-3 py-2.5 text-left">
                   <input type="checkbox" />
                 </th>
-                <th className="p-3 text-left">Name</th>
-                <th className="p-3 text-left">Verification Type</th>
-                <th className="p-3 text-left">Payment Option</th>
-                <th className="p-3 text-left">Payment Status</th>
-                <th className="p-3 text-left">Status</th>
-                <th className="p-3 text-left">Feedback</th>
-                <th className="p-3 text-left">Last Updated</th>
-                <th className="p-3 text-left w-12">...</th>
+                <th className="px-3 py-2.5 text-left">Name</th>
+                <th className="px-3 py-2.5 text-left">Verification Type</th>
+                <th className="px-3 py-2.5 text-left">Payment Option</th>
+                <th className="px-3 py-2.5 text-left">Payment Status</th>
+                <th className="px-3 py-2.5 text-left">Status</th>
+                <th className="px-3 py-2.5 text-left">Feedback</th>
+                <th className="px-3 py-2.5 text-left">Last Updated</th>
+                <th className="w-12 px-3 py-2.5 text-left">...</th>
               </tr>
             </thead>
             <tbody>
               {pageRows.map((r) => (
-                <tr key={r.id} className="border-b hover:bg-gray-50">
-                  <td className="p-3 align-top">
+                <tr key={r.id} className="border-b border-slate-100 hover:bg-cyan-50/40">
+                  <td className="align-top px-3 py-2.5">
                     <input type="checkbox" />
                   </td>
-                  <td className="p-3 align-top font-medium text-black">
+                  <td className="align-top px-3 py-2.5 font-medium text-slate-900">
                     {r.name}
                   </td>
-                  <td className="p-3 align-top text-black">
+                  <td className="align-top px-3 py-2.5 text-slate-900">
                     {r.verification_type}
                   </td>
-                  <td className="p-3 align-top text-black">
+                  <td className="align-top px-3 py-2.5 text-slate-900">
                     {r.payment_option}
                   </td>
-                  <td className="p-3 align-top text-black">
+                  <td className="align-top px-3 py-2.5 text-slate-900">
                     {r.payment_status}
                   </td>
-                  <td className="p-3 align-top text-black">{r.status}</td>
-                  <td className="p-3 align-top text-black">{r.feedback}</td>
-                  <td className="p-3 align-top text-black">
+                  <td className="align-top px-3 py-2.5 text-slate-900">{r.status}</td>
+                  <td className="align-top px-3 py-2.5 text-slate-900">{r.feedback}</td>
+                  <td className="align-top px-3 py-2.5 text-slate-900">
                     {r.last_updated
                       ? dayjs(r.last_updated).format("DD-MM-YYYY")
                       : ""}
                   </td>
-                  <td className="p-3 align-top">
+                  <td className="align-top px-3 py-2.5">
                     <div className="relative inline-block">
                       <button
                         onClick={() =>
@@ -131,7 +139,7 @@ function ProfileVerificationSeeker() {
                         •••
                       </button>
                       {openMenuId === r.id && (
-                        <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded shadow z-10 text-sm">
+                        <div className="absolute right-0 z-10 mt-2 w-44 rounded-lg border border-slate-200 bg-white text-sm shadow-lg">
                           <ul>
                             <li
                               onClick={() => {
@@ -293,7 +301,7 @@ function ProfileVerificationSeeker() {
                 setShowDetailId(null);
               }}
             />
-            <div className="relative z-50 bg-white max-w-lg w-full rounded shadow-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="relative z-50 flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
               <div className="p-5 border-b flex justify-between items-start">
                 <h3 className="text-lg font-medium text-black">
                   Verification Details
@@ -437,7 +445,7 @@ function ProfileVerificationSeeker() {
         {/* Manual Payment Modal */}
         {showManualPaymentModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+            <div className="w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium">Mark Manual Payment</h3>
                 <button

@@ -109,6 +109,14 @@ function Subscription() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
 
+  useEffect(() => {
+    setPage(1);
+  }, [q, roleFilter, planFilter, date]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
   const pageCount = totalPages;
   const makePageButtons = () => {
     const pages = [];
@@ -127,17 +135,17 @@ function Subscription() {
   };
 
   return (
-    <div className="p-4 sm:p-6 text-black bg-white font-sfpro">
+    <div className="min-h-full bg-[#f3f7fb] p-4 text-slate-900 font-sfpro sm:p-6">
       {/* Controls */}
       <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4">
         <div className="flex-1 w-full">
-          <div className="flex items-center bg-white rounded-md px-3 py-2 shadow-sm text-black">
+          <div className="flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-[0_1px_3px_rgba(15,47,67,0.05)]">
             <FaSearch className="text-slate-400 mr-2" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="search care provider"
-              className="outline-none w-full text-sm bg-white text-black"
+              className="w-full bg-white text-sm text-slate-900 outline-none placeholder:text-slate-400"
             />
           </div>
         </div>
@@ -147,7 +155,7 @@ function Subscription() {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
+              className="appearance-none rounded-lg border border-slate-200 bg-white px-4 py-2 pr-8 text-sm text-slate-900"
             >
               <option value="All">Role</option>
               <option value="Care Providers">Care Providers</option>
@@ -160,7 +168,7 @@ function Subscription() {
             <select
               value={planFilter}
               onChange={(e) => setPlanFilter(e.target.value)}
-              className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
+              className="appearance-none rounded-lg border border-slate-200 bg-white px-4 py-2 pr-8 text-sm text-slate-900"
             >
               <option value="All">Subscription Plan</option>
               <option value="Free">Free</option>
@@ -169,7 +177,7 @@ function Subscription() {
             <FaChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" />
           </div>
 
-          <div className="flex items-center px-4 py-2 border rounded-md text-sm bg-white text-black gap-2">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900">
             <input
               type="date"
               value={date}
@@ -180,7 +188,7 @@ function Subscription() {
 
           <button
             onClick={downloadCSV}
-            className="px-3 py-2 border rounded-md flex items-center justify-center"
+            className="flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-[#0d99c9] transition hover:bg-cyan-50 active:scale-[0.98]"
             aria-label="download"
           >
             <FaDownload className="text-slate-600" />
@@ -189,39 +197,39 @@ function Subscription() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-md shadow-sm overflow-x-auto text-black">
+      <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white text-slate-900 shadow-[0_4px_16px_rgba(15,47,67,0.04)]">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500 text-xs">
+          <thead className="bg-[#f5f9fc] text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="p-3">
+              <th className="px-3 py-2.5">
                 <input type="checkbox" />
               </th>
-              <th className="p-3 text-left">User Name</th>
-              <th className="p-3 text-left">User Role</th>
-              <th className="p-3 text-left">Plan</th>
-              <th className="p-3 text-left">Amount</th>
-              <th className="p-3 text-left">Start Date</th>
-              <th className="p-3 text-left">End Date</th>
+              <th className="px-3 py-2.5 text-left">User Name</th>
+              <th className="px-3 py-2.5 text-left">User Role</th>
+              <th className="px-3 py-2.5 text-left">Plan</th>
+              <th className="px-3 py-2.5 text-left">Amount</th>
+              <th className="px-3 py-2.5 text-left">Start Date</th>
+              <th className="px-3 py-2.5 text-left">End Date</th>
             </tr>
           </thead>
           <tbody>
             {visible.map((r) => (
               <tr
                 key={r.id}
-                className="border-b last:border-b-0 hover:bg-slate-50 cursor-pointer"
+                className="cursor-pointer border-b border-slate-100 last:border-b-0 hover:bg-cyan-50/40"
                 onClick={() => {
                   dispatch(fetchSubscriptionById(r.id));
                 }}
               >
-                <td className="p-3">
+                <td className="px-3 py-2.5">
                   <input onClick={(e) => e.stopPropagation()} type="checkbox" />
                 </td>
-                <td className="p-3 font-medium">{r.name}</td>
-                <td className="p-3">{r.role}</td>
-                <td className="p-3">{r.plan}</td>
-                <td className="p-3">{r.amount}</td>
-                <td className="p-3">{r.start}</td>
-                <td className="p-3">{r.end}</td>
+                <td className="px-3 py-2.5 font-medium">{r.name}</td>
+                <td className="px-3 py-2.5">{r.role}</td>
+                <td className="px-3 py-2.5">{r.plan}</td>
+                <td className="px-3 py-2.5">{r.amount}</td>
+                <td className="px-3 py-2.5">{r.start}</td>
+                <td className="px-3 py-2.5">{r.end}</td>
               </tr>
             ))}
           </tbody>
@@ -291,7 +299,7 @@ function Subscription() {
             className="absolute inset-0 bg-black/30"
             onClick={() => dispatch(clearCurrentSubscription())}
           />
-          <div className="relative bg-white w-[340px] rounded-lg shadow-lg p-6 z-50 max-h-[80vh] flex flex-col">
+          <div className="relative z-50 flex max-h-[80vh] w-[340px] flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
             <button
               className="absolute right-3 top-3 text-slate-400 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"
               onClick={() => dispatch(clearCurrentSubscription())}

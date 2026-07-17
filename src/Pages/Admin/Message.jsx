@@ -41,7 +41,7 @@ function Message() {
   }, [items, query]);
 
   return (
-    <div className="bg-white text-black font-sfpro">
+    <div className="min-h-full bg-[#f3f7fb] p-4 text-slate-900 font-sfpro sm:p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="relative w-1/3">
           <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -49,54 +49,54 @@ function Message() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="search for notification"
-            className="pl-10 pr-3 py-2 w-full rounded border border-gray-200 bg-white text-sm text-black"
+            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 shadow-[0_1px_3px_rgba(15,47,67,0.05)] placeholder:text-slate-400"
           />
         </div>
         <div>
           <button
             onClick={() => setShowSendModal(true)}
-            className="px-4 py-2 bg-[#0ea5d7] text-white rounded"
+            className="rounded-lg bg-[#0ea5d7] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0b93c6] active:scale-[0.98]"
           >
             Send Message
           </button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded border border-gray-100 text-black">
+      <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white text-slate-900 shadow-[0_4px_16px_rgba(15,47,67,0.04)]">
         <table className="w-full table-auto text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-[#f5f9fc] text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="p-3 text-left w-12">
+              <th className="w-12 px-3 py-2.5 text-left">
                 <input type="checkbox" />
               </th>
-              <th className="p-3 text-left">Message Title</th>
-              <th className="p-3 text-left">Audience</th>
-              <th className="p-3 text-left">Type</th>
-              <th className="p-3 text-left">Date Sent</th>
-              <th className="p-3 text-left">Delivery Status</th>
-              <th className="p-3 text-left w-12">...</th>
+              <th className="px-3 py-2.5 text-left">Message Title</th>
+              <th className="px-3 py-2.5 text-left">Audience</th>
+              <th className="px-3 py-2.5 text-left">Type</th>
+              <th className="px-3 py-2.5 text-left">Date Sent</th>
+              <th className="px-3 py-2.5 text-left">Delivery Status</th>
+              <th className="w-12 px-3 py-2.5 text-left">...</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((r) => (
-              <tr key={r.id} className="border-b hover:bg-gray-50">
-                <td className="p-3 align-top">
+              <tr key={r.id} className="border-b border-slate-100 hover:bg-cyan-50/40">
+                <td className="align-top px-3 py-2.5">
                   <input type="checkbox" />
                 </td>
-                <td className="p-3 align-top font-medium text-black">
+                <td className="align-top px-3 py-2.5 font-medium text-slate-900">
                   {r.title}
                 </td>
-                <td className="p-3 align-top text-black">{r.audience}</td>
-                <td className="p-3 align-top text-black">
+                <td className="align-top px-3 py-2.5 text-slate-900">{r.audience}</td>
+                <td className="align-top px-3 py-2.5 text-slate-900">
                   {r.type || r.broadcast_type}
                 </td>
-                <td className="p-3 align-top text-black">
+                <td className="align-top px-3 py-2.5 text-slate-900">
                   {r.sent_at ? dayjs(r.sent_at).format("DD-MM-YYYY") : ""}
                 </td>
-                <td className="p-3 align-top text-black">
+                <td className="align-top px-3 py-2.5 text-slate-900">
                   {r.delivery_status}
                 </td>
-                <td className="p-3 align-top">
+                <td className="align-top px-3 py-2.5">
                   <div className="relative inline-block">
                     <button
                       onClick={() =>
@@ -107,7 +107,7 @@ function Message() {
                       •••
                     </button>
                     {openMenuId === r.id && (
-                      <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow z-10 text-sm">
+                      <div className="absolute right-0 z-10 mt-2 w-40 rounded-lg border border-slate-200 bg-white text-sm shadow-lg">
                         <ul>
                           <li
                             onClick={() => {
@@ -154,7 +154,7 @@ function Message() {
             className="absolute inset-0 bg-black/30"
             onClick={() => setShowSendModal(false)}
           />
-          <div className="relative z-50 bg-white max-w-3xl w-full rounded shadow-lg overflow-hidden">
+          <div className="relative z-50 w-full max-w-3xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
             <div className="p-6">
               <h3 className="text-lg font-medium mb-4">Message Title</h3>
               <input
@@ -162,7 +162,7 @@ function Message() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, title: e.target.value }))
                 }
-                className="w-full p-3 border border-gray-200 rounded mb-4 bg-white"
+                className="mb-4 w-full rounded-lg border border-slate-200 bg-white p-3 text-slate-900"
                 placeholder="Input title"
               />
 
@@ -172,13 +172,13 @@ function Message() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, audience: e.target.value }))
                   }
-                  className="p-3 border border-gray-200 rounded bg-white"
+                  className="rounded-lg border border-slate-200 bg-white p-3 text-slate-900"
                 >
                   <option value="providers">Providers</option>
                   <option value="seekers">Seekers</option>
                   <option value="all_users">All Users</option>
                 </select>
-                <select className="p-3 border border-gray-200 rounded bg-white">
+                <select className="rounded-lg border border-slate-200 bg-white p-3 text-slate-900">
                   <option>Select Option</option>
                 </select>
               </div>
@@ -188,14 +188,14 @@ function Message() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, body: e.target.value }))
                 }
-                className="w-full p-3 border border-gray-200 rounded h-48 mb-4 bg-white"
+                className="mb-4 h-48 w-full rounded-lg border border-slate-200 bg-white p-3 text-slate-900"
                 placeholder="Input message"
               />
 
               <div className="flex justify-end">
                 <button
                   onClick={() => setShowSendModal(false)}
-                  className="px-4 py-2 mr-3 border rounded"
+                  className="mr-3 rounded-lg border border-slate-200 px-4 py-2 text-slate-700"
                 >
                   Cancel
                 </button>
@@ -213,7 +213,7 @@ function Message() {
                       setTimeout(() => setSuccessMsg(""), 3000);
                     }
                   }}
-                  className="px-6 py-2 bg-[#0ea5d7] text-white rounded"
+                  className="rounded-lg bg-[#0ea5d7] px-6 py-2 text-white transition hover:bg-[#0b93c6] active:scale-[0.98]"
                 >
                   Submit
                 </button>
@@ -245,7 +245,7 @@ function Message() {
               /* leaving as no-op - clear handled elsewhere */
             }}
           />
-          <div className="relative z-50 bg-white max-w-lg w-full rounded shadow-lg overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="relative z-50 flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
             <div className="p-5 border-b flex justify-between items-start">
               <h3 className="text-lg font-medium text-black">Notification</h3>
             </div>
@@ -283,7 +283,7 @@ function Message() {
                 onClick={() => {
                   dispatch(clearCurrentNotification());
                 }}
-                className="px-4 py-2 border rounded"
+                className="rounded-lg border border-slate-200 px-4 py-2 text-slate-700"
               >
                 Close
               </button>

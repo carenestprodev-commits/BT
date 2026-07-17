@@ -1,141 +1,143 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
-// Use public/ assets via absolute path at runtime (do not import from public/)
-
-import UsersIcon from "../../../public/people.svg?react";
-import ActivitiesIcon from "../../../public/3dcube.svg?react";
-import EarningsIcon from "../../../public/wallet-check.svg?react";
-import SubscriptionIcon from "../../../public/cards.svg?react";
-import SupportIcon from "../../../public/message-question.svg?react";
-import ProfileIcon from "../../../public/profile-tick.svg?react";
-import MessageNotifyIcon from "../../../public/message-notif.svg?react";
+import { NavLink, useLocation } from "react-router-dom";
+import {
+  Activity,
+  ChevronDown,
+  CreditCard,
+  CircleHelp,
+  MessageSquareText,
+  ShieldCheck,
+  UserRound,
+  UsersRound,
+  WalletCards,
+  X,
+} from "lucide-react";
 
 const navItems = [
   {
     to: "/admin/users",
     label: "Users",
-    icon: <UsersIcon className="w-5 h-5" />,
+    icon: UsersRound,
   },
   {
     to: "/admin/activities",
     label: "Activities",
-    icon: <ActivitiesIcon className="w-5 h-5" />,
+    icon: Activity,
   },
   {
     to: "/admin/earnings",
     label: "Earnings",
-    icon: <EarningsIcon className="w-5 h-5" />,
+    icon: WalletCards,
   },
   {
     to: "/admin/subscription",
     label: "Subscription",
-    icon: <SubscriptionIcon className="w-5 h-5" />,
+    icon: CreditCard,
   },
   {
     to: "/admin/support",
     label: "Support",
-    icon: <SupportIcon className="w-5 h-5" />,
+    icon: CircleHelp,
   },
-  // Profile Verification handled separately to allow submenu
 ];
 
 function Sidebar({ mobileOpen = false, onClose = () => {} }) {
   const [openProfile, setOpenProfile] = useState(true);
+  const { pathname } = useLocation();
+  const profileActive = pathname.startsWith("/admin/profile-verification");
 
-  // root class: on mobile render as overlay when mobileOpen, otherwise hidden and shown from md+
   const rootClass = mobileOpen
-    ? "fixed inset-y-0 left-0 z-50 w-56 min-h-[100dvh] bg-[#0e2f43] text-white flex flex-col font-sfpro p-4 md:hidden shadow-lg"
-    : "hidden md:flex min-h-[100dvh] w-56 bg-[#0e2f43] text-white flex-col font-sfpro";
+    ? "fixed inset-y-0 left-0 z-50 flex min-h-[100dvh] w-[252px] flex-col bg-[#071b33] px-4 pb-5 text-white shadow-2xl md:hidden"
+    : "hidden min-h-[100dvh] w-[252px] shrink-0 flex-col bg-[#071b33] px-4 pb-5 text-white md:flex";
+
+  const closeOnMobile = () => {
+    if (mobileOpen) onClose();
+  };
+
+  const linkClass = ({ isActive }) =>
+    `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
+      isActive
+        ? "bg-[#496278] text-white"
+        : "text-[#a7b8c9] hover:bg-[#102b48] hover:text-white"
+    }`;
 
   return (
     <aside className={rootClass}>
-      {mobileOpen && (
-        <div className="flex justify-end mb-2 md:hidden">
+      <div className="flex h-[86px] shrink-0 items-center justify-between border-b border-white/10 px-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#39bee8]/15 ring-1 ring-[#39bee8]/25">
+            <img src="/CareLogo.png" alt="CareNestPro" className="h-7 w-7" />
+          </div>
+          <div>
+            <p className="text-[15px] font-semibold tracking-[-0.03em] text-white">
+              CareNest<span className="text-[#42c4e9]">Pro</span>
+            </p>
+            <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#7890a7]">
+              Admin portal
+            </p>
+          </div>
+        </div>
+        {mobileOpen && (
           <button
             onClick={onClose}
             aria-label="Close sidebar"
-            className="text-white text-xl leading-none px-2 py-1"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#a7b8c9] transition hover:bg-white/10 hover:text-white md:hidden"
           >
-            ×
+            <X className="h-5 w-5" />
           </button>
-        </div>
-      )}
-      <div className="px-4 py-6 mb-4 flex items-center space-x-2">
-        {/* Placeholder for logo - served from public/ as an absolute path */}
-        <img src="/CareLogo.png" alt="CareNestPro Logo" className="w-8 h-8 " />
-        <span className="text-lg ">CareNestPro</span>
+        )}
       </div>
-      <nav className="flex-1">
-        <ul className="space-y-1">
+
+      <nav className="flex-1 pt-7" aria-label="Admin navigation">
+        <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6f89a2]">
+          Workspace
+        </p>
+        <ul className="space-y-1.5">
           {navItems.map((item) => (
             <li key={item.to}>
               <NavLink
                 to={item.to}
-                onClick={() => {
-                  if (mobileOpen) onClose();
-                }}
-                className={({ isActive }) =>
-                  `flex items-center px-4 py-3 text-xs rounded-md transition-colors duration-150 hover:bg-[#1d4353] ${
-                    isActive ? "bg-[#567180]" : ""
-                  }`
-                }
+                onClick={closeOnMobile}
+                className={linkClass}
               >
-                <span className="mr-3 text-base ">{item.icon}</span>
-                <span className="leading-none tracking-wide text-md">
-                  {item.label}
-                </span>
+                <item.icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                <span>{item.label}</span>
               </NavLink>
             </li>
           ))}
 
-          {/* Profile Verification with submenu */}
           <li>
             <button
               type="button"
-              role="button"
               onClick={() => setOpenProfile((s) => !s)}
               aria-expanded={openProfile}
-              className="flex w-full items-center rounded-md px-4 py-3 text-xs transition-colors duration-150 hover:bg-[#1d4353]"
+              className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                profileActive
+                  ? "bg-[#496278] text-white"
+                  : "text-[#a7b8c9] hover:bg-[#102b48] hover:text-white"
+              }`}
             >
-              <span className="mr-3 text-base ">
-                <ProfileIcon className="w-5 h-5" />
-              </span>
-              <span className="leading-none tracking-wide text-md flex-1">
-                Profile Verification
-              </span>
-              <span className="text-sm opacity-80">
-                {openProfile ? "▾" : "▸"}
-              </span>
+              <ShieldCheck className="h-[18px] w-[18px]" strokeWidth={1.8} />
+              <span className="flex-1 text-left">Profile Verification</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${openProfile ? "" : "-rotate-90"}`} />
             </button>
 
             {openProfile && (
-              <ul className="ml-8 mt-2 space-y-1">
+              <ul className="ml-8 mt-1.5 space-y-1 border-l border-white/10 pl-3">
                 <li>
                   <NavLink
-                    to={"/admin/profile-verification/care-seekers"}
-                    onClick={() => {
-                      if (mobileOpen) onClose();
-                    }}
-                    className={({ isActive }) =>
-                      `block px-3 py-2 rounded text-sm transition-colors duration-150 hover:bg-[#1d4353] ${
-                        isActive ? "bg-[#567180]" : ""
-                      }`
-                    }
+                    to="/admin/profile-verification/care-seekers"
+                    onClick={closeOnMobile}
+                    className={linkClass}
                   >
                     Care Seekers
                   </NavLink>
                 </li>
                 <li>
                   <NavLink
-                    to={"/admin/profile-verification/care-providers"}
-                    onClick={() => {
-                      if (mobileOpen) onClose();
-                    }}
-                    className={({ isActive }) =>
-                      `block px-3 py-2 rounded text-sm transition-colors duration-150 hover:bg-[#1d4353] ${
-                        isActive ? "bg-[#567180]" : ""
-                      }`
-                    }
+                    to="/admin/profile-verification/care-providers"
+                    onClick={closeOnMobile}
+                    className={linkClass}
                   >
                     Care Providers
                   </NavLink>
@@ -145,26 +147,26 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
           </li>
           <li>
             <NavLink
-              to={"/admin/messages"}
-              onClick={() => {
-                if (mobileOpen) onClose();
-              }}
-              className={({ isActive }) =>
-                `flex items-center px-4 py-3 text-xs rounded-md transition-colors duration-150 hover:bg-[#1d4353] ${
-                  isActive ? "bg-[#567180]" : ""
-                }`
-              }
+              to="/admin/messages"
+              onClick={closeOnMobile}
+              className={linkClass}
             >
-              <span className="mr-3 text-base ">
-                <MessageNotifyIcon className="w-5 h-5" />
-              </span>
-              <span className="leading-none tracking-wide text-md">
-                Notifications & Messages
-              </span>
+              <MessageSquareText className="h-[18px] w-[18px]" strokeWidth={1.8} />
+              <span>Notifications &amp; Messages</span>
             </NavLink>
           </li>
         </ul>
       </nav>
+
+      <div className="mt-6 flex items-center gap-3 border-t border-white/10 px-3 pt-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#42c4e9]/15 text-[#42c4e9]">
+          <UserRound className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold text-white">Administrator</p>
+          <p className="mt-0.5 text-[10px] text-[#7890a7]">Staff account</p>
+        </div>
+      </div>
     </aside>
   );
 }

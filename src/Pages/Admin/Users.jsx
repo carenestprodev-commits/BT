@@ -737,6 +737,12 @@ function Users() {
       value: dashboardStats.seekers,
       icon: CubeIconPink,
     },
+    {
+      key: "signups",
+      label: "New signups",
+      value: dashboardStats.newSignups,
+      icon: CubeIconOrange,
+    },
   ];
 
   const profileStatsConfig = [
@@ -876,46 +882,44 @@ function Users() {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 font-sfpro text-slate-900">
-        <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="min-h-full w-full bg-[#f3f7fa] px-3 py-4 text-slate-900 font-sfpro sm:px-5 lg:px-7">
+        <div className="mx-auto w-full max-w-[1480px]">
+        <div className="mb-4 flex flex-col gap-3 border-b border-slate-200/80 pb-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Admin users
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0b93c6]">
+              Admin / Users
             </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
-              User operations
+            <h2 className="mt-1 text-[26px] font-semibold leading-none tracking-[-0.03em] text-[#102f42]">
+              Users
             </h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-2 text-xs text-slate-500">
               Showing {visibleCount.toLocaleString()} of {rows.length.toLocaleString()} loaded records
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500 shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          <div className="flex items-center justify-between gap-3 text-xs text-slate-500 sm:justify-end">
+            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               {activeStat === "all"
                 ? "All users"
                 : activeStat === "providers"
                   ? "Care providers"
-                  : "Care seekers"}{" "}
+                  : activeStat === "seekers"
+                    ? "Care seekers"
+                    : "New signups"}{" "}
               view
             </span>
-            {dashboardStats.newSignups > 0 && (
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500 shadow-sm">
-                New signups
-                <strong className="text-slate-900">
-                  {dashboardStats.newSignups.toLocaleString()}
-                </strong>
-              </span>
-            )}
+            <time dateTime={dayjs().format("YYYY-MM-DD")} className="whitespace-nowrap font-medium text-slate-600">
+              {dayjs().format("DD MMM YYYY")}
+            </time>
           </div>
         </div>
 
         {/* Alert */}
         {alert && (
           <div
-            className={`mb-4 px-4 py-3 rounded-md ${alert.type === "success"
-              ? "bg-green-50 border border-green-200 text-green-800"
-              : "bg-red-50 border border-red-200 text-red-800"
+            className={`mb-4 rounded-md border px-4 py-3 ${alert.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
               }`}
             role="alert"
           >
@@ -938,10 +942,10 @@ function Users() {
         )}
 
         {/* Controls */}
-        <div className="mb-5 rounded-[2rem] border border-slate-200 bg-white/95 p-4 shadow-[0_20px_40px_-28px_rgba(15,23,42,0.35)]">
+        <div className="mb-5 rounded-xl border border-slate-200/90 bg-white p-3 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.35)] sm:p-4">
           <div className="grid gap-3 xl:grid-cols-12">
             <div className="xl:col-span-4 min-w-0">
-              <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+              <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 shadow-none focus-within:border-[#0b93c6] focus-within:ring-2 focus-within:ring-[#0b93c6]/10">
                 <FaSearch className="mr-2 text-slate-400" />
                 <input
                   value={query}
@@ -956,7 +960,7 @@ function Users() {
               <select
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-8 text-sm shadow-sm"
+                className="w-full appearance-none rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-2.5 pr-8 text-sm shadow-none focus:border-[#0b93c6] focus:outline-none focus:ring-2 focus:ring-[#0b93c6]/10"
               >
                 <option value="All">All locations</option>
                 {locationOptions.map((location) => (
@@ -972,7 +976,7 @@ function Users() {
               <select
                 value={accountStatusFilter}
                 onChange={(e) => setAccountStatusFilter(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-8 text-sm shadow-sm"
+                className="w-full appearance-none rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-2.5 pr-8 text-sm shadow-none focus:border-[#0b93c6] focus:outline-none focus:ring-2 focus:ring-[#0b93c6]/10"
               >
                 <option value="All">Account status</option>
                 <option value="Active">Active accounts</option>
@@ -985,7 +989,7 @@ function Users() {
               <button
                 type="button"
                 onClick={() => setProfileFilterOpen((o) => !o)}
-                className="inline-flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm shadow-sm"
+                className="inline-flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-2.5 text-sm shadow-none"
               >
                 <span>
                   {profileStatusFilters.length === 0
@@ -998,7 +1002,7 @@ function Users() {
               </button>
 
               {profileFilterOpen && (
-                <div className="absolute left-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                <div className="absolute left-0 z-50 mt-2 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_24px_-12px_rgba(15,23,42,0.3)]">
                   {profileFilterOptions.map((opt) => (
                     <label
                       key={opt.value}
@@ -1031,14 +1035,14 @@ function Users() {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={() => setShowBulkChecker(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0b93c6] to-[#0a82b0] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:shadow-md active:scale-[0.98]"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0b93c6] px-4 py-2.5 text-sm font-medium text-white shadow-[0_5px_12px_-8px_rgba(11,147,198,0.8)] transition hover:bg-[#087fa9] active:scale-[0.98]"
               >
                 <FaSearch />
                 Bulk Profile Checker
               </button>
               <button
                 onClick={() => setShowScreeningModal(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0e2f43] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#102f42] px-4 py-2.5 text-sm font-medium text-white shadow-[0_5px_12px_-8px_rgba(16,47,66,0.8)] transition hover:bg-[#0b2636] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={selectedIds.length === 0}
               >
                 <FaCheck />
@@ -1053,14 +1057,14 @@ function Users() {
               <button
                 onClick={() => setShowEmailModal(true)}
                 disabled={selectedIds.length === 0}
-                className="inline-flex items-center gap-2 rounded-xl border border-[#0b93c6] px-4 py-2.5 text-sm font-medium text-[#0b93c6] transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-[#0b93c6] px-4 py-2.5 text-sm font-medium text-[#0b93c6] transition hover:bg-[#effaff] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <FaEnvelope />
                 Send Email
               </button>
               <button
                 onClick={() => setShowExportModal(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#0b93c6] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#0a82b0]"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#0b93c6] px-4 py-2.5 text-sm font-medium text-white shadow-[0_5px_12px_-8px_rgba(11,147,198,0.8)] transition hover:bg-[#087fa9]"
               >
                 <FaFileExport />
                 Export Data
@@ -1072,7 +1076,7 @@ function Users() {
                 className={`rounded-xl border px-4 py-2.5 text-sm font-medium ${
                   hasActiveFilters
                     ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-                    : "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                    : "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
                 }`}
               >
                 Clear all filters
@@ -1087,7 +1091,7 @@ function Users() {
                   key={filter.key}
                   type="button"
                   onClick={filter.clear}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
                 >
                   <span>{filter.label}</span>
                   <span className="text-slate-400">×</span>
@@ -1097,7 +1101,7 @@ function Users() {
           )}
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
           {statsConfig.map((s) => {
             const isActive = activeStat === s.key;
             return (
@@ -1105,16 +1109,16 @@ function Users() {
                 key={s.key}
                 type="button"
                 onClick={() => setActiveStat(s.key)}
-                className={`rounded-2xl border p-4 text-left transition ${
+                className={`min-h-[116px] rounded-xl border p-3.5 text-left transition sm:p-4 ${
                   isActive
-                    ? "border-[#0e2f43] bg-[#0e2f43] text-white shadow-lg shadow-slate-200"
-                    : "border-slate-200 bg-white text-slate-900 shadow-sm hover:border-slate-300"
+                    ? "border-[#102f42] bg-[#102f42] text-white shadow-[0_12px_24px_-16px_rgba(16,47,66,0.65)]"
+                    : "border-slate-200/90 bg-white text-slate-900 shadow-[0_8px_18px_-18px_rgba(15,23,42,0.5)] hover:border-[#8acfe7]"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex flex-col items-start">
                     <div
-                      className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full ${
+                      className={`mb-4 flex h-8 w-8 items-center justify-center rounded-full ${
                         isActive ? "bg-white/10" : "bg-slate-100"
                       }`}
                     >
@@ -1122,20 +1126,20 @@ function Users() {
                         const Icon = s.icon || CubeIcon;
                         return (
                           <Icon
-                            className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-700"}`}
+                            className={`h-4 w-4 ${isActive ? "text-white" : "text-[#0b93c6]"}`}
                           />
                         );
                       })()}
                     </div>
-                    <div className="text-sm font-medium">{s.label}</div>
+                    <div className={`text-xs font-medium sm:text-sm ${isActive ? "text-white" : "text-slate-700"}`}>{s.label}</div>
                     {isActive && (
-                      <div className="mt-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-white">
+                      <div className="mt-1 text-[9px] font-medium uppercase tracking-[0.16em] text-white/60">
                         Selected
                       </div>
                     )}
                   </div>
                   <div
-                    className={`text-2xl font-semibold ${
+                    className={`text-[25px] font-semibold tracking-tight ${
                       isActive ? "text-white" : "text-slate-900"
                     }`}
                   >
@@ -1147,7 +1151,7 @@ function Users() {
           })}
         </div>
 
-        <div className="mb-2 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mb-5 flex flex-wrap items-center divide-y divide-slate-200 border-y border-slate-200 bg-white px-3 sm:divide-x sm:divide-y-0 sm:px-4">
           {profileStatsConfig.map((s) => {
             const active = profileStatusFilters.includes(s.filterValue);
             return (
@@ -1155,27 +1159,27 @@ function Users() {
                 key={s.key}
                 type="button"
                 onClick={() => toggleProfileFilter(s.filterValue)}
-                className={`rounded-2xl border p-4 text-left transition ${
+                className={`flex flex-1 items-center justify-between gap-4 py-3 text-left transition sm:min-w-[190px] sm:px-4 ${
                   s.color === "red"
-                    ? active
-                      ? "border-red-300 bg-red-100 shadow-sm"
-                      : "border-red-200 bg-red-50 hover:bg-red-100"
+                      ? active
+                        ? "bg-red-50"
+                        : "hover:bg-red-50"
                     : s.color === "yellow"
                       ? active
-                        ? "border-yellow-300 bg-yellow-100 shadow-sm"
-                        : "border-yellow-200 bg-yellow-50 hover:bg-yellow-100"
+                        ? "bg-yellow-50"
+                        : "hover:bg-yellow-50"
                       : active
-                        ? "border-green-300 bg-green-100 shadow-sm"
-                        : "border-green-200 bg-green-50 hover:bg-green-100"
+                        ? "bg-emerald-50"
+                        : "hover:bg-emerald-50"
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-slate-700">{s.label}</div>
-                    <div className="mt-1 text-2xl font-semibold text-slate-900">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">{s.label}</div>
+                    <div className="mt-0.5 text-xl font-semibold text-slate-900">
                       {s.value.toLocaleString()}
                     </div>
-                    <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
+                    <div className="mt-0.5 text-[10px] text-slate-400">
                       {active ? "Click to clear" : "Click to filter"}
                     </div>
                   </div>
@@ -1198,11 +1202,11 @@ function Users() {
             );
           })}
         </div>
-        <div className="mb-6 text-xs text-slate-500">
+        <div className="mb-5 text-[11px] text-slate-400">
           Click a status card to filter instantly.
         </div>
 
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
           <span>
             {selectedIds.length.toLocaleString()} selected
           </span>
@@ -1999,7 +2003,7 @@ function Users() {
             paginated.map((r) => (
               <article
                 key={r.id}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-[0_8px_18px_-18px_rgba(15,23,42,0.5)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
@@ -2012,7 +2016,7 @@ function Users() {
                     <UserAvatar
                       name={r.name}
                       imageUrl={r.profileImageUrl}
-                      className="h-12 w-12 rounded-2xl bg-slate-200"
+                      className="h-11 w-11 rounded-full bg-slate-200"
                     />
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-slate-900">
@@ -2061,7 +2065,7 @@ function Users() {
                   <button
                     type="button"
                     onClick={() => openUserDetail(r)}
-                    className="flex-1 rounded-xl border border-[#0b93c6] py-2.5 text-sm font-medium text-[#0b93c6]"
+                    className="flex-1 rounded-lg border border-[#0b93c6] py-2.5 text-sm font-medium text-[#0b93c6] transition hover:bg-[#effaff] active:scale-[0.98]"
                   >
                     View
                   </button>
@@ -2070,7 +2074,7 @@ function Users() {
                     onClick={() =>
                       setOpenMenuId((current) => (current === r.id ? null : r.id))
                     }
-                    className="flex-1 rounded-xl bg-slate-900 py-2.5 text-sm font-medium text-white"
+                    className="flex-1 rounded-lg bg-[#102f42] py-2.5 text-sm font-medium text-white transition hover:bg-[#0b2636] active:scale-[0.98]"
                   >
                     Actions
                   </button>
@@ -2163,9 +2167,9 @@ function Users() {
         </div>
 
         {/* Table */}
-        <div className="hidden overflow-x-auto rounded-md bg-white text-black shadow-sm md:block">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500">
+        <div className="hidden overflow-x-auto rounded-xl border border-slate-200/90 bg-white text-black shadow-[0_10px_24px_-20px_rgba(15,23,42,0.45)] md:block">
+          <table className="w-full text-[13px]">
+            <thead className="border-b border-slate-200 bg-slate-50/80 text-[10px] uppercase tracking-[0.13em] text-slate-500">
               <tr>
                 <th className="p-3">
                   <input
@@ -2196,10 +2200,7 @@ function Users() {
             </thead>
             <tbody>
               {paginated.map((r) => (
-                <tr
-                  key={r.id}
-                  className="border-b last:border-b-0 hover:bg-slate-50"
-                >
+                <tr key={r.id} className="border-b border-slate-100 last:border-b-0 hover:bg-[#f6fbfd]">
                   <td className="p-3">
                     <input
                       type="checkbox"
@@ -2208,7 +2209,7 @@ function Users() {
                       className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
                     />
                   </td>
-                  <td className="p-3 flex items-center gap-3">
+                  <td className="flex items-center gap-3 px-4 py-3">
                     <UserAvatar
                       name={r.name}
                       imageUrl={r.profileImageUrl}
@@ -2219,23 +2220,23 @@ function Users() {
                       <div className="font-medium">{r.name}</div>
                     </div>
                   </td>
-                  <td className="p-3">{r.userType}</td>
-                  <td className="p-3 text-slate-600">{r.email}</td>
-                  <td className="p-3">{r.phone}</td>
-                  <td className="p-3">{getVerificationBadge(r)}</td>
-                  <td className="p-3">{r.onboard}</td>
-                  <td className="p-3">
+                  <td className="px-4 py-3 text-slate-600">{r.userType}</td>
+                  <td className="px-4 py-3 text-slate-600">{r.email}</td>
+                  <td className="px-4 py-3 text-slate-600">{r.phone}</td>
+                  <td className="px-4 py-3">{getVerificationBadge(r)}</td>
+                  <td className="px-4 py-3 text-slate-600">{r.onboard}</td>
+                  <td className="px-4 py-3">
                     <div className="relative inline-block">
                       <button
                         onClick={() =>
                           setOpenMenuId(openMenuId === r.id ? null : r.id)
                         }
-                        className="rounded px-2 py-1 text-black hover:bg-gray-100"
+                        className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                       >
                         •••
                       </button>
                       {openMenuId === r.id && (
-                        <div className="absolute right-0 z-10 mt-2 w-48 rounded border border-gray-200 bg-white text-sm shadow">
+                        <div className="absolute right-0 z-10 mt-2 w-48 rounded-lg border border-slate-200 bg-white text-sm shadow-[0_12px_24px_-12px_rgba(15,23,42,0.3)]">
                           <ul>
                             <li
                               onClick={() => {
@@ -2328,7 +2329,7 @@ function Users() {
         </div>
 
         {filtered.length > 0 && (
-          <div className="mt-4 flex flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 md:flex-row">
+          <div className="mt-3 flex flex-col items-center justify-between gap-3 border-t border-slate-200 px-1 py-3 text-sm text-slate-600 md:flex-row">
             <div>
               Showing {(currentPage - 1) * pageSize + 1}
               {" "}
@@ -2359,6 +2360,7 @@ function Users() {
             </div>
           </div>
         )}
+      </div>
       </div>
 
       <DataExportModal
