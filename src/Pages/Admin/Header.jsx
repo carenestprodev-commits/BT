@@ -56,10 +56,7 @@ function Header({ title = "Admin", onToggleSidebar }) {
             <Menu className="h-5 w-5" />
           </button>
           <div className="min-w-0">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8a9aaa]">
-              Admin workspace
-            </p>
-            <h1 className="truncate text-xl font-semibold tracking-[-0.03em] text-[#102b46] sm:text-2xl">
+            <h1 className="truncate text-xl font-medium tracking-[-0.03em] text-[#4b4b4b] sm:text-2xl">
               {title}
             </h1>
           </div>

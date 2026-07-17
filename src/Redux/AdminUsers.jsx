@@ -111,6 +111,25 @@ export const fetchUserById = createAsyncThunk(
   },
 );
 
+export const updateUser = createAsyncThunk(
+  "adminUsers/updateUser",
+  async ({ id, changes }, { rejectWithValue }) => {
+    try {
+      const access = localStorage.getItem("accessToken") || localStorage.getItem("access");
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/${id}/`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${access}`, "Content-Type": "application/json" },
+        body: JSON.stringify(changes),
+      });
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data);
+      return data;
+    } catch {
+      return rejectWithValue({ error: "Network error" });
+    }
+  },
+);
+
 export const deleteUser = createAsyncThunk(
   "adminUsers/deleteUser",
   async (id, { rejectWithValue }) => {
@@ -147,6 +166,27 @@ export const deleteUserImage = createAsyncThunk(
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
       return { id };
+    } catch {
+      return rejectWithValue({ error: "Network error" });
+    }
+  },
+);
+
+export const uploadUserImage = createAsyncThunk(
+  "adminUsers/uploadUserImage",
+  async ({ id, file }, { rejectWithValue }) => {
+    try {
+      const access = localStorage.getItem("accessToken") || localStorage.getItem("access");
+      const form = new FormData();
+      form.append("profile_image", file);
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/${id}/upload-image/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${access}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data);
+      return data;
     } catch {
       return rejectWithValue({ error: "Network error" });
     }
@@ -575,6 +615,12 @@ const slice = createSlice({
       .addCase(fetchUserById.rejected, (state, action) => {
         state.currentUserLoading = false;
         state.currentUserError = action.payload || action.error;
+      })
+
+      .addCase(updateUser.fulfilled, (state, action) => {
+        const user = action.payload;
+        state.users = state.users.map((item) => item.id === user.id ? { ...item, ...user } : item);
+        if (state.currentUser?.id === user.id) state.currentUser = user;
       })
 
       .addCase(deleteUser.pending, (state) => {

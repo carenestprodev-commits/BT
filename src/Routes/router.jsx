@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { createBrowserRouter } from "react-router-dom";
 import Home from "../Pages/Home/Home";
 import CareSeekerLoginPage from "../Pages/CareSeekers/LoginPage";
@@ -53,6 +52,7 @@ import Support from "../Pages/Admin/Support";
 import ProfileVerificationSeeker from "../Pages/Admin/ProfileVerificationSeeker";
 import ProfileVerificationProvider from "../Pages/Admin/ProfileVerificationProvider";
 import MessageAdmin from "../Pages/Admin/Message";
+import Jobs from "../Pages/Admin/Jobs";
 
 import BookingService from "../Pages/CareSeekers/BookingaService/Signup";
 
@@ -481,9 +481,23 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Users /> },
       { path: "users", element: <Users /> },
+      { path: "users/providers", element: <Users initialStat="providers" /> },
+      { path: "users/seekers", element: <Users initialStat="seekers" /> },
       { path: "activities", element: <Activities /> },
+      { path: "jobs", element: <Jobs /> },
+      { path: "jobs/requests", element: <Jobs /> },
+      { path: "jobs/conversations", element: <MessageAdmin /> },
+      { path: "jobs/message", element: <MessageAdmin /> },
+      { path: "jobs/reviews", element: <Support /> },
       { path: "earnings", element: <Earnings /> },
+      { path: "earnings/fees", element: <Earnings /> },
+      { path: "earnings/transactions", element: <Earnings /> },
+      { path: "earnings/wallet-transactions", element: <Earnings /> },
+      { path: "earnings/wallet", element: <Earnings /> },
       { path: "subscription", element: <Subscription /> },
+      { path: "subscription/plans", element: <Subscription /> },
+      { path: "subscription/users", element: <Subscription /> },
+      { path: "token-blacklist", element: <Support /> },
       { path: "support", element: <Support /> },
       { path: "profile-verification", element: <ProfileVerificationSeeker /> },
       {

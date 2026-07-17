@@ -42,6 +42,8 @@ import {
   updateUserScreening,
   bulkUpdateUserScreening,
   clearCurrentUser,
+  updateUser,
+  uploadUserImage,
 } from "../../Redux/AdminUsers";
 import { updateUserVerification } from "../../Redux/Login";
 import { BASE_URL } from "../../Redux/config";
@@ -376,7 +378,7 @@ const buildAdminSections = (user) => [
     ]),
 ];
 
-function Users() {
+function Users({ initialStat = "all" }) {
   const dispatch = useDispatch();
   const { stats, users } = useSelector(
     (s) => s.adminUsers || { stats: {}, users: [] },
@@ -387,9 +389,10 @@ function Users() {
   const [sortBy, setSortBy] = useState({ key: "onboard", dir: "desc" });
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [activeStat, setActiveStat] = useState("all");
+  const [activeStat, setActiveStat] = useState(initialStat);
   const [accountStatusFilter, setAccountStatusFilter] = useState("All");
   const [editRow, setEditRow] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -443,6 +446,10 @@ function Users() {
     setSelectedIds([]); // Clear selection when switching tabs
     dispatch(fetchAdminStats());
   }, [dispatch, activeStat]);
+
+  useEffect(() => {
+    setActiveStat(initialStat);
+  }, [initialStat]);
 
   // Fetch appropriate user list when activeStat changes
   useEffect(() => {
@@ -780,6 +787,7 @@ function Users() {
       ...row,
       is_suspend: row.accountStatus !== "Active",
     });
+    setIsEditing(false);
     setOpenMenuId(null);
     dispatch(fetchUserById(row.id));
   };
@@ -1403,6 +1411,13 @@ function Users() {
                       <p className="mt-1 text-sm text-[#667085]">
                         {editRow.email}
                       </p>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditing(true)}
+                        className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        <FaEdit /> Edit
+                      </button>
                     </div>
                   </div>
 
@@ -1431,7 +1446,64 @@ function Users() {
               </div>
 
               <div className="flex-1 overflow-y-auto bg-white px-6 py-6 sm:px-8">
-                <div className="grid gap-4">
+                {isEditing ? (
+                  <form
+                    id="admin-user-edit"
+                    className="space-y-4"
+                    onSubmit={async (event) => {
+                      event.preventDefault();
+                      try {
+                        const saved = await dispatch(updateUser({
+                          id: editRow.id,
+                          changes: {
+                            full_name: editRow.name,
+                            email: editRow.email,
+                            phone_number: editRow.phone,
+                            username: editRow.username || editRow.email,
+                            country: editRow.country,
+                            user_type: editRow.user_type,
+                            is_active: !editRow.is_suspend,
+                            is_staff: Boolean(editRow.is_staff),
+                            is_superuser: Boolean(editRow.is_superuser),
+                          },
+                        })).unwrap();
+                        setEditRow((previous) => ({ ...previous, ...saved, name: saved.full_name || previous.name, phone: saved.phone_number || "" }));
+                        setIsEditing(false);
+                        setAlert({ type: "success", text: "User details saved." });
+                      } catch (saveError) {
+                        setAlert({ type: "error", text: saveError?.email?.[0] || saveError?.error || "Failed to save user details." });
+                      }
+                    }}
+                  >
+                    {[
+                      ["Full name", "name"],
+                      ["Email address", "email"],
+                      ["Phone number", "phone"],
+                      ["Username", "username"],
+                      ["Country", "country"],
+                    ].map(([label, key]) => (
+                      <label key={key} className="block text-sm font-medium text-slate-700">
+                        {label}
+                        <input value={editRow[key] || ""} onChange={(event) => setEditRow((previous) => ({ ...previous, [key]: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-[#0b93c6]" />
+                      </label>
+                    ))}
+                    <label className="block text-sm font-medium text-slate-700">Profile image
+                      <input type="file" accept="image/*" onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { const saved = await dispatch(uploadUserImage({ id: editRow.id, file })).unwrap(); setEditRow((previous) => ({ ...previous, profileImageUrl: saved.profile_image_url || previous.profileImageUrl })); } catch (uploadError) { setAlert({ type: "error", text: uploadError?.error || "Failed to upload image." }); } }} className="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                    </label>
+                    <label className="block text-sm font-medium text-slate-700">User type
+                      <select value={editRow.user_type || "seeker"} onChange={(event) => setEditRow((previous) => ({ ...previous, user_type: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
+                        <option value="seeker">Care seeker</option><option value="provider">Care provider</option>
+                      </select>
+                    </label>
+                    <label className="block text-sm font-medium text-slate-700">Status
+                      <select value={editRow.is_suspend ? "suspended" : "active"} onChange={(event) => setEditRow((previous) => ({ ...previous, is_suspend: event.target.value === "suspended" }))} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
+                        <option value="active">Active</option><option value="suspended">Suspended</option>
+                      </select>
+                    </label>
+                    <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" checked={Boolean(editRow.is_staff)} onChange={(event) => setEditRow((previous) => ({ ...previous, is_staff: event.target.checked }))} className="mt-0.5" /><span><span className="font-medium">Staff status</span><span className="block text-xs text-slate-500">Allows this user to log into the admin site.</span></span></label>
+                    <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" checked={Boolean(editRow.is_superuser)} onChange={(event) => setEditRow((previous) => ({ ...previous, is_superuser: event.target.checked }))} className="mt-0.5" /><span><span className="font-medium">Superuser status</span><span className="block text-xs text-slate-500">Grants all admin permissions.</span></span></label>
+                  </form>
+                ) : <div className="grid gap-4">
                   {detailSections.map((section) => (
                     <section
                       key={section.title}
@@ -1459,11 +1531,16 @@ function Users() {
                       </div>
                     </section>
                   ))}
-                </div>
+                </div>}
               </div>
 
               <div className="shrink-0 border-t border-[#EAECF0] bg-white px-6 py-4 sm:px-8">
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                {isEditing ? (
+                  <div className="flex justify-end gap-3">
+                    <button type="button" onClick={() => setIsEditing(false)} className="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700">Cancel</button>
+                    <button type="submit" form="admin-user-edit" className="rounded-lg bg-[#0b93c6] px-5 py-2.5 text-sm font-semibold text-white">Save</button>
+                  </div>
+                ) : <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <button className="w-full rounded-md bg-[#0b93c6] py-2 text-white sm:w-auto sm:px-5">
                     Message
                   </button>
@@ -1597,7 +1674,7 @@ function Users() {
                       </button>
                     </>
                   )}
-                </div>
+                </div>}
               </div>
             </div>
           </div>
