@@ -155,15 +155,15 @@ function ProfileVerificationProvider() {
                   <th className="px-3 py-2.5 text-left">Verification Status</th>
                   <th className="px-3 py-2.5 text-left">Vetting Feedback</th>
                   <th className="px-3 py-2.5 text-left">Last Updated</th>
-                  <th className="w-12 px-3 py-2.5 text-left">...</th>
+                  <th className="hidden w-12 px-3 py-2.5 text-left">...</th>
                 </tr>
               </thead>
               <tbody>
                 {displayRows.map((r, idx) =>
                   r ? (
-                    <tr key={r.id} className="border-b border-slate-100 hover:bg-cyan-50/40">
+                    <tr key={r.id} onClick={() => { setShowDetailId(r.id); dispatch(fetchVerificationById(r.id)); }} className="cursor-pointer border-b border-slate-100 hover:bg-cyan-50/40">
                       <td className="align-top px-3 py-2.5">
-                        <input type="checkbox" />
+                        <input type="checkbox" onClick={(event) => event.stopPropagation()} />
                       </td>
                       <td className="align-top px-3 py-2.5 font-medium text-slate-900">
                         {r.name}
@@ -188,7 +188,7 @@ function ProfileVerificationProvider() {
                           ? dayjs(r.last_updated).format("DD-MM-YYYY")
                           : ""}
                       </td>
-                      <td className="align-top px-3 py-2.5">
+                      <td className="hidden align-top px-3 py-2.5">
                         <div className="relative inline-block">
                           <button
                             onClick={() =>
@@ -367,9 +367,16 @@ function ProfileVerificationProvider() {
 
       {/* Detail modal */}
       {showDetailId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
-            <div className="flex justify-between items-center">
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-[#0E2F43]/30"
+            onClick={() => {
+              setShowDetailId(null);
+              dispatch(clearCurrentVerification());
+            }}
+          />
+          <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[560px] flex-col overflow-hidden bg-white shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-200 px-6 py-5">
               <h3 className="text-lg font-medium">Verification Detail</h3>
               <button
                 className="text-gray-500"
@@ -381,7 +388,7 @@ function ProfileVerificationProvider() {
                 &times;
               </button>
             </div>
-            <div className="mt-4">
+            <div className="mt-4 flex-1 overflow-y-auto px-6">
               {currentLoading ? (
                 <div>Loading...</div>
               ) : (
@@ -491,7 +498,7 @@ function ProfileVerificationProvider() {
               )}
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="shrink-0 border-t border-slate-200 bg-white px-6 py-4 flex justify-end gap-2">
               {actionError && (
                 <div className="text-red-600 mr-auto">
                   {typeof actionError === "string"
@@ -556,6 +563,9 @@ function ProfileVerificationProvider() {
               >
                 {actionLoading ? "Approving..." : "Approve"}
               </button>
+              <button className="btn btn-outline" onClick={() => dispatch(postVerificationAction({ id: showDetailId, action: "message" }))} disabled={actionLoading}>Message</button>
+              <button className="btn btn-outline" onClick={() => dispatch(postVerificationAction({ id: showDetailId, action: "re_upload" }))} disabled={actionLoading}>Request re-upload</button>
+              <button className="btn btn-outline" onClick={() => dispatch(postVerificationAction({ id: showDetailId, action: "send_prompt" }))} disabled={actionLoading}>Send prompt</button>
             </div>
           </div>
         </div>

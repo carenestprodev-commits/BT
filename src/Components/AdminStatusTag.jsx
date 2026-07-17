@@ -10,6 +10,8 @@ const STATUS_STYLES = {
   clear: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   pending: "bg-violet-50 text-violet-700 ring-violet-200",
   pending_approval: "bg-violet-50 text-violet-700 ring-violet-200",
+  draft: "bg-slate-100 text-slate-600 ring-slate-200",
+  published: "bg-sky-50 text-sky-700 ring-sky-200",
   in_review: "bg-amber-50 text-amber-700 ring-amber-200",
   under_review: "bg-amber-50 text-amber-700 ring-amber-200",
   in_progress: "bg-amber-50 text-amber-700 ring-amber-200",
