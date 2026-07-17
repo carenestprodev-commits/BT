@@ -151,14 +151,14 @@ function ProfileVerificationSeeker() {
                 <th className="px-3 py-2.5 text-left">Status</th>
                 <th className="px-3 py-2.5 text-left">Feedback</th>
                 <th className="px-3 py-2.5 text-left">Last Updated</th>
-                <th className="w-12 px-3 py-2.5 text-left">...</th>
+                <th className="hidden w-12 px-3 py-2.5 text-left">...</th>
               </tr>
             </thead>
             <tbody>
               {pageRows.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100 hover:bg-cyan-50/40">
+                <tr key={r.id} onClick={() => { setShowDetailId(r.id); dispatch(fetchVerificationById(r.id)); }} className="cursor-pointer border-b border-slate-100 hover:bg-cyan-50/40">
                   <td className="align-top px-3 py-2.5">
-                    <input type="checkbox" />
+                    <input type="checkbox" onClick={(event) => event.stopPropagation()} />
                   </td>
                   <td className="align-top px-3 py-2.5 font-medium text-slate-900">
                     {r.name}
@@ -181,7 +181,7 @@ function ProfileVerificationSeeker() {
                       ? dayjs(r.last_updated).format("DD-MM-YYYY")
                       : ""}
                   </td>
-                  <td className="align-top px-3 py-2.5">
+                  <td className="hidden align-top px-3 py-2.5">
                     <div className="relative inline-block">
                       <button
                         onClick={() =>
@@ -346,9 +346,7 @@ function ProfileVerificationSeeker() {
 
         {showDetailId && (current || currentLoading) && (
           <div
-            className={`fixed inset-0 z-40 flex items-start justify-center p-6 ${
-              current ? "" : "pointer-events-none"
-            }`}
+            className={`fixed inset-0 z-50 ${current ? "" : "pointer-events-none"}`}
           >
             <div
               className="absolute inset-0 bg-black/30"
@@ -357,8 +355,8 @@ function ProfileVerificationSeeker() {
                 setShowDetailId(null);
               }}
             />
-            <div className="relative z-50 flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-              <div className="p-5 border-b flex justify-between items-start">
+            <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[560px] flex-col overflow-hidden bg-white shadow-2xl">
+              <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
                 <h3 className="text-lg font-medium text-black">
                   Verification Details
                 </h3>
@@ -458,7 +456,7 @@ function ProfileVerificationSeeker() {
                   </div>
                 )}
               </div>
-              <div className="p-4 border-t flex flex-col gap-3">
+              <div className="shrink-0 border-t border-slate-200 bg-white p-4 flex flex-col gap-3">
                 <button
                   disabled={actionLoading}
                   onClick={() =>
@@ -495,6 +493,9 @@ function ProfileVerificationSeeker() {
                 >
                   Reject
                 </button>
+                <button disabled={actionLoading} onClick={() => dispatch(postVerificationAction({ id: showDetailId, action: "message" }))} className="w-full border border-slate-300 text-slate-700 py-2 rounded">Message</button>
+                <button disabled={actionLoading} onClick={() => dispatch(postVerificationAction({ id: showDetailId, action: "re_upload" }))} className="w-full border border-slate-300 text-slate-700 py-2 rounded">Request re-upload</button>
+                <button disabled={actionLoading} onClick={() => dispatch(postVerificationAction({ id: showDetailId, action: "send_prompt" }))} className="w-full border border-slate-300 text-slate-700 py-2 rounded">Send prompt</button>
               </div>
             </div>
           </div>

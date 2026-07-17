@@ -54,7 +54,7 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
 
   const rootClass = mobileOpen
     ? "fixed inset-y-0 left-0 z-50 flex min-h-[100dvh] w-[268px] flex-col bg-[#0E3347] text-white shadow-2xl md:hidden"
-    : "hidden min-h-[100dvh] w-[268px] shrink-0 flex-col bg-[#0E3347] text-white md:flex";
+    : "sticky top-0 hidden h-[100dvh] w-[268px] shrink-0 flex-col overflow-y-auto overscroll-contain bg-[#0E3347] text-white md:flex";
 
   const closeOnMobile = () => {
     if (mobileOpen) onClose();
@@ -93,7 +93,7 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
             <li key={link.label + index}>
               <NavLink
                 to={link.to}
-                end={link.end}
+                end={link.end ?? true}
                 onClick={closeOnMobile}
                 className={childLinkClass}
               >

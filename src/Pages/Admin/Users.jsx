@@ -788,7 +788,6 @@ function Users({ initialStat = "all" }) {
       is_suspend: row.accountStatus !== "Active",
     });
     setIsEditing(false);
-    setOpenMenuId(null);
     dispatch(fetchUserById(row.id));
   };
 
@@ -1541,6 +1540,32 @@ function Users({ initialStat = "all" }) {
                     <button type="submit" form="admin-user-edit" className="rounded-lg bg-[#0b93c6] px-5 py-2.5 text-sm font-semibold text-white">Save</button>
                   </div>
                 ) : <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedUserForDocs(editRow);
+                      setShowDocumentsModal(true);
+                    }}
+                    className="w-full rounded-md border border-slate-300 py-2 text-slate-700 sm:w-auto sm:px-4"
+                  >
+                    Mark documents
+                  </button>
+                  {editRow.documents_received && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedUserForPayment(editRow);
+                        setShowManualPaymentModal(true);
+                      }}
+                      className="w-full rounded-md bg-blue-600 py-2 text-white sm:w-auto sm:px-4"
+                    >
+                      Approve user
+                    </button>
+                  )}
+                  <button type="button" onClick={() => { setSingleEmailUser(editRow); setShowEmailModal(true); }} className="w-full rounded-md border border-slate-300 py-2 text-slate-700 sm:w-auto sm:px-4">Send email</button>
+                  <button type="button" onClick={() => { setSelectedUserForTemplate(editRow); setShowTemplatesModal(true); }} className="w-full rounded-md border border-slate-300 py-2 text-slate-700 sm:w-auto sm:px-4">Quick message</button>
+                  <button type="button" onClick={() => { setSelectedUserForTimeline(editRow.id); setShowTimelineModal(true); }} className="w-full rounded-md border border-slate-300 py-2 text-slate-700 sm:w-auto sm:px-4">View timeline</button>
+                  <button type="button" onClick={() => setDeleteRow(editRow)} className="w-full rounded-md border border-red-200 py-2 text-red-600 sm:w-auto sm:px-4">Delete</button>
                   <button className="w-full rounded-md bg-[#0b93c6] py-2 text-white sm:w-auto sm:px-5">
                     Message
                   </button>
@@ -1957,7 +1982,8 @@ function Users({ initialStat = "all" }) {
             paginated.map((r) => (
               <article
                 key={r.id}
-                className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-[0_8px_18px_-18px_rgba(15,23,42,0.5)]"
+                onClick={() => openUserDetail(r)}
+                className="cursor-pointer rounded-xl border border-slate-200/90 bg-white p-4 shadow-[0_8px_18px_-18px_rgba(15,23,42,0.5)] transition hover:border-[#8acfe7]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
@@ -1965,6 +1991,7 @@ function Users({ initialStat = "all" }) {
                       type="checkbox"
                       checked={selectedIds.includes(r.id)}
                       onChange={() => toggleSelectRow(r.id)}
+                      onClick={(event) => event.stopPropagation()}
                       className="mt-1 h-4 w-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
                     />
                     <UserAvatar
@@ -2015,106 +2042,6 @@ function Users({ initialStat = "all" }) {
                   </div>
                 </div>
 
-                <div className="mt-4 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openUserDetail(r)}
-                    className="flex-1 rounded-lg border border-[#0b93c6] py-2.5 text-sm font-medium text-[#0b93c6] transition hover:bg-[#effaff] active:scale-[0.98]"
-                  >
-                    View
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setOpenMenuId((current) => (current === r.id ? null : r.id))
-                    }
-                    className="flex-1 rounded-lg bg-[#102f42] py-2.5 text-sm font-medium text-white transition hover:bg-[#0b2636] active:scale-[0.98]"
-                  >
-                    Actions
-                  </button>
-                </div>
-
-                {openMenuId === r.id && (
-                  <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-sm">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        openUserDetail(r);
-                        setOpenMenuId(null);
-                      }}
-                      className="block w-full px-4 py-3 text-left text-slate-900 hover:bg-white"
-                    >
-                      View details
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedUserForDocs(r);
-                        setShowDocumentsModal(true);
-                        setOpenMenuId(null);
-                      }}
-                      className="block w-full px-4 py-3 text-left text-slate-900 hover:bg-white"
-                    >
-                      Mark documents
-                    </button>
-                    {r.documents_received && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedUserForPayment(r);
-                          setShowManualPaymentModal(true);
-                          setOpenMenuId(null);
-                        }}
-                        className="block w-full px-4 py-3 text-left font-medium text-blue-600 hover:bg-white"
-                      >
-                        Approve user
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSingleEmailUser(r);
-                        setShowEmailModal(true);
-                        setOpenMenuId(null);
-                      }}
-                      className="block w-full px-4 py-3 text-left text-slate-900 hover:bg-white"
-                    >
-                      Send email
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedUserForTemplate(r);
-                        setShowTemplatesModal(true);
-                        setOpenMenuId(null);
-                      }}
-                      className="block w-full px-4 py-3 text-left text-slate-900 hover:bg-white"
-                    >
-                      Quick message
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedUserForTimeline(r.id);
-                        setShowTimelineModal(true);
-                        setOpenMenuId(null);
-                      }}
-                      className="block w-full px-4 py-3 text-left text-slate-900 hover:bg-white"
-                    >
-                      View timeline
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDeleteRow(r);
-                        setOpenMenuId(null);
-                      }}
-                      className="block w-full px-4 py-3 text-left text-red-600 hover:bg-white"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
               </article>
             ))
           )}
@@ -2149,17 +2076,18 @@ function Users({ initialStat = "all" }) {
                 >
                   onboarding Date
                 </th>
-                <th className="p-3"> </th>
+                <th className="hidden p-3"> </th>
               </tr>
             </thead>
             <tbody>
               {paginated.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100 last:border-b-0 hover:bg-[#f6fbfd]">
+                <tr key={r.id} onClick={() => openUserDetail(r)} className="cursor-pointer border-b border-slate-100 last:border-b-0 hover:bg-[#f6fbfd]">
                   <td className="p-3">
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(r.id)}
                       onChange={() => toggleSelectRow(r.id)}
+                      onClick={(event) => event.stopPropagation()}
                       className="w-4 h-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
                     />
                   </td>
@@ -2179,7 +2107,7 @@ function Users({ initialStat = "all" }) {
                   <td className="px-4 py-3 text-slate-600">{r.phone}</td>
                   <td className="px-4 py-3">{getVerificationBadge(r)}</td>
                   <td className="px-4 py-3 text-slate-600">{r.onboard}</td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-4 py-3">
                     <div className="relative inline-block">
                       <button
                         onClick={() =>

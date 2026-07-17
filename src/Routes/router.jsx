@@ -53,6 +53,7 @@ import ProfileVerificationSeeker from "../Pages/Admin/ProfileVerificationSeeker"
 import ProfileVerificationProvider from "../Pages/Admin/ProfileVerificationProvider";
 import MessageAdmin from "../Pages/Admin/Message";
 import Jobs from "../Pages/Admin/Jobs";
+import JobRequests from "../Pages/Admin/JobRequests";
 
 import BookingService from "../Pages/CareSeekers/BookingaService/Signup";
 
@@ -485,7 +486,7 @@ export const router = createBrowserRouter([
       { path: "users/seekers", element: <Users initialStat="seekers" /> },
       { path: "activities", element: <Activities /> },
       { path: "jobs", element: <Jobs /> },
-      { path: "jobs/requests", element: <Jobs /> },
+      { path: "jobs/requests", element: <JobRequests /> },
       { path: "jobs/conversations", element: <MessageAdmin /> },
       { path: "jobs/message", element: <MessageAdmin /> },
       { path: "jobs/reviews", element: <Support /> },
