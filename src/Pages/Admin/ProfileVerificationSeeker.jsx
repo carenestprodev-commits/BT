@@ -8,6 +8,7 @@ import {
   postVerificationAction,
   clearCurrentVerification,
 } from "../../Redux/Verification";
+import AdminStatusTag from "../../Components/AdminStatusTag";
 
 function ProfileVerificationSeeker() {
   const dispatch = useDispatch();
@@ -119,9 +120,11 @@ function ProfileVerificationSeeker() {
                     {r.payment_option}
                   </td>
                   <td className="align-top px-3 py-2.5 text-slate-900">
-                    {r.payment_status}
+                    <AdminStatusTag value={r.payment_status} />
                   </td>
-                  <td className="align-top px-3 py-2.5 text-slate-900">{r.status}</td>
+                  <td className="align-top px-3 py-2.5 text-slate-900">
+                    <AdminStatusTag value={r.status} />
+                  </td>
                   <td className="align-top px-3 py-2.5 text-slate-900">{r.feedback}</td>
                   <td className="align-top px-3 py-2.5 text-slate-900">
                     {r.last_updated
@@ -345,12 +348,14 @@ function ProfileVerificationSeeker() {
                         Payment Status
                       </div>
                       <div className="text-gray-900">
-                        {current.payment_status}
+                        <AdminStatusTag value={current.payment_status} />
                       </div>
                     </div>
                     <div className="mb-3">
                       <div className="text-gray-500 text-xs">Status</div>
-                      <div className="text-gray-900">{current.status}</div>
+                      <div className="text-gray-900">
+                        <AdminStatusTag value={current.status} />
+                      </div>
                     </div>
                     <div className="mb-3">
                       <div className="text-gray-500 text-xs">Feedback</div>

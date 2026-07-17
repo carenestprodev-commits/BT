@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { FaSearch } from "react-icons/fa";
 import dayjs from "dayjs";
+import AdminStatusTag from "../../Components/AdminStatusTag";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchNotifications,
@@ -94,7 +95,7 @@ function Message() {
                   {r.sent_at ? dayjs(r.sent_at).format("DD-MM-YYYY") : ""}
                 </td>
                 <td className="align-top px-3 py-2.5 text-slate-900">
-                  {r.delivery_status}
+                  <AdminStatusTag value={r.delivery_status} />
                 </td>
                 <td className="align-top px-3 py-2.5">
                   <div className="relative inline-block">
@@ -272,7 +273,7 @@ function Message() {
                   <div className="mb-3">
                     <div className="text-gray-500 text-xs">Delivery Status</div>
                     <div className="text-gray-900">
-                      {current.delivery_status}
+                      <AdminStatusTag value={current.delivery_status} />
                     </div>
                   </div>
                 </>
