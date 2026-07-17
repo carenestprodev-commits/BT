@@ -16,8 +16,8 @@ function AdminLayout() {
     subscription: "Subscription",
     support: "Support",
     "profile-verification": "Profile Verification",
-    "profile-verification/care-seekers": "Care Seekers",
-    "profile-verification/care-providers": "Care Providers",
+    "profile-verification/care-seekers": "Profile Verification — Care Seekers",
+    "profile-verification/care-providers": "Profile Verification — Care Providers",
     messages: "Notifications & Messages",
   };
   const pageTitle = titleMap[path] || "Admin";
@@ -40,23 +40,23 @@ function AdminLayout() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col md:flex-row bg-slate-50 font-sfpro text-slate-900">
+    <div className="flex min-h-[100dvh] flex-col bg-[#f7f9fc] font-sfpro text-slate-900 md:flex-row">
       <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/30 z-40 md:hidden"
+          className="fixed inset-0 z-40 bg-[#06172c]/55 backdrop-blur-[1px] md:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
       )}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header
           title={pageTitle}
           onToggleSidebar={() => setSidebarOpen((s) => !s)}
         />
-        <main className="flex-1 overflow-y-auto bg-slate-50">
+        <main className="flex-1 overflow-y-auto bg-[#f7f9fc]">
           <Outlet />
         </main>
       </div>

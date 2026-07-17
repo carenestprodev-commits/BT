@@ -50,6 +50,38 @@ export const fetchPlatformTransactions = createAsyncThunk(
   }
 )
 
+export const fetchProviderEarnings = createAsyncThunk(
+  'adminEarning/fetchProviderEarnings',
+  async (_, { rejectWithValue }) => {
+    try {
+      const access = localStorage.getItem('access')
+      const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/earnings/provider-transactions/`, { headers })
+      const data = await res.json()
+      if (!res.ok) return rejectWithValue(data)
+      return Array.isArray(data) ? data : []
+    } catch {
+      return rejectWithValue({ error: 'Network error' })
+    }
+  }
+)
+
+export const fetchProviderEarningById = createAsyncThunk(
+  'adminEarning/fetchProviderEarningById',
+  async (id, { rejectWithValue }) => {
+    try {
+      const access = localStorage.getItem('access')
+      const headers = access ? { 'Authorization': `Bearer ${access}` } : {}
+      const res = await fetchWithAuth(`${BASE_URL}/api/admin/earnings/provider-transactions/${id}/`, { headers })
+      const data = await res.json()
+      if (!res.ok) return rejectWithValue(data)
+      return data
+    } catch {
+      return rejectWithValue({ error: 'Network error' })
+    }
+  }
+)
+
 export const fetchTransactionById = createAsyncThunk(
   'adminEarning/fetchTransactionById',
   async (id, { rejectWithValue }) => {
@@ -72,7 +104,9 @@ const slice = createSlice({
     stats: { care_seekers_earnings: 0, platform_earnings: 0 },
     seekerTransactions: [],
     platformTransactions: [],
+    providerEarnings: [],
     currentTransaction: null,
+    currentProviderEarning: null,
     loading: false,
     error: null,
     seekerLoading: false,
@@ -85,6 +119,11 @@ const slice = createSlice({
   reducers: {
     clearCurrentTransaction(state) {
       state.currentTransaction = null
+      state.currentLoading = false
+      state.currentError = null
+    },
+    clearCurrentProviderEarning(state) {
+      state.currentProviderEarning = null
       state.currentLoading = false
       state.currentError = null
     }
@@ -103,11 +142,19 @@ const slice = createSlice({
       .addCase(fetchPlatformTransactions.fulfilled, (state, action) => { state.platformLoading = false; state.platformTransactions = action.payload })
       .addCase(fetchPlatformTransactions.rejected, (state, action) => { state.platformLoading = false; state.platformError = action.payload || action.error })
 
+      .addCase(fetchProviderEarnings.pending, (state) => { state.providerLoading = true; state.providerError = null })
+      .addCase(fetchProviderEarnings.fulfilled, (state, action) => { state.providerLoading = false; state.providerEarnings = action.payload })
+      .addCase(fetchProviderEarnings.rejected, (state, action) => { state.providerLoading = false; state.providerError = action.payload || action.error })
+
+      .addCase(fetchProviderEarningById.pending, (state) => { state.currentLoading = true; state.currentError = null; state.currentProviderEarning = null })
+      .addCase(fetchProviderEarningById.fulfilled, (state, action) => { state.currentLoading = false; state.currentProviderEarning = action.payload })
+      .addCase(fetchProviderEarningById.rejected, (state, action) => { state.currentLoading = false; state.currentError = action.payload || action.error })
+
       .addCase(fetchTransactionById.pending, (state) => { state.currentLoading = true; state.currentError = null })
       .addCase(fetchTransactionById.fulfilled, (state, action) => { state.currentLoading = false; state.currentTransaction = action.payload })
       .addCase(fetchTransactionById.rejected, (state, action) => { state.currentLoading = false; state.currentError = action.payload || action.error })
   }
 })
 
-export const { clearCurrentTransaction } = slice.actions
+export const { clearCurrentTransaction, clearCurrentProviderEarning } = slice.actions
 export default slice.reducer

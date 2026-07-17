@@ -103,7 +103,7 @@ function Support() {
   };
 
   return (
-    <div className="p-4 sm:p-6 bg-white text-black font-sfpro">
+    <div className="min-h-full bg-[#f3f7fb] p-4 text-slate-900 font-sfpro sm:p-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-3">
         <div className="w-full md:w-1/2">
           <div className="relative">
@@ -112,7 +112,7 @@ function Support() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="search tickets"
-              className="pl-10 pr-3 py-2 w-full rounded border border-gray-200 bg-white text-sm text-black"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 shadow-[0_1px_3px_rgba(15,47,67,0.05)] placeholder:text-slate-400"
             />
           </div>
         </div>
@@ -120,7 +120,7 @@ function Support() {
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded bg-white text-sm"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
           >
             <option value="All">Role</option>
             <option value="Care Provider">Care provider</option>
@@ -129,7 +129,7 @@ function Support() {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded bg-white text-sm"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
           >
             <option value="All">Status</option>
             <option value="Open">Open</option>
@@ -140,28 +140,28 @@ function Support() {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded bg-white text-sm"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
           />
           <button
             onClick={downloadCSV}
-            className="p-2 rounded border border-gray-200 bg-white text-blue-700"
+            className="rounded-lg border border-slate-200 bg-white p-2 text-[#0d99c9] transition hover:bg-cyan-50 active:scale-[0.98]"
           >
             <FaDownload />
           </button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded border border-gray-100">
+      <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white shadow-[0_4px_16px_rgba(15,47,67,0.04)]">
         <table className="w-full table-auto text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-[#f5f9fc] text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="p-3 text-left w-12">
+              <th className="w-12 px-3 py-2.5 text-left">
                 <input type="checkbox" />
               </th>
-              <th className="p-3 text-left">Dispute</th>
-              <th className="p-3 text-left">Name</th>
-              <th className="p-3 text-left">Status</th>
-              <th className="p-3 text-left">Date</th>
+              <th className="px-3 py-2.5 text-left">Dispute</th>
+              <th className="px-3 py-2.5 text-left">Name</th>
+              <th className="px-3 py-2.5 text-left">Status</th>
+              <th className="px-3 py-2.5 text-left">Date</th>
             </tr>
           </thead>
           <tbody>
@@ -207,25 +207,25 @@ function Support() {
                 return (
                   <tr
                     key={r.id}
-                    className="border-b hover:bg-gray-50 cursor-pointer"
+                    className="cursor-pointer border-b border-slate-100 hover:bg-cyan-50/40"
                     onClick={() => dispatch(fetchSupportTicketById(r.id))}
                   >
-                    <td className="p-3 align-top">
+                    <td className="align-top px-3 py-2.5">
                       <input
                         type="checkbox"
                         onClick={(e) => e.stopPropagation()}
                       />
                     </td>
-                    <td className="p-3 align-top text-gray-700">{r.dispute}</td>
-                    <td className="p-3 align-top text-gray-700">{r.name}</td>
-                    <td className="p-3 align-top">
+                    <td className="align-top px-3 py-2.5 text-slate-700">{r.dispute}</td>
+                    <td className="align-top px-3 py-2.5 text-slate-700">{r.name}</td>
+                    <td className="align-top px-3 py-2.5">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs ${statusClass}`}
+                        className={`rounded-full px-2.5 py-1 text-xs ${statusClass}`}
                       >
                         {statusLabel}
                       </span>
                     </td>
-                    <td className="p-3 align-top text-gray-700">
+                    <td className="align-top px-3 py-2.5 text-slate-700">
                       {formattedDate}
                     </td>
                   </tr>

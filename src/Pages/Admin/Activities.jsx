@@ -6,6 +6,8 @@ import {
   FaEdit,
   FaChevronDown,
   FaCalendarAlt,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
 import dayjs from "dayjs";
 import CubeIcon from "../../../public/3dcube.svg?react";
@@ -39,6 +41,8 @@ function Activities() {
   const [query, setQuery] = useState("");
   const [serviceFilter, setServiceFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [dateFilter, setDateFilter] = useState("");
+  const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState({ key: "date", dir: "desc" });
   const [alert, setAlert] = useState(null);
   const alertTimer = useRef(null);
@@ -125,6 +129,8 @@ function Activities() {
     // Status filter
     if (statusFilter !== "All")
       data = data.filter((r) => r.status === statusFilter);
+    if (dateFilter)
+      data = data.filter((r) => dayjs(r.date, "DD-MM-YYYY").isSame(dayjs(dateFilter), "day"));
 
     // Sort
     data.sort((a, b) => {
@@ -141,7 +147,19 @@ function Activities() {
     });
 
     return data;
-  }, [rows, activeStat, query, serviceFilter, statusFilter, sortBy]);
+  }, [rows, activeStat, query, serviceFilter, statusFilter, dateFilter, sortBy]);
+
+  const pageSize = 8;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const visibleRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeStat, query, serviceFilter, statusFilter, dateFilter, sortBy]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   function toggleSort(key) {
     setSortBy((s) =>
@@ -171,7 +189,7 @@ function Activities() {
   }
 
   return (
-    <div className="p-4 sm:p-6 text-black bg-white font-sfpro">
+    <div className="min-h-full bg-[#f3f7fb] p-4 text-slate-900 font-sfpro sm:p-6">
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
@@ -205,9 +223,11 @@ function Activities() {
             <div
               key={s.key}
               onClick={() => setActiveStat(s.key)}
-              className={`p-4 rounded-lg cursor-pointer flex flex-col justify-between ${
-                isActive ? "bg-[#0e2f43] text-white" : "bg-white text-black"
-              } border`}
+              className={`flex cursor-pointer flex-col justify-between rounded-xl border p-4 shadow-[0_2px_10px_rgba(15,47,67,0.04)] ${
+                isActive
+                  ? "border-[#0e2f43] bg-[#0e2f43] text-white"
+                  : "border-slate-200 bg-white text-slate-900"
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex flex-col items-start">
@@ -273,12 +293,12 @@ function Activities() {
       {/* Controls: search left, filters right */}
       <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4">
         <div className="flex-1 w-full">
-          <div className="flex items-center bg-white rounded-md px-3 py-2 shadow-sm text-black relative z-40">
+          <div className="relative z-40 flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-[0_1px_3px_rgba(15,47,67,0.05)]">
             <FaSearch className="text-slate-400 mr-2" />
             <input
               type="search"
               tabIndex={0}
-              className="outline-none w-full text-sm text-black bg-white"
+              className="w-full bg-white text-sm text-slate-900 outline-none placeholder:text-slate-400"
               placeholder="search care provider"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -291,7 +311,7 @@ function Activities() {
             <select
               value={serviceFilter}
               onChange={(e) => setServiceFilter(e.target.value)}
-              className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
+              className="appearance-none rounded-lg border border-slate-200 bg-white px-4 py-2 pr-8 text-sm text-slate-900"
             >
               <option value="All">Service Type</option>
               {serviceOptions
@@ -309,7 +329,7 @@ function Activities() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none px-4 py-2 border rounded-md text-sm bg-white text-black pr-8"
+              className="appearance-none rounded-lg border border-slate-200 bg-white px-4 py-2 pr-8 text-sm text-slate-900"
             >
               <option value="All">Filter by Status</option>
               {statusOptions
@@ -324,10 +344,12 @@ function Activities() {
           </div>
 
           <div className="relative">
-            <div className="flex items-center px-4 py-2 border rounded-md text-sm bg-white text-black gap-2">
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900">
               <FaCalendarAlt className="text-slate-400" />
               <input
                 type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
                 className="outline-none text-sm text-black bg-white"
               />
             </div>
@@ -335,7 +357,7 @@ function Activities() {
 
           <button
             onClick={downloadCSV}
-            className="px-3 py-2 border rounded-md flex items-center justify-center"
+            className="flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-[#0d99c9] transition hover:bg-cyan-50 active:scale-[0.98]"
             aria-label="download"
           >
             <FaDownload className="text-slate-600" />
@@ -344,61 +366,61 @@ function Activities() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-md shadow-sm overflow-x-auto text-black">
+      <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white text-slate-900 shadow-[0_4px_16px_rgba(15,47,67,0.04)]">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500 text-xs">
+          <thead className="bg-[#f5f9fc] text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="p-3">
+              <th className="px-3 py-2.5">
                 <input type="checkbox" />
               </th>
               <th
-                className="p-3 text-left cursor-pointer"
+                className="cursor-pointer px-3 py-2.5 text-left"
                 onClick={() => toggleSort("id")}
               >
                 Request ID
               </th>
               <th
-                className="p-3 text-left cursor-pointer"
+                className="cursor-pointer px-3 py-2.5 text-left"
                 onClick={() => toggleSort("name")}
               >
                 User Name
               </th>
               <th
-                className="p-3 text-left cursor-pointer"
+                className="cursor-pointer px-3 py-2.5 text-left"
                 onClick={() => toggleSort("careType")}
               >
                 Care Type
               </th>
               <th
-                className="p-3 text-left cursor-pointer"
+                className="cursor-pointer px-3 py-2.5 text-left"
                 onClick={() => toggleSort("status")}
               >
                 Status
               </th>
               <th
-                className="p-3 text-left cursor-pointer"
+                className="cursor-pointer px-3 py-2.5 text-left"
                 onClick={() => toggleSort("date")}
               >
                 Date Created
               </th>
-              <th className="p-3">Actions</th>
+              <th className="px-3 py-2.5">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r) => (
+            {visibleRows.map((r) => (
               <tr
                 key={r.id}
-                className="border-b last:border-b-0 hover:bg-slate-50"
+                className="border-b border-slate-100 last:border-b-0 hover:bg-cyan-50/40"
               >
-                <td className="p-3">
+                <td className="px-3 py-2.5">
                   <input type="checkbox" />
                 </td>
-                <td className="p-3 font-semibold">{r.id}</td>
-                <td className="p-3">{r.name}</td>
-                <td className="p-3">{r.careType}</td>
-                <td className="p-3">
+                <td className="px-3 py-2.5 font-semibold">{r.id}</td>
+                <td className="px-3 py-2.5">{r.name}</td>
+                <td className="px-3 py-2.5">{r.careType}</td>
+                <td className="px-3 py-2.5">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs ${
+                    className={`rounded-full px-2.5 py-1 text-xs ${
                       r.status === "Pending"
                         ? "bg-purple-50 text-purple-600"
                         : r.status === "Ongoing Activity"
@@ -409,8 +431,8 @@ function Activities() {
                     {r.status}
                   </span>
                 </td>
-                <td className="p-3">{r.date}</td>
-                <td className="p-3 flex items-center gap-3 text-slate-500">
+                <td className="px-3 py-2.5">{r.date}</td>
+                <td className="flex items-center gap-3 px-3 py-2.5 text-slate-500">
                   <button title="delete" onClick={() => setDeleteRow(r)}>
                     <FaTrashAlt />
                   </button>
@@ -426,7 +448,7 @@ function Activities() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {visibleRows.length === 0 && (
               <tr>
                 <td colSpan={7} className="p-6 text-center text-slate-400">
                   No results
@@ -437,6 +459,33 @@ function Activities() {
         </table>
       </div>
 
+      {filtered.length > 0 && (
+        <div className="mt-4 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row">
+          <span>
+            Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, filtered.length)} of {filtered.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={page === 1}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <FaChevronLeft /> Previous
+            </button>
+            <span className="min-w-[84px] text-center text-xs text-slate-500">Page {page} / {totalPages}</span>
+            <button
+              type="button"
+              disabled={page === totalPages}
+              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next <FaChevronRight />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Edit / Details Modal */}
       {editRow && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-24">
@@ -444,7 +493,7 @@ function Activities() {
             className="absolute inset-0 bg-black/30"
             onClick={() => setEditRow(null)}
           />
-          <div className="relative bg-white w-[380px] rounded-lg shadow-lg p-6 z-50">
+          <div className="relative z-50 w-[380px] rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
             <button
               className="absolute right-3 top-3 text-slate-500 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"
               onClick={() => setEditRow(null)}
@@ -534,7 +583,7 @@ function Activities() {
             className="absolute inset-0 bg-black/30"
             onClick={() => setDeleteRow(null)}
           />
-          <div className="relative bg-white w-[320px] rounded-lg shadow-lg p-5 z-50 text-center">
+          <div className="relative z-50 w-[320px] rounded-xl border border-slate-200 bg-white p-5 text-center shadow-xl">
             <button
               className="absolute right-3 top-3 text-slate-400 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"
               onClick={() => setDeleteRow(null)}

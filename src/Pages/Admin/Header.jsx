@@ -1,6 +1,5 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
-import { FaRegCalendarAlt, FaBars } from "react-icons/fa";
+import { CalendarDays, LogOut, Menu } from "lucide-react";
 import { BASE_URL } from "../../Redux/config";
 import tokenService from "../../utils/tokenService";
 import { useAuth } from "../../Context/AuthContext";
@@ -46,37 +45,39 @@ function Header({ title = "Admin", onToggleSidebar }) {
   };
 
   return (
-    <header className="border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm font-sfpro">
-      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
-        <div className="flex items-center gap-3 min-w-0">
-        <button
-          onClick={onToggleSidebar}
-          className="md:hidden inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white p-2 text-slate-700"
-          aria-label="Toggle sidebar"
-        >
-          <FaBars className="h-4 w-4" />
-        </button>
+    <header className="shrink-0 border-b border-[#e8edf3] bg-white font-sfpro">
+      <div className="flex min-h-[82px] w-full items-center justify-between gap-4 px-4 sm:px-8">
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            onClick={onToggleSidebar}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#17334d] transition hover:bg-[#f1f5f8] md:hidden"
+            aria-label="Toggle sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Admin
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8a9aaa]">
+              Admin workspace
             </p>
-            <h1 className="truncate text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">
+            <h1 className="truncate text-xl font-semibold tracking-[-0.03em] text-[#102b46] sm:text-2xl">
               {title}
             </h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
-            <FaRegCalendarAlt className="h-3.5 w-3.5 text-slate-400" />
-            <span>{formatted}</span>
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 rounded-full bg-[#f3f7fa] px-3 py-2 text-[11px] font-medium text-[#607488] sm:px-4 sm:text-xs">
+            <CalendarDays className="h-4 w-4 text-[#35b8df]" strokeWidth={1.8} />
+            <span className="hidden sm:inline">{formatted}</span>
+            <span className="sm:hidden">{today.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
           </div>
 
           <button
             onClick={handleLogout}
-            className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-700 active:scale-[0.98]"
+            className="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-xs font-semibold text-[#63778a] transition hover:bg-[#f5f7f9] hover:text-[#102b46] sm:px-3"
           >
-            Logout
+            <LogOut className="h-4 w-4" strokeWidth={1.8} />
+            <span className="hidden sm:inline">Logout</span>
           </button>
         </div>
       </div>
