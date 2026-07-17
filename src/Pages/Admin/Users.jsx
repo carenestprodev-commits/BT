@@ -134,6 +134,23 @@ const UserAvatar = ({ name, imageUrl, className, textClassName = "text-sm" }) =>
 
 const makeField = (label, value) => ({ label, value: formatText(value) });
 const makeSection = (title, items) => ({ title, items });
+const EDIT_CONTROL = "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#0b93c6] focus:ring-2 focus:ring-[#0b93c6]/15";
+
+const EditField = ({ label, value, onChange, type = "text", options, textarea = false, hint }) => (
+  <label className="block text-sm font-medium text-slate-700">
+    {label}
+    {textarea ? (
+      <textarea value={value ?? ""} onChange={(event) => onChange(event.target.value)} rows={3} className={EDIT_CONTROL} />
+    ) : options ? (
+      <select value={value ?? ""} onChange={(event) => onChange(event.target.value)} className={EDIT_CONTROL}>
+        {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
+      </select>
+    ) : (
+      <input type={type} value={value ?? ""} onChange={(event) => onChange(event.target.value)} className={EDIT_CONTROL} />
+    )}
+    {hint && <span className="mt-1 block text-xs font-normal text-slate-500">{hint}</span>}
+  </label>
+);
 
 const SCREENING_STATUS_LABELS = {
   pending: "Pending",
@@ -582,6 +599,25 @@ function Users({ initialStat = "all" }) {
         ? buildSeekerSections(detailUser)
         : buildAdminSections(detailUser))
     : [];
+  const profileDraft = editRow?.onboarding_details || {};
+  const categoryDraft = profileDraft.category_specific_details || {};
+  const setEditValue = (key, value) => setEditRow((previous) => ({ ...previous, [key]: value }));
+  const setProfileValue = (key, value) => setEditRow((previous) => ({
+    ...previous,
+    onboarding_details: { ...(previous.onboarding_details || {}), [key]: value },
+  }));
+  const setCategoryValue = (key, value) => setEditRow((previous) => ({
+    ...previous,
+    onboarding_details: {
+      ...(previous.onboarding_details || {}),
+      category_specific_details: {
+        ...(previous.onboarding_details?.category_specific_details || {}),
+        [key]: value,
+      },
+    },
+  }));
+  const listValue = (value) => Array.isArray(value) ? value.join(", ") : value || "";
+  const listChange = (value) => value.split(",").map((item) => item.trim()).filter(Boolean);
 
   // Close profile filter dropdown when clicking outside
   useEffect(() => {
@@ -1455,14 +1491,25 @@ function Users({ initialStat = "all" }) {
                 {isEditing ? (
                   <form
                     id="admin-user-edit"
-                    className="space-y-4"
+                    className="space-y-6"
                     onSubmit={async (event) => {
                       event.preventDefault();
                       try {
+                        const providerData = editRow.user_type === "provider" ? {
+                          ...profileDraft,
+                          phone_number: editRow.phone,
+                          country: editRow.country,
+                          city: editRow.city || profileDraft.city,
+                          nationality: editRow.nationality || profileDraft.nationality,
+                          monthly_rate: profileDraft.monthly_rate,
+                        } : undefined;
+                        const savedName = providerData && (profileDraft.first_name || profileDraft.last_name)
+                          ? [profileDraft.first_name, profileDraft.last_name].filter(Boolean).join(" ")
+                          : editRow.name;
                         const saved = await dispatch(updateUser({
                           id: editRow.id,
                           changes: {
-                            full_name: editRow.name,
+                            full_name: savedName,
                             email: editRow.email,
                             phone_number: editRow.phone,
                             username: editRow.username || editRow.email,
@@ -1471,43 +1518,115 @@ function Users({ initialStat = "all" }) {
                             is_active: !editRow.is_suspend,
                             is_staff: Boolean(editRow.is_staff),
                             is_superuser: Boolean(editRow.is_superuser),
+                            ...(providerData ? { profile_data: providerData } : { onboarding_details: profileDraft }),
                           },
                         })).unwrap();
-                        setEditRow((previous) => ({ ...previous, ...saved, name: saved.full_name || previous.name, phone: saved.phone_number || "" }));
+                        setEditRow((previous) => ({
+                          ...previous,
+                          ...saved,
+                          name: saved.full_name || previous.name,
+                          phone: saved.phone_number || previous.phone,
+                          onboarding_details: saved.onboarding_details || previous.onboarding_details,
+                        }));
                         setIsEditing(false);
                         setAlert({ type: "success", text: "User details saved." });
                       } catch (saveError) {
-                        setAlert({ type: "error", text: saveError?.email?.[0] || saveError?.error || "Failed to save user details." });
+                        setAlert({ type: "error", text: saveError?.email?.[0] || saveError?.profile_data?.hourly_rate || saveError?.error || "Failed to save user details." });
                       }
                     }}
                   >
-                    {[
-                      ["Full name", "name"],
-                      ["Email address", "email"],
-                      ["Phone number", "phone"],
-                      ["Username", "username"],
-                      ["Country", "country"],
-                    ].map(([label, key]) => (
-                      <label key={key} className="block text-sm font-medium text-slate-700">
-                        {label}
-                        <input value={editRow[key] || ""} onChange={(event) => setEditRow((previous) => ({ ...previous, [key]: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-[#0b93c6]" />
-                      </label>
-                    ))}
-                    <label className="block text-sm font-medium text-slate-700">Profile image
-                      <input type="file" accept="image/*" onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { const saved = await dispatch(uploadUserImage({ id: editRow.id, file })).unwrap(); setEditRow((previous) => ({ ...previous, profileImageUrl: saved.profile_image_url || previous.profileImageUrl })); } catch (uploadError) { setAlert({ type: "error", text: uploadError?.error || "Failed to upload image." }); } }} className="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                    </label>
-                    <label className="block text-sm font-medium text-slate-700">User type
-                      <select value={editRow.user_type || "seeker"} onChange={(event) => setEditRow((previous) => ({ ...previous, user_type: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
-                        <option value="seeker">Care seeker</option><option value="provider">Care provider</option>
-                      </select>
-                    </label>
-                    <label className="block text-sm font-medium text-slate-700">Status
-                      <select value={editRow.is_suspend ? "suspended" : "active"} onChange={(event) => setEditRow((previous) => ({ ...previous, is_suspend: event.target.value === "suspended" }))} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
-                        <option value="active">Active</option><option value="suspended">Suspended</option>
-                      </select>
-                    </label>
-                    <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" checked={Boolean(editRow.is_staff)} onChange={(event) => setEditRow((previous) => ({ ...previous, is_staff: event.target.checked }))} className="mt-0.5" /><span><span className="font-medium">Staff status</span><span className="block text-xs text-slate-500">Allows this user to log into the admin site.</span></span></label>
-                    <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" checked={Boolean(editRow.is_superuser)} onChange={(event) => setEditRow((previous) => ({ ...previous, is_superuser: event.target.checked }))} className="mt-0.5" /><span><span className="font-medium">Superuser status</span><span className="block text-xs text-slate-500">Grants all admin permissions.</span></span></label>
+                    <section>
+                      <div className="mb-3 flex items-end justify-between gap-3">
+                        <div><h4 className="text-sm font-semibold text-slate-900">Account details</h4><p className="mt-1 text-xs text-slate-500">Basic identity and access settings.</p></div>
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <EditField label="Full name" value={editRow.name} onChange={(value) => setEditValue("name", value)} />
+                        <EditField label="Email address" type="email" value={editRow.email} onChange={(value) => setEditValue("email", value)} />
+                        <EditField label="Phone number" value={editRow.phone} onChange={(value) => setEditValue("phone", value)} />
+                        <EditField label="Username" value={editRow.username || ""} onChange={(value) => setEditValue("username", value)} />
+                        <EditField label="Country" value={editRow.country} onChange={(value) => { setEditValue("country", value); setProfileValue("country", value); }} />
+                        <EditField label="City" value={editRow.city} onChange={(value) => { setEditValue("city", value); setProfileValue("city", value); }} />
+                        <EditField label="User type" value={editRow.user_type || "seeker"} onChange={(value) => setEditValue("user_type", value)} options={[["seeker", "Care seeker"], ["provider", "Care provider"]]} />
+                        <EditField label="Account status" value={editRow.is_suspend ? "suspended" : "active"} onChange={(value) => setEditValue("is_suspend", value === "suspended")} options={[["active", "Active"], ["suspended", "Suspended"]]} />
+                      </div>
+                      <label className="mt-4 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-sm text-slate-700"><input type="checkbox" checked={Boolean(editRow.is_staff)} onChange={(event) => setEditValue("is_staff", event.target.checked)} className="mt-0.5 accent-[#0b93c6]" /><span><span className="font-medium">Staff status</span><span className="block text-xs text-slate-500">Allows this user to log into the admin site.</span></span></label>
+                      <label className="mt-3 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-sm text-slate-700"><input type="checkbox" checked={Boolean(editRow.is_superuser)} onChange={(event) => setEditValue("is_superuser", event.target.checked)} className="mt-0.5 accent-[#0b93c6]" /><span><span className="font-medium">Superuser status</span><span className="block text-xs text-slate-500">Grants all admin permissions.</span></span></label>
+                    </section>
+                    <section className="border-t border-slate-100 pt-6">
+                      <h4 className="text-sm font-semibold text-slate-900">Profile image</h4>
+                      <p className="mt-1 text-xs text-slate-500">Upload a replacement image for this account.</p>
+                      <input type="file" accept="image/*" onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; try { const saved = await dispatch(uploadUserImage({ id: editRow.id, file })).unwrap(); setEditRow((previous) => ({ ...previous, profileImageUrl: saved.profile_image_url || previous.profileImageUrl })); } catch (uploadError) { setAlert({ type: "error", text: uploadError?.error || "Failed to upload image." }); } }} className={`${EDIT_CONTROL} file:mr-3 file:rounded-md file:border-0 file:bg-[#0b93c6] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white`} />
+                    </section>
+                    {editRow.user_type === "provider" ? (
+                      <>
+                        <section className="border-t border-slate-100 pt-6">
+                          <h4 className="text-sm font-semibold text-slate-900">Provider profile</h4>
+                          <p className="mt-1 text-xs text-slate-500">The same professional details providers manage in Settings.</p>
+                          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                            <EditField label="First name" value={profileDraft.first_name} onChange={(value) => setProfileValue("first_name", value)} />
+                            <EditField label="Last name" value={profileDraft.last_name} onChange={(value) => setProfileValue("last_name", value)} />
+                            <EditField label="Service category" value={profileDraft.service_category || ""} onChange={(value) => setProfileValue("service_category", value)} options={[["", "Select category"], ["childcare", "Childcare"], ["elderlycare", "Elderly care"], ["tutoring", "Tutoring"], ["housekeeping", "Housekeeping"]]} />
+                            <EditField label="Experience level" value={profileDraft.experience_level} onChange={(value) => setProfileValue("experience_level", value)} />
+                            <EditField label="Years of experience" type="number" value={profileDraft.years_of_experience} onChange={(value) => setProfileValue("years_of_experience", value)} />
+                            <EditField label="Native language" value={profileDraft.native_language} onChange={(value) => setProfileValue("native_language", value)} />
+                            <EditField label="Healthcare professional" value={profileDraft.healthcare_professional} onChange={(value) => setProfileValue("healthcare_professional", value)} />
+                            <EditField label="State" value={profileDraft.state} onChange={(value) => setProfileValue("state", value)} />
+                            <EditField label="Postcode" value={profileDraft.zip_code} onChange={(value) => setProfileValue("zip_code", value)} />
+                            <EditField label="Nationality" value={editRow.nationality} onChange={(value) => { setEditValue("nationality", value); setProfileValue("nationality", value); }} />
+                          </div>
+                          <div className="mt-4 grid gap-4">
+                            <EditField label="Profile title" value={profileDraft.profile_title} onChange={(value) => setProfileValue("profile_title", value)} />
+                            <EditField label="About me" value={profileDraft.about_me} onChange={(value) => setProfileValue("about_me", value)} textarea />
+                            <EditField label="Why they want to work" value={profileDraft.work_reason} onChange={(value) => setProfileValue("work_reason", value)} textarea />
+                          </div>
+                        </section>
+                        <section className="border-t border-slate-100 pt-6">
+                          <h4 className="text-sm font-semibold text-slate-900">Rates and availability</h4>
+                          <p className="mt-1 text-xs text-slate-500">Keep both values visible. The selected billing cycle is used when applying for work.</p>
+                          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                            <EditField label="Hourly rate" type="number" value={profileDraft.hourly_rate} onChange={(value) => setProfileValue("hourly_rate", value)} hint="Stored as the provider’s base rate." />
+                            <EditField label="Monthly rate" type="number" value={profileDraft.monthly_rate ?? (Number(profileDraft.hourly_rate) ? Number(profileDraft.hourly_rate) * 160 : "")} onChange={(value) => setProfileValue("monthly_rate", value)} hint="Calculated by the app at 160 hours/month." />
+                          </div>
+                          <div className="mt-4 flex rounded-lg bg-slate-100 p-1">
+                            {[['hourly', 'Hourly'], ['monthly', 'Monthly']].map(([value, label]) => <button key={value} type="button" onClick={() => setProfileValue("billing_cycle", value)} className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold transition ${profileDraft.billing_cycle === value ? "bg-white text-[#0b93c6] shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>{label}</button>)}
+                          </div>
+                          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                            <EditField label="Languages" value={listValue(profileDraft.languages)} onChange={(value) => setProfileValue("languages", listChange(value))} />
+                            <EditField label="Additional services" value={listValue(profileDraft.additional_services)} onChange={(value) => setProfileValue("additional_services", listChange(value))} />
+                            <EditField label="Skills" value={listValue(profileDraft.skills)} onChange={(value) => setProfileValue("skills", listChange(value))} />
+                          </div>
+                        </section>
+                        <section className="border-t border-slate-100 pt-6">
+                          <h4 className="text-sm font-semibold text-slate-900">Category details</h4>
+                          <p className="mt-1 text-xs text-slate-500">Edit the category-specific answers saved during onboarding.</p>
+                          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                            {Object.entries(categoryDraft).filter(([key]) => key !== "billing_cycle").map(([key, value]) => <EditField key={key} label={humanizeKey(key)} value={listValue(value)} onChange={(nextValue) => setCategoryValue(key, Array.isArray(value) ? listChange(nextValue) : nextValue)} />)}
+                          </div>
+                        </section>
+                      </>
+                    ) : (
+                      <section className="border-t border-slate-100 pt-6">
+                        <h4 className="text-sm font-semibold text-slate-900">Latest care request</h4>
+                        <p className="mt-1 text-xs text-slate-500">Edit the latest request posted by this care seeker.</p>
+                        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                          <EditField label="Service category" value={profileDraft.service_category || ""} onChange={(value) => setProfileValue("service_category", value)} options={[["", "Select category"], ["childcare", "Childcare"], ["elderlycare", "Elderly care"], ["tutoring", "Tutoring"], ["housekeeping", "Housekeeping"]]} />
+                          <EditField label="Job type" value={profileDraft.job_type || "one_off"} onChange={(value) => setProfileValue("job_type", value)} options={[["one_off", "One-off"], ["recurring", "Recurring"]]} />
+                          <EditField label="Request title" value={profileDraft.title} onChange={(value) => setProfileValue("title", value)} />
+                          <EditField label="Billing cycle" value={profileDraft.billing_cycle || "hourly"} onChange={(value) => setProfileValue("billing_cycle", value)} options={[["hourly", "Hourly"], ["monthly", "Monthly"]]} />
+                          <EditField label="Start date" type="date" value={profileDraft.start_date} onChange={(value) => setProfileValue("start_date", value)} />
+                          <EditField label="End date" type="date" value={profileDraft.end_date} onChange={(value) => setProfileValue("end_date", value)} />
+                          <EditField label="Start time" type="time" value={profileDraft.start_time} onChange={(value) => setProfileValue("start_time", value)} />
+                          <EditField label="End time" type="time" value={profileDraft.end_time} onChange={(value) => setProfileValue("end_time", value)} />
+                          <EditField label="Minimum budget" type="number" value={profileDraft.price_min} onChange={(value) => setProfileValue("price_min", value)} />
+                          <EditField label="Maximum budget" type="number" value={profileDraft.price_max} onChange={(value) => setProfileValue("price_max", value)} />
+                        </div>
+                        <div className="mt-4 grid gap-4">
+                          <EditField label="Summary" value={profileDraft.summary} onChange={(value) => setProfileValue("summary", value)} textarea />
+                          <EditField label="Message to provider" value={profileDraft.message_to_provider} onChange={(value) => setProfileValue("message_to_provider", value)} textarea />
+                          <EditField label="Skills and expertise" value={listValue(profileDraft.skills_and_expertise)} onChange={(value) => setProfileValue("skills_and_expertise", listChange(value))} />
+                        </div>
+                      </section>
+                    )}
                   </form>
                 ) : <div className="grid gap-4">
                   {detailSections.map((section) => (

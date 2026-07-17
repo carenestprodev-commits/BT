@@ -208,7 +208,7 @@ function Activities() {
           },
           {
             key: "pending",
-            label: "Pending Approval",
+            label: "Awaiting seeker review",
             value: stats?.pending_approval ?? 0,
             icon: CubeIconPink,
           },

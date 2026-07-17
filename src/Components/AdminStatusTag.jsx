@@ -28,6 +28,10 @@ const STATUS_STYLES = {
   physical_documents: "bg-cyan-50 text-cyan-700 ring-cyan-200",
 };
 
+const STATUS_LABELS = {
+  pending_approval: "Awaiting seeker review",
+};
+
 const formatStatus = (value) =>
   String(value || "—")
     .replace(/_/g, " ")
@@ -41,7 +45,7 @@ export default function AdminStatusTag({ value, className = "" }) {
     <span
       className={"inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset " + tone + " " + className}
     >
-      {formatStatus(value)}
+      {STATUS_LABELS[key] || formatStatus(value)}
     </span>
   );
 }

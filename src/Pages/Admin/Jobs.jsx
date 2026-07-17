@@ -12,7 +12,7 @@ import { BASE_URL } from "../../Redux/config";
 import { fetchWithAuth } from "../../lib/fetchWithAuth";
 
 const STATUS_OPTIONS = [
-  ["pending_approval", "Pending approval"],
+  ["pending_approval", "Awaiting seeker review"],
   ["active", "Active"],
   ["completed", "Completed"],
   ["rejected", "Rejected"],
