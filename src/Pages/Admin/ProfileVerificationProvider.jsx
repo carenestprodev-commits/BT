@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import dayjs from "dayjs";
-import { FaSearch } from "react-icons/fa";
+import { FaDownload, FaFilter, FaSearch } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchVerifications,
@@ -9,13 +9,16 @@ import {
   clearCurrentVerification,
   uploadVerificationId,
 } from "../../Redux/Verification";
+import { fetchAdminStats } from "../../Redux/AdminUsers";
 import AdminStatusTag from "../../Components/AdminStatusTag";
 
 function ProfileVerificationProvider() {
   const dispatch = useDispatch();
   const { items } = useSelector((s) => s.verification || {});
+  const stats = useSelector((s) => s.adminUsers?.stats || {});
   useEffect(() => {
     dispatch(fetchVerifications());
+    dispatch(fetchAdminStats());
   }, [dispatch]);
 
   const [query, setQuery] = useState("");
@@ -29,6 +32,8 @@ function ProfileVerificationProvider() {
     payment_reference: "",
     notes: "",
   });
+  const [dateRange, setDateRange] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
   const { current, currentLoading, actionLoading, actionError, actionSuccess } =
     useSelector((s) => s.verification || {});
 
@@ -37,10 +42,14 @@ function ProfileVerificationProvider() {
   const providerRows = (items || []).filter((x) => x.user_type === "provider");
 
   const filtered = useMemo(() => {
-    if (!query) return providerRows;
     const q = query.toLowerCase();
-    return providerRows.filter((r) => (r.name || "").toLowerCase().includes(q));
-  }, [providerRows, query]);
+    const cutoff = dateRange === "today" ? dayjs().startOf("day") : dateRange === "week" ? dayjs().subtract(7, "day") : dateRange === "month" ? dayjs().subtract(1, "month") : null;
+    return providerRows.filter((r) => {
+      const matchesQuery = !q || (r.name || "").toLowerCase().includes(q);
+      const matchesDate = !cutoff || !r.last_updated || dayjs(r.last_updated).isAfter(cutoff);
+      return matchesQuery && matchesDate;
+    });
+  }, [providerRows, query, dateRange]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -58,6 +67,21 @@ function ProfileVerificationProvider() {
     ...pageRows,
     ...Array(Math.max(0, minVisibleRows - pageRows.length)).fill(null),
   ];
+  const pendingCount = providerRows.filter((row) =>
+    ["pending", "in_review", "under_review", "sent_to_vetting", "in_progress"].includes(row.status),
+  ).length;
+
+  const downloadCSV = () => {
+    const headers = ["Name", "Verification Type", "Payment Option", "Payment Status", "Status", "Feedback", "Last Updated"];
+    const rows = filtered.map((row) => [row.name, row.verification_type, row.payment_option, row.payment_status, row.status, row.feedback, row.last_updated]);
+    const csv = [headers, ...rows].map((row) => row.map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "care-provider-verifications.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const makePageButtons = () => {
     const pages = [];
@@ -78,17 +102,43 @@ function ProfileVerificationProvider() {
   return (
     <>
       <div className="min-h-full bg-[#f3f7fb] p-4 text-slate-900 font-sfpro sm:p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="relative w-1/3">
+        <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
+          {[
+            ["Total Users", stats.total_users, "#0E3347", "text-white"],
+            ["Care Providers", stats.total_providers, "white", "text-slate-900"],
+            ["Care Seekers", stats.total_seekers, "white", "text-slate-900"],
+            ["Pending Verifications", pendingCount, "white", "text-slate-900"],
+          ].map(([label, value, background, color]) => (
+            <div key={label} className={`min-h-[132px] rounded-xl border border-slate-200 px-4 py-4 ${color}`} style={{ background }}>
+              <p className="text-sm opacity-75">{label}</p>
+              <p className="mt-2 text-3xl font-medium">{Number(value || 0).toLocaleString()}</p>
+            </div>
+          ))}
+        </div>
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,47,67,0.04)]">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div><h2 className="text-lg font-semibold">Verify Providers</h2><p className="mt-1 text-sm text-slate-500">Verify care providers</p></div>
+            <button type="button" onClick={downloadCSV} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50"><FaDownload /> Download</button>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3">
+          <div className="inline-flex overflow-hidden rounded-lg border border-slate-300">
+            {[['all', 'All time'], ['today', 'Today'], ['week', 'Past 7 days'], ['month', 'Past months']].map(([value, label]) => <button key={value} type="button" onClick={() => setDateRange(value)} className={`px-4 py-2 text-sm ${dateRange === value ? 'bg-[#f5f9fc] font-semibold text-[#0E3347]' : 'bg-white text-slate-600'}`}>{label}</button>)}
+          </div>
+          <div className="flex items-center gap-3">
+          <div className="relative w-64">
             <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="search care provider"
               className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 shadow-[0_1px_3px_rgba(15,47,67,0.05)] placeholder:text-slate-400"
-            />
-          </div>
+          />
         </div>
+          <div className="relative"><button type="button" onClick={() => setShowFilters((value) => !value)} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium"><FaFilter /> Filters</button>{showFilters && <div className="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-lg"><p className="text-slate-500">Showing {filtered.length} matching verifications</p><button type="button" onClick={() => { setQuery(''); setDateRange('all'); setShowFilters(false); }} className="mt-3 text-[#0b93c6]">Clear filters</button></div>}</div>
+          </div>
+      </div>
 
         <div className="flex flex-col min-h-[60vh]">
           <div className="flex-1 overflow-x-auto rounded-xl border border-slate-200/80 bg-white text-slate-900 shadow-[0_4px_16px_rgba(15,47,67,0.04)]">
@@ -255,7 +305,7 @@ function ProfileVerificationProvider() {
             </table>
           </div>
 
-          <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center justify-between border-t border-slate-200 px-5 py-4">
             <div>
               <button
                 disabled={page === 1}
@@ -312,6 +362,7 @@ function ProfileVerificationProvider() {
             </div>
           </div>
         </div>
+        </section>
       </div>
 
       {/* Detail modal */}

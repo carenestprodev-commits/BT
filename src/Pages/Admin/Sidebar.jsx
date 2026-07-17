@@ -1,170 +1,176 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  Activity,
+  Boxes,
   ChevronDown,
-  CreditCard,
   CircleHelp,
+  CreditCard,
   MessageSquareText,
   ShieldCheck,
   UserRound,
   UsersRound,
-  WalletCards,
   X,
 } from "lucide-react";
 
-const navItems = [
-  {
-    to: "/admin/users",
-    label: "Users",
-    icon: UsersRound,
-  },
-  {
-    to: "/admin/activities",
-    label: "Activities",
-    icon: Activity,
-  },
-  {
-    to: "/admin/earnings",
-    label: "Earnings",
-    icon: WalletCards,
-  },
-  {
-    to: "/admin/subscription",
-    label: "Subscription",
-    icon: CreditCard,
-  },
-  {
-    to: "/admin/support",
-    label: "Support",
-    icon: CircleHelp,
-  },
+const userLinks = [
+  { to: "/admin/users", label: "All Users", end: true },
+  { to: "/admin/users/providers", label: "Care Providers" },
+  { to: "/admin/profile-verification/care-providers", label: "Verify Providers" },
+  { to: "/admin/profile-verification/care-seekers", label: "Verify Seekers" },
+];
+
+const paymentLinks = [
+  { to: "/admin/earnings", label: "Payout" },
+  { to: "/admin/earnings/fees", label: "Providers fees" },
+  { to: "/admin/subscription/plans", label: "Providers subscription plans" },
+  { to: "/admin/subscription", label: "Provider subscriptions" },
+  { to: "/admin/earnings/transactions", label: "Transactions" },
+  { to: "/admin/subscription/users", label: "User subscriptions" },
+  { to: "/admin/earnings/wallet-transactions", label: "Wallet transactions" },
+  { to: "/admin/earnings/wallet", label: "Wallet" },
+];
+
+const jobLinks = [
+  { to: "/admin/jobs", label: "Bookings" },
+  { to: "/admin/jobs/conversations", label: "Conversations" },
+  { to: "/admin/jobs/requests", label: "Job requests" },
+  { to: "/admin/jobs/message", label: "Message" },
+  { to: "/admin/jobs/reviews", label: "Reviews" },
 ];
 
 function Sidebar({ mobileOpen = false, onClose = () => {} }) {
-  const [openProfile, setOpenProfile] = useState(true);
   const { pathname } = useLocation();
-  const profileActive = pathname.startsWith("/admin/profile-verification");
+  const usersActive =
+    pathname.startsWith("/admin/users") ||
+    pathname.startsWith("/admin/profile-verification");
+  const paymentsActive =
+    pathname.startsWith("/admin/earnings") ||
+    pathname.startsWith("/admin/subscription");
+  const jobsActive =
+    pathname.startsWith("/admin/jobs") || pathname.startsWith("/admin/activities");
+  const [openUsers, setOpenUsers] = useState(usersActive);
+  const [openPayments, setOpenPayments] = useState(paymentsActive);
+  const [openJobs, setOpenJobs] = useState(jobsActive);
 
   const rootClass = mobileOpen
-    ? "fixed inset-y-0 left-0 z-50 flex min-h-[100dvh] w-[252px] flex-col bg-[#071b33] px-4 pb-5 text-white shadow-2xl md:hidden"
-    : "hidden min-h-[100dvh] w-[252px] shrink-0 flex-col bg-[#071b33] px-4 pb-5 text-white md:flex";
+    ? "fixed inset-y-0 left-0 z-50 flex min-h-[100dvh] w-[268px] flex-col bg-[#0E3347] text-white shadow-2xl md:hidden"
+    : "hidden min-h-[100dvh] w-[268px] shrink-0 flex-col bg-[#0E3347] text-white md:flex";
 
   const closeOnMobile = () => {
     if (mobileOpen) onClose();
   };
 
-  const linkClass = ({ isActive }) =>
-    `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
-      isActive
-        ? "bg-[#496278] text-white"
-        : "text-[#a7b8c9] hover:bg-[#102b48] hover:text-white"
-    }`;
+  const rootLinkClass = (active) =>
+    "flex w-full items-center gap-3 px-7 py-3.5 text-[14px] transition-colors " +
+    (active
+      ? "bg-[#496278] text-white"
+      : "text-[#d0d8df] hover:bg-[#123e54] hover:text-white");
+
+  const childLinkClass = ({ isActive }) =>
+    "block border-l border-white/35 py-2 pl-4 pr-5 text-[14px] transition-colors " +
+    (isActive
+      ? "font-medium text-[#16b9ed]"
+      : "text-[#d0d8df] hover:text-white");
+
+  const group = (label, Icon, open, setOpen, active, links) => (
+    <li>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className={rootLinkClass(active)}
+      >
+        <Icon className="h-[21px] w-[21px]" strokeWidth={1.6} />
+        <span className="flex-1 text-left">{label}</span>
+        <ChevronDown
+          className={"h-4 w-4 transition-transform " + (open ? "" : "-rotate-90")}
+          strokeWidth={1.8}
+        />
+      </button>
+      {open && (
+        <ul className="ml-9 space-y-1 border-l border-white/35 py-2 pl-0">
+          {links.map((link, index) => (
+            <li key={link.label + index}>
+              <NavLink
+                to={link.to}
+                end={link.end}
+                onClick={closeOnMobile}
+                className={childLinkClass}
+              >
+                {link.label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
 
   return (
     <aside className={rootClass}>
-      <div className="flex h-[86px] shrink-0 items-center justify-between border-b border-white/10 px-2">
+      <div className="flex h-[152px] shrink-0 items-center border-b border-white/10 px-7">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#39bee8]/15 ring-1 ring-[#39bee8]/25">
-            <img src="/CareLogo.png" alt="CareNestPro" className="h-7 w-7" />
+          <div className="flex h-10 w-10 items-center justify-center">
+            <img src="/CareLogo.png" alt="CareNestPro" className="h-9 w-9" />
           </div>
-          <div>
-            <p className="text-[15px] font-semibold tracking-[-0.03em] text-white">
-              CareNest<span className="text-[#42c4e9]">Pro</span>
-            </p>
-            <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#7890a7]">
-              Admin portal
-            </p>
-          </div>
+          <p className="text-[20px] font-medium tracking-[-0.04em] text-white">
+            CareNest<span className="text-[#42c4e9]">Pro</span>
+          </p>
         </div>
         {mobileOpen && (
           <button
             onClick={onClose}
             aria-label="Close sidebar"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#a7b8c9] transition hover:bg-white/10 hover:text-white md:hidden"
+            className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#d0d8df] hover:bg-white/10 hover:text-white md:hidden"
           >
             <X className="h-5 w-5" />
           </button>
         )}
       </div>
 
-      <nav className="flex-1 pt-7" aria-label="Admin navigation">
-        <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6f89a2]">
-          Workspace
-        </p>
-        <ul className="space-y-1.5">
-          {navItems.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                onClick={closeOnMobile}
-                className={linkClass}
-              >
-                <item.icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-                <span>{item.label}</span>
-              </NavLink>
-            </li>
-          ))}
+      <nav className="flex-1 pt-2" aria-label="Admin navigation">
+        <ul>
+          {group("Users", UsersRound, openUsers, setOpenUsers, usersActive, userLinks)}
+          {group("Payments", CreditCard, openPayments, setOpenPayments, paymentsActive, paymentLinks)}
+          {group("Jobs", Boxes, openJobs, setOpenJobs, jobsActive, jobLinks)}
 
           <li>
-            <button
-              type="button"
-              onClick={() => setOpenProfile((s) => !s)}
-              aria-expanded={openProfile}
-              className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
-                profileActive
-                  ? "bg-[#496278] text-white"
-                  : "text-[#a7b8c9] hover:bg-[#102b48] hover:text-white"
-              }`}
-            >
-              <ShieldCheck className="h-[18px] w-[18px]" strokeWidth={1.8} />
-              <span className="flex-1 text-left">Profile Verification</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${openProfile ? "" : "-rotate-90"}`} />
-            </button>
+            <NavLink to="/admin/token-blacklist" onClick={closeOnMobile} className={({ isActive }) => rootLinkClass(isActive)}>
+              <ShieldCheck className="h-[21px] w-[21px]" strokeWidth={1.6} />
+              <span>Token Blacklist</span>
+            </NavLink>
+          </li>
 
-            {openProfile && (
-              <ul className="ml-8 mt-1.5 space-y-1 border-l border-white/10 pl-3">
-                <li>
-                  <NavLink
-                    to="/admin/profile-verification/care-seekers"
-                    onClick={closeOnMobile}
-                    className={linkClass}
-                  >
-                    Care Seekers
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/admin/profile-verification/care-providers"
-                    onClick={closeOnMobile}
-                    className={linkClass}
-                  >
-                    Care Providers
-                  </NavLink>
-                </li>
-              </ul>
-            )}
+          <li>
+            <NavLink
+              to="/admin/support"
+              onClick={closeOnMobile}
+              className={({ isActive }) => rootLinkClass(isActive)}
+            >
+              <CircleHelp className="h-[21px] w-[21px]" strokeWidth={1.6} />
+              <span>Support</span>
+            </NavLink>
           </li>
           <li>
             <NavLink
               to="/admin/messages"
               onClick={closeOnMobile}
-              className={linkClass}
+              className={({ isActive }) => rootLinkClass(isActive)}
             >
-              <MessageSquareText className="h-[18px] w-[18px]" strokeWidth={1.8} />
+              <MessageSquareText className="h-[21px] w-[21px]" strokeWidth={1.6} />
               <span>Notifications &amp; Messages</span>
             </NavLink>
           </li>
         </ul>
       </nav>
 
-      <div className="mt-6 flex items-center gap-3 border-t border-white/10 px-3 pt-5">
+      <div className="flex items-center gap-3 border-t border-white/10 px-7 py-5">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#42c4e9]/15 text-[#42c4e9]">
           <UserRound className="h-4 w-4" />
         </div>
         <div className="min-w-0">
           <p className="truncate text-xs font-semibold text-white">Administrator</p>
-          <p className="mt-0.5 text-[10px] text-[#7890a7]">Staff account</p>
+          <p className="mt-0.5 text-[10px] text-[#9eb4c2]">Staff account</p>
         </div>
       </div>
     </aside>
