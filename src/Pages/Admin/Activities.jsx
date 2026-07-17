@@ -10,6 +10,7 @@ import {
   FaChevronRight,
 } from "react-icons/fa";
 import dayjs from "dayjs";
+import AdminStatusTag from "../../Components/AdminStatusTag";
 import CubeIcon from "../../../public/3dcube.svg?react";
 import CubeIconGreen from "../../../public/3dcubeGreen.svg?react";
 import CubeIconPink from "../../../public/3dcubePink.svg?react";
@@ -419,17 +420,7 @@ function Activities() {
                 <td className="px-3 py-2.5">{r.name}</td>
                 <td className="px-3 py-2.5">{r.careType}</td>
                 <td className="px-3 py-2.5">
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs ${
-                      r.status === "Pending"
-                        ? "bg-purple-50 text-purple-600"
-                        : r.status === "Ongoing Activity"
-                          ? "bg-sky-50 text-sky-600"
-                          : "bg-green-50 text-green-600"
-                    }`}
-                  >
-                    {r.status}
-                  </span>
+                  <AdminStatusTag value={r.status} />
                 </td>
                 <td className="px-3 py-2.5">{r.date}</td>
                 <td className="flex items-center gap-3 px-3 py-2.5 text-slate-500">
@@ -554,9 +545,7 @@ function Activities() {
               <div className="flex justify-between py-2">
                 <span className="text-slate-500">Status</span>
                 <span className="text-right">
-                  <span className="px-3 py-1 rounded-full text-xs bg-purple-50 text-purple-600">
-                    {editRow.status}
-                  </span>
+                  <AdminStatusTag value={editRow.status} />
                 </span>
               </div>
             </div>

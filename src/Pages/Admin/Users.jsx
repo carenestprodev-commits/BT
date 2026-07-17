@@ -927,7 +927,7 @@ function Users() {
           })}
         </div>
 
-        <div className="mb-5 rounded-xl border border-slate-200/90 bg-white p-3 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.35)] sm:p-4">
+        <div className="mb-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1">
               <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5 focus-within:border-[#0b93c6] focus-within:ring-2 focus-within:ring-[#0b93c6]/10">
@@ -1328,18 +1328,18 @@ function Users() {
 
         {/* Edit / Details Modal */}
         {editRow && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6">
+          <div className="fixed inset-0 z-50">
             <div
-              className="absolute inset-0"
+              className="absolute inset-0 bg-[#0E2F43]/30 transition-opacity"
               onClick={() => {
                 dispatch(clearCurrentUser());
                 setSelectedUserId(null);
                 setEditRow(null);
               }}
             />
-            <div className="relative z-50 flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[560px] flex-col overflow-hidden bg-white shadow-2xl transition-transform duration-300">
               <button
-                className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20"
+                className="absolute right-5 top-5 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                 onClick={() => {
                   dispatch(clearCurrentUser());
                   setSelectedUserId(null);
@@ -1349,7 +1349,7 @@ function Users() {
                 ✕
               </button>
 
-              <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-6 text-white sm:px-8">
+              <div className="border-b border-[#EAECF0] bg-white px-6 py-6 pr-16 text-[#0E2F43] sm:px-8 sm:pr-16">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="flex items-center gap-4">
                     <div className="relative">
@@ -1394,13 +1394,13 @@ function Users() {
                       )}
                     </div>
                     <div>
-                      <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+                      <p className="text-xs uppercase tracking-[0.2em] text-[#A6A6A7]">
                         {userTypeLabel(editRow.user_type)}
                       </p>
                       <h3 className="mt-1 text-2xl font-semibold">
                         {editRow.name}
                       </h3>
-                      <p className="mt-1 text-sm text-slate-300">
+                      <p className="mt-1 text-sm text-[#667085]">
                         {editRow.email}
                       </p>
                     </div>
@@ -1409,49 +1409,49 @@ function Users() {
                   <div className="flex flex-wrap gap-2 md:justify-end">
                     {getVerificationBadge(editRow)}
                     {getScreeningBadge(editRow)}
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">
+                    <span className="rounded-full bg-[#F4F9FC] px-3 py-1 text-xs text-[#344054]">
                       {editRow.accountStatus}
                     </span>
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">
+                    <span className="rounded-full bg-[#F4F9FC] px-3 py-1 text-xs text-[#344054]">
                       Joined {editRow.onboard}
                     </span>
                   </div>
                 </div>
 
                 {currentUserLoading && (
-                  <p className="mt-4 text-sm text-slate-300">
+                  <p className="mt-4 text-sm text-slate-500">
                     Refreshing full profile details...
                   </p>
                 )}
                 {currentUserError && (
-                  <p className="mt-4 text-sm text-red-200">
+                  <p className="mt-4 text-sm text-red-600">
                     Unable to load the full profile details.
                   </p>
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto bg-slate-50 px-6 py-6 sm:px-8">
+              <div className="flex-1 overflow-y-auto bg-white px-6 py-6 sm:px-8">
                 <div className="grid gap-4">
                   {detailSections.map((section) => (
                     <section
                       key={section.title}
-                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                      className="border-b border-gray-100 pb-5 last:border-b-0"
                     >
                       <div className="mb-4 flex items-center justify-between">
                         <h4 className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
                           {section.title}
                         </h4>
                       </div>
-                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <div className="space-y-3 text-sm">
                         {section.items.map((item) => (
                           <div
                             key={item.label}
-                            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3"
+                            className="flex items-start justify-between gap-4 border-b border-gray-50 pb-2"
                           >
-                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+                            <p className="text-xs text-[#A6A6A7]">
                               {item.label}
                             </p>
-                            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-900">
+                            <p className="max-w-[62%] whitespace-pre-wrap break-words text-right text-sm font-semibold text-[#0E2F43]">
                               {item.value}
                             </p>
                           </div>
@@ -1462,7 +1462,7 @@ function Users() {
                 </div>
               </div>
 
-              <div className="border-t border-slate-200 bg-white px-6 py-4 sm:px-8">
+              <div className="shrink-0 border-t border-[#EAECF0] bg-white px-6 py-4 sm:px-8">
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <button className="w-full rounded-md bg-[#0b93c6] py-2 text-white sm:w-auto sm:px-5">
                     Message

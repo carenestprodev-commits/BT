@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaSearch, FaDownload } from "react-icons/fa";
 import dayjs from "dayjs";
+import AdminStatusTag from "../../Components/AdminStatusTag";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchSupportTickets,
@@ -350,7 +351,7 @@ function Support() {
                   <div className="mb-3">
                     <div className="text-gray-500 text-xs">Status</div>
                     <div className="text-gray-900">
-                      {(current.status || "").replace("_", " ")}
+                      <AdminStatusTag value={current.status} />
                     </div>
                   </div>
                   <div className="mb-3">
