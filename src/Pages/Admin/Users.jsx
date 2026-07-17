@@ -595,40 +595,6 @@ function Users() {
     { value: "NoPhoto", label: "No Profile Picture" },
   ];
 
-  const activeFilters = useMemo(() => {
-    const items = [];
-    if (query.trim()) {
-      items.push({
-        key: "query",
-        label: `Search: ${query.trim()}`,
-        clear: () => setQuery(""),
-      });
-    }
-    if (locationFilter !== "All") {
-      items.push({
-        key: "location",
-        label: `Location: ${locationFilter}`,
-        clear: () => setLocationFilter("All"),
-      });
-    }
-    if (accountStatusFilter !== "All") {
-      items.push({
-        key: "account",
-        label: `Account: ${accountStatusFilter}`,
-        clear: () => setAccountStatusFilter("All"),
-      });
-    }
-    profileStatusFilters.forEach((value) => {
-      items.push({
-        key: `profile-${value}`,
-        label: profileFilterOptions.find((opt) => opt.value === value)?.label || value,
-        clear: () =>
-          setProfileStatusFilters((prev) => prev.filter((item) => item !== value)),
-      });
-    });
-    return items;
-  }, [query, locationFilter, accountStatusFilter, profileStatusFilters]);
-
   const clearAllFilters = () => {
     setQuery("");
     setLocationFilter("All");
@@ -884,36 +850,6 @@ function Users() {
     <>
       <div className="min-h-full w-full bg-[#f3f7fa] px-3 py-4 text-slate-900 font-sfpro sm:px-5 lg:px-7">
         <div className="mx-auto w-full max-w-[1480px]">
-        <div className="mb-4 flex flex-col gap-3 border-b border-slate-200/80 pb-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0b93c6]">
-              Admin / Users
-            </p>
-            <h2 className="mt-1 text-[26px] font-semibold leading-none tracking-[-0.03em] text-[#102f42]">
-              Users
-            </h2>
-            <p className="mt-2 text-xs text-slate-500">
-              Showing {visibleCount.toLocaleString()} of {rows.length.toLocaleString()} loaded records
-            </p>
-          </div>
-          <div className="flex items-center justify-between gap-3 text-xs text-slate-500 sm:justify-end">
-            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              {activeStat === "all"
-                ? "All users"
-                : activeStat === "providers"
-                  ? "Care providers"
-                  : activeStat === "seekers"
-                    ? "Care seekers"
-                    : "New signups"}{" "}
-              view
-            </span>
-            <time dateTime={dayjs().format("YYYY-MM-DD")} className="whitespace-nowrap font-medium text-slate-600">
-              {dayjs().format("DD MMM YYYY")}
-            </time>
-          </div>
-        </div>
-
         {/* Alert */}
         {alert && (
           <div
@@ -940,166 +876,6 @@ function Users() {
             </div>
           </div>
         )}
-
-        {/* Controls */}
-        <div className="mb-5 rounded-xl border border-slate-200/90 bg-white p-3 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.35)] sm:p-4">
-          <div className="grid gap-3 xl:grid-cols-12">
-            <div className="xl:col-span-4 min-w-0">
-              <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 shadow-none focus-within:border-[#0b93c6] focus-within:ring-2 focus-within:ring-[#0b93c6]/10">
-                <FaSearch className="mr-2 text-slate-400" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search users"
-                  className="w-full bg-transparent text-sm outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="relative xl:col-span-3">
-              <select
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                className="w-full appearance-none rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-2.5 pr-8 text-sm shadow-none focus:border-[#0b93c6] focus:outline-none focus:ring-2 focus:ring-[#0b93c6]/10"
-              >
-                <option value="All">All locations</option>
-                {locationOptions.map((location) => (
-                  <option key={location} value={location}>
-                    {location}
-                  </option>
-                ))}
-              </select>
-              <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
-
-            <div className="relative xl:col-span-3">
-              <select
-                value={accountStatusFilter}
-                onChange={(e) => setAccountStatusFilter(e.target.value)}
-                className="w-full appearance-none rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-2.5 pr-8 text-sm shadow-none focus:border-[#0b93c6] focus:outline-none focus:ring-2 focus:ring-[#0b93c6]/10"
-              >
-                <option value="All">Account status</option>
-                <option value="Active">Active accounts</option>
-                <option value="Suspended">Suspended accounts</option>
-              </select>
-              <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
-
-            <div className="relative xl:col-span-2" ref={profileFilterRef}>
-              <button
-                type="button"
-                onClick={() => setProfileFilterOpen((o) => !o)}
-                className="inline-flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-2.5 text-sm shadow-none"
-              >
-                <span>
-                  {profileStatusFilters.length === 0
-                    ? "Status filters"
-                    : profileStatusFilters.length === 1
-                      ? profileFilterOptions.find((o) => o.value === profileStatusFilters[0])?.label
-                      : `${profileStatusFilters.length} filters`}
-                </span>
-                <FaChevronDown className="shrink-0 text-slate-400" />
-              </button>
-
-              {profileFilterOpen && (
-                <div className="absolute left-0 z-50 mt-2 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_24px_-12px_rgba(15,23,42,0.3)]">
-                  {profileFilterOptions.map((opt) => (
-                    <label
-                      key={opt.value}
-                      className="flex cursor-pointer items-center gap-2 px-4 py-2.5 text-sm text-slate-900 hover:bg-slate-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={profileStatusFilters.includes(opt.value)}
-                        onChange={() => toggleProfileFilter(opt.value)}
-                        className="h-4 w-4 rounded border-gray-300 text-[#0b93c6] focus:ring-[#0b93c6]"
-                      />
-                      {opt.label}
-                    </label>
-                  ))}
-                  {profileStatusFilters.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setProfileStatusFilters([])}
-                      className="w-full border-t border-slate-100 px-4 py-2.5 text-left text-xs font-medium text-[#0b93c6] hover:bg-slate-50"
-                    >
-                      Clear filters
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => setShowBulkChecker(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0b93c6] px-4 py-2.5 text-sm font-medium text-white shadow-[0_5px_12px_-8px_rgba(11,147,198,0.8)] transition hover:bg-[#087fa9] active:scale-[0.98]"
-              >
-                <FaSearch />
-                Bulk Profile Checker
-              </button>
-              <button
-                onClick={() => setShowScreeningModal(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#102f42] px-4 py-2.5 text-sm font-medium text-white shadow-[0_5px_12px_-8px_rgba(16,47,66,0.8)] transition hover:bg-[#0b2636] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={selectedIds.length === 0}
-              >
-                <FaCheck />
-                Bulk Screening
-              </button>
-              <p className="text-xs text-slate-500">
-                Select providers first to run bulk profile checks or screening updates.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => setShowEmailModal(true)}
-                disabled={selectedIds.length === 0}
-                className="inline-flex items-center gap-2 rounded-lg border border-[#0b93c6] px-4 py-2.5 text-sm font-medium text-[#0b93c6] transition hover:bg-[#effaff] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <FaEnvelope />
-                Send Email
-              </button>
-              <button
-                onClick={() => setShowExportModal(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#0b93c6] px-4 py-2.5 text-sm font-medium text-white shadow-[0_5px_12px_-8px_rgba(11,147,198,0.8)] transition hover:bg-[#087fa9]"
-              >
-                <FaFileExport />
-                Export Data
-              </button>
-              <button
-                type="button"
-                onClick={clearAllFilters}
-                disabled={!hasActiveFilters}
-                className={`rounded-xl border px-4 py-2.5 text-sm font-medium ${
-                  hasActiveFilters
-                    ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-                    : "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
-                }`}
-              >
-                Clear all filters
-              </button>
-            </div>
-          </div>
-
-          {activeFilters.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {activeFilters.map((filter) => (
-                <button
-                  key={filter.key}
-                  type="button"
-                  onClick={filter.clear}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-                >
-                  <span>{filter.label}</span>
-                  <span className="text-slate-400">×</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
 
         <div className="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
           {statsConfig.map((s) => {
@@ -1149,6 +925,107 @@ function Users() {
               </button>
             );
           })}
+        </div>
+
+        <div className="mb-5 rounded-xl border border-slate-200/90 bg-white p-3 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.35)] sm:p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5 focus-within:border-[#0b93c6] focus-within:ring-2 focus-within:ring-[#0b93c6]/10">
+                <FaSearch className="mr-2 text-slate-400" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search users"
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+
+            <div className="relative sm:w-36" ref={profileFilterRef}>
+              <button
+                type="button"
+                onClick={() => setProfileFilterOpen((open) => !open)}
+                className="inline-flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-[#8acfe7] hover:bg-[#f8fcfe]"
+              >
+                Filter
+                <FaChevronDown className="text-slate-400" />
+              </button>
+
+              {profileFilterOpen && (
+                <div className="absolute right-0 z-50 mt-2 w-[min(320px,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-4 shadow-[0_18px_40px_-20px_rgba(15,23,42,0.35)]">
+                  <div className="space-y-3">
+                    <label className="block text-xs font-medium text-slate-500">
+                      Location
+                      <select
+                        value={locationFilter}
+                        onChange={(e) => setLocationFilter(e.target.value)}
+                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0b93c6] focus:ring-2 focus:ring-[#0b93c6]/10"
+                      >
+                        <option value="All">All locations</option>
+                        {locationOptions.map((location) => (
+                          <option key={location} value={location}>
+                            {location}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block text-xs font-medium text-slate-500">
+                      Account status
+                      <select
+                        value={accountStatusFilter}
+                        onChange={(e) => setAccountStatusFilter(e.target.value)}
+                        className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0b93c6] focus:ring-2 focus:ring-[#0b93c6]/10"
+                      >
+                        <option value="All">All accounts</option>
+                        <option value="Active">Active accounts</option>
+                        <option value="Suspended">Suspended accounts</option>
+                      </select>
+                    </label>
+
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">Profile status</p>
+                      <div className="mt-1.5 space-y-1">
+                        {profileFilterOptions.map((option) => (
+                          <label
+                            key={option.value}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={profileStatusFilters.includes(option.value)}
+                              onChange={() => toggleProfileFilter(option.value)}
+                              className="h-4 w-4 rounded border-slate-300 text-[#0b93c6] focus:ring-[#0b93c6]"
+                            />
+                            {option.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      onClick={clearAllFilters}
+                      className="mt-3 border-t border-slate-100 pt-3 text-xs font-medium text-[#0b93c6] hover:text-[#087fa9]"
+                    >
+                      Reset filters
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowExportModal(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0b93c6] px-4 py-2.5 text-sm font-medium text-white shadow-[0_5px_12px_-8px_rgba(11,147,198,0.8)] transition hover:bg-[#087fa9]"
+            >
+              <FaFileExport />
+              Export
+            </button>
+          </div>
         </div>
 
         <div className="mb-5 flex flex-wrap items-center divide-y divide-slate-200 border-y border-slate-200 bg-white px-3 sm:divide-x sm:divide-y-0 sm:px-4">
