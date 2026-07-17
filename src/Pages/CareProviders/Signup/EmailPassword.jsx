@@ -15,6 +15,7 @@ import {
 import { providerDashboardPaths } from "../../../Routes/providerRoutes";
 import { MAX_FILE_SIZE } from "../../../lib/constants";
 import { isValidPhoneNumber } from "../../../utils/phoneValidation";
+import PhoneNumberInput from "../../../Components/PhoneNumberInput";
 
 function EmailPassword({ formData, updateFormData, handleBack }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -449,12 +450,9 @@ function EmailPassword({ formData, updateFormData, handleBack }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Phone Number
             </label>
-            <input
+            <PhoneNumberInput
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              type="tel"
-              placeholder="Input phone number"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-white dark:text-gray-700"
+              onChange={setPhone}
             />
           </div>
 

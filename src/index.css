@@ -23,6 +23,24 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  #root:has(aside.font-sfpro) {
+    --admin-navy: #0e2f43;
+    --admin-navy-hover: #1d4353;
+    --admin-cyan: #0b93c6;
+    --admin-cyan-dark: #087aa5;
+    --admin-bg: #f8fafc;
+    --admin-slate: #64748b;
+    --admin-ink: #0f172a;
+    --admin-line: #e2e8f0;
+    --admin-font-sans: "SF Pro Display", "Space Grotesk", sans-serif;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
 /* Mobile-friendly touch target sizing (minimum 44x44px for WCAG) */
 @layer components {
   .touch-target {

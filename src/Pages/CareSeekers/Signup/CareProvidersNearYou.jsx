@@ -18,6 +18,7 @@ import {
   getUserCurrencyInfo,
 } from "../../../utils/countryHelper";
 import { isValidPhoneNumber } from "../../../utils/phoneValidation";
+import PhoneNumberInput from "../../../Components/PhoneNumberInput";
 
 function CareProvidersNearYou() {
   const [showSubscribePopup, setShowSubscribePopup] = React.useState(false);
@@ -301,14 +302,12 @@ function CareProvidersNearYou() {
                 className="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
               />
             </div>
-            <input
-              type="tel"
-              placeholder="Phone Number"
+            <PhoneNumberInput
               value={signupForm.phone}
-              onChange={(e) =>
-                setSignupForm({ ...signupForm, phone: e.target.value })
+              onChange={(phone) =>
+                setSignupForm({ ...signupForm, phone })
               }
-              className="w-full mb-3 p-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400"
+              className="mb-3"
             />
             <input
               type="email"

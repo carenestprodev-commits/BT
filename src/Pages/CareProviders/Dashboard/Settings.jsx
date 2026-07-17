@@ -29,6 +29,8 @@ import ProviderCategoryPreferences, {
   skillsForCategory,
 } from "../../../Components/ProviderCategoryPreferences";
 import { readApiErrorMessage } from "../../../utils/parseApiError";
+import PhoneNumberInput from "../../../Components/PhoneNumberInput";
+import { isValidPhoneNumber } from "../../../utils/phoneValidation";
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 async function assertOkResponse(res, fallback = "Save failed") {
@@ -539,6 +541,10 @@ function Settings() {
         setOriginalFormData(formData);
         setMessage({ type: "success", text: "Settings saved!" });
       } else {
+        if (!isValidPhoneNumber(formData.phone)) {
+          setMessage({ type: "error", text: "Enter a valid phone number." });
+          return;
+        }
         const res = await fetchWithAuth(
           API_URL + "/api/provider/profile/personal-info/",
           {
@@ -1380,12 +1386,12 @@ function Settings() {
                       <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                         Phone number
                       </label>
-                      <input
-                        type="tel"
-                        name="phone"
+                      <PhoneNumberInput
                         value={formData.phone}
-                        onChange={handleInputChange}
-                        className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-200 text-gray-700 text-sm"
+                        onChange={(phone) =>
+                          setFormData((current) => ({ ...current, phone }))
+                        }
+                        className="care-phone-input--muted"
                       />
                     </div>
                     <div>
