@@ -10,6 +10,8 @@ import {
 } from "../../../Redux/CareSeekerAuth";
 import { useAuth } from "../../../Context/AuthContext";
 import CareNestPro_Later from "../../../../public//CareNestPro_Later.jpeg";
+import PhoneNumberInput from "../../../Components/PhoneNumberInput";
+import { isValidPhoneNumber } from "../../../utils/phoneValidation";
 
 // --- Sub-component: The "I'll do this later" Modal ---
 const SignUpModal = ({ isOpen, onClose }) => {
@@ -20,6 +22,7 @@ const SignUpModal = ({ isOpen, onClose }) => {
   const [signupForm, setSignupForm] = useState({
     firstName: "",
     lastName: "",
+    phone: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -57,6 +60,7 @@ const SignUpModal = ({ isOpen, onClose }) => {
     if (
       !signupForm.firstName ||
       !signupForm.lastName ||
+      !signupForm.phone ||
       !signupForm.email ||
       !signupForm.password ||
       signupForm.password !== signupForm.confirmPassword
@@ -64,6 +68,11 @@ const SignUpModal = ({ isOpen, onClose }) => {
       alert(
         "Please provide first name, last name, valid email and matching passwords",
       );
+      return;
+    }
+
+    if (!isValidPhoneNumber(signupForm.phone)) {
+      alert("Enter a valid phone number, including country code for international numbers");
       return;
     }
 
@@ -85,6 +94,7 @@ const SignUpModal = ({ isOpen, onClose }) => {
       const userCredentials = {
         firstName: signupForm.firstName,
         lastName: signupForm.lastName,
+        phone: signupForm.phone,
         email: signupForm.email,
         password: signupForm.password,
       };
@@ -134,6 +144,7 @@ const SignUpModal = ({ isOpen, onClose }) => {
   const isFormValid =
     signupForm.firstName &&
     signupForm.lastName &&
+    isValidPhoneNumber(signupForm.phone) &&
     isValidEmail(signupForm.email) &&
     isStrongPassword(signupForm.password) &&
     signupForm.password === signupForm.confirmPassword &&
@@ -210,6 +221,11 @@ const SignUpModal = ({ isOpen, onClose }) => {
               />
             </div>
           </div>
+
+          <PhoneNumberInput
+            value={signupForm.phone}
+            onChange={(phone) => setSignupForm({ ...signupForm, phone })}
+          />
 
           {/* Email */}
           <div>

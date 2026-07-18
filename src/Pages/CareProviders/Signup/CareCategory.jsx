@@ -16,6 +16,8 @@ import {
 } from "../../CareSeekers/Signup/uploadProfilePhoto";
 import { providerDashboardPaths } from "../../../Routes/providerRoutes";
 import { MAX_FILE_SIZE } from "../../../lib/constants";
+import PhoneNumberInput from "../../../Components/PhoneNumberInput";
+import { isValidPhoneNumber } from "../../../utils/phoneValidation";
 
 // --- Sub-component: The "I'll do this later" Modal ---
 const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
@@ -25,6 +27,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
   const [signupForm, setSignupForm] = useState({
     firstName: "",
     lastName: "",
+    phone: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -78,6 +81,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
     if (
       !signupForm.firstName ||
       !signupForm.lastName ||
+      !signupForm.phone ||
       !signupForm.email ||
       !signupForm.password ||
       signupForm.password !== signupForm.confirmPassword
@@ -85,6 +89,11 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
       alert(
         "Please provide first name, last name, valid email and matching passwords",
       );
+      return;
+    }
+
+    if (!isValidPhoneNumber(signupForm.phone)) {
+      alert("Enter a valid phone number, including country code for international numbers");
       return;
     }
 
@@ -121,6 +130,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
         ...existingUserData,
         first_name: signupForm.firstName,
         last_name: signupForm.lastName,
+        phone_number: signupForm.phone,
         email: signupForm.email,
         password: signupForm.password,
         user_type: "provider",
@@ -312,6 +322,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
         user_data: {
           first_name: signupForm.firstName,
           last_name: signupForm.lastName,
+          phone_number: signupForm.phone,
           email: signupForm.email,
           password: signupForm.password,
           user_type: "provider",
@@ -368,6 +379,7 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
   const isFormValid =
     signupForm.firstName &&
     signupForm.lastName &&
+    isValidPhoneNumber(signupForm.phone) &&
     isValidEmail(signupForm.email) &&
     isStrongPassword(signupForm.password) &&
     signupForm.password === signupForm.confirmPassword &&
@@ -505,6 +517,11 @@ const SignUpModal = ({ isOpen, onClose, selectedCategory }) => {
               />
             </div>
           </div>
+
+          <PhoneNumberInput
+            value={signupForm.phone}
+            onChange={(phone) => setSignupForm({ ...signupForm, phone })}
+          />
 
           {/* Email */}
           <div>
