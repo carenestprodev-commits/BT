@@ -7,6 +7,8 @@ import {
 } from "../../../Redux/CareSeekerAuth";
 import { useAuth } from "../../../Context/AuthContext";
 import { useDispatch } from "react-redux";
+import PhoneNumberInput from "../../../Components/PhoneNumberInput";
+import { isValidPhoneNumber } from "../../../utils/phoneValidation";
 
 function Signup() {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +18,7 @@ function Signup() {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
+    phone: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -36,8 +39,13 @@ function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.firstName || !form.lastName || !form.email || !form.password) {
+    if (!form.firstName || !form.lastName || !form.phone || !form.email || !form.password) {
       alert("Please fill in all fields");
+      return;
+    }
+
+    if (!isValidPhoneNumber(form.phone)) {
+      alert("Enter a valid phone number, including country code for international numbers");
       return;
     }
 
@@ -67,6 +75,7 @@ function Signup() {
       const userCredentials = {
         firstName: form.firstName,
         lastName: form.lastName,
+        phone: form.phone,
         email: form.email,
         password: form.password,
       };
@@ -102,6 +111,7 @@ function Signup() {
   const isFormValid =
     form.firstName &&
     form.lastName &&
+    isValidPhoneNumber(form.phone) &&
     isValidEmail(form.email) &&
     isStrongPassword(form.password) &&
     form.password === form.confirmPassword &&
@@ -157,6 +167,11 @@ function Signup() {
               />
             </div>
           </div>
+
+          <PhoneNumberInput
+            value={form.phone}
+            onChange={(phone) => setForm({ ...form, phone })}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
