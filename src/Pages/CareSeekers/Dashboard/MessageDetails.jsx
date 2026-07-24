@@ -538,7 +538,13 @@ function MessageDetails() {
 
           {currentConversation ? (
             <>
-              <div className="flex items-center flex-1 cursor-pointer hover:opacity-80 transition">
+              <button
+                type="button"
+                className="flex items-center flex-1 cursor-pointer hover:opacity-80 transition text-left"
+                onClick={() =>
+                  navigate(`/careseekers/dashboard/details/${currentConversation.other_participant?.id}`)
+                }
+              >
                 <img
                   src={resolveImage(
                     currentConversation.other_participant?.profile_image_url,
@@ -554,7 +560,7 @@ function MessageDetails() {
                     currentConversation.other_participant?.email ||
                     "Unknown User"}
                 </div>
-              </div>
+              </button>
             </>
           ) : (
             <div className="flex-1">

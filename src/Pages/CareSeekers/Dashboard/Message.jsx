@@ -1172,15 +1172,24 @@ function Message() {
               <div className="flex items-center px-6 sm:px-8 py-4 sm:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0">
                 {currentConversation ? (
                   <>
-                    <img
-                      src={resolveImage(
-                        currentConversation.other_participant
-                          ?.profile_image_url,
-                      )}
-                      alt="avatar"
-                      className="w-10 h-10 rounded-full mr-3 object-cover"
-                    />
-                    <div className="flex-1 flex items-center">
+                    <button
+                      type="button"
+                      className="flex flex-1 items-center text-left hover:opacity-80"
+                      onClick={() =>
+                        navigate(
+                          `/careseekers/dashboard/details/${currentConversation.other_participant?.id}`,
+                        )
+                      }
+                    >
+                      <img
+                        src={resolveImage(
+                          currentConversation.other_participant
+                            ?.profile_image_url,
+                        )}
+                        alt="avatar"
+                        className="w-10 h-10 rounded-full mr-3 object-cover"
+                      />
+                      <div className="flex-1 flex items-center">
                       <div className="font-semibold text-gray-800 text-lg">
                         {formatDisplayName(
                           currentConversation.other_participant?.full_name,
@@ -1194,7 +1203,8 @@ function Message() {
                           title="Online"
                         />
                       )}
-                    </div>
+                      </div>
+                    </button>
                   </>
                 ) : (
                   <div className="flex-1">

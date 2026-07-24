@@ -46,6 +46,11 @@ const normalizeApplications = (applications) =>
   (Array.isArray(applications) ? applications : []).map((item) => ({
     ...item,
     id: item.id || item.booking_id,
+    providerUserId:
+      item.provider_user_id ||
+      item.providerUserId ||
+      item.provider?.user?.id ||
+      item.provider?.id,
     providerName:
       item.provider_name ||
       item.providerName ||

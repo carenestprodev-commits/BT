@@ -14,12 +14,14 @@ import {
 import { fetchUserProfile } from "../../../Redux/Auth"; // ✅ Import this
 import avatar_user from "../../../../public/avatar_user.png";
 import { formatDisplayName } from "../../../utils/formatDisplayName";
+import UserProfileModal from "../../../Components/UserProfileModal";
 
 function JobDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
   const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [profileUser, setProfileUser] = useState(null);
 
   const {
     selectedJob: job,
@@ -174,6 +176,7 @@ function JobDetails() {
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
+      <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />
       <Sidebar active="Home" />
       <div className="flex-1 font-sfpro md:ml-64">
         {/* Header */}
@@ -203,7 +206,22 @@ function JobDetails() {
           {job && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8">
               {/* Job Poster Info */}
-              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 mb-6 pb-6 border-b border-gray-200 text-left hover:opacity-80"
+                onClick={() =>
+                  setProfileUser({
+                    id: job.seeker_id,
+                    full_name: job.seeker_name || job.poster_name,
+                    profile_image_url: job.poster_avatar,
+                    is_verified: job.seeker_is_verified,
+                    user_type: "seeker",
+                    city: job.city,
+                    state: job.state,
+                    country: job.country,
+                  })
+                }
+              >
                 <img
                   src={job.poster_avatar || avatar_user}
                   alt="Job poster"
@@ -221,7 +239,7 @@ function JobDetails() {
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
 
               {/* Job Title */}
               <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-2">

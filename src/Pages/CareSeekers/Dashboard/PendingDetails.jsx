@@ -39,6 +39,10 @@ function PendingDetails() {
   const [editMode, setEditMode] = useState(false);
   const [openingApplicationId, setOpeningApplicationId] = useState(null);
 
+  useEffect(() => {
+    if (location?.state?.edit) setEditMode(true);
+  }, [location?.state?.edit]);
+
   // Payment state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -344,15 +348,21 @@ function PendingDetails() {
                           key={application.id || application.providerName}
                           className="flex items-center gap-3 rounded-lg bg-white border border-gray-100 p-3"
                         >
-                          <img
-                            src={resolveImage(
-                              application.providerImageUrl,
-                              application.providerName,
-                            )}
-                            alt={application.providerName}
-                            className="h-11 w-11 rounded-full object-cover"
-                          />
-                          <div className="min-w-0 flex-1">
+                          <button
+                            type="button"
+                            className="flex min-w-0 flex-1 items-center gap-3 text-left hover:opacity-80"
+                            onClick={() =>
+                              navigate(`/careseekers/dashboard/details/${application.providerUserId}`, {
+                                state: { messageable: true },
+                              })
+                            }
+                          >
+                            <img
+                              src={resolveImage(application.providerImageUrl, application.providerName)}
+                              alt={application.providerName}
+                              className="h-11 w-11 rounded-full object-cover"
+                            />
+                            <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <p className="font-medium text-gray-800 truncate">
                                 {application.providerName}
@@ -367,6 +377,7 @@ function PendingDetails() {
                               {application.createdAt || "Applied"}
                             </p>
                           </div>
+                          </button>
                           <button
                             className="rounded-md bg-[#0093d1] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
                             disabled={openingApplicationId === application.id}

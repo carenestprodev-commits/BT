@@ -10,7 +10,7 @@ import {
 import { BASE_URL } from "../../../Redux/config";
 import { formatDisplayName } from "../../../utils/formatDisplayName";
 
-const tabs = ["Active", "Closed", "Pending"];
+const tabs = ["Active", "Closed", "Awaiting seeker review"];
 
 function Requests() {
   const location = useLocation();
@@ -268,18 +268,7 @@ function Requests() {
 }
 
 function PendingRequestCard({ req }) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
-
-  const handleMenu = (e) => {
-    e.stopPropagation();
-    setMenuOpen((v) => !v);
-  };
-
-  const handleClose = (e) => {
-    e.stopPropagation();
-    setMenuOpen(false);
-  };
 
   return (
     <div
@@ -290,37 +279,8 @@ function PendingRequestCard({ req }) {
         })
       }
     >
-      <div className="absolute top-3 right-3">
-        <button
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 focus:outline-none"
-          onClick={handleMenu}
-        >
-          <svg
-            width="20"
-            height="20"
-            fill="currentColor"
-            className="text-gray-400"
-            viewBox="0 0 20 20"
-          >
-            <circle cx="4" cy="10" r="1.5" />
-            <circle cx="10" cy="10" r="1.5" />
-            <circle cx="16" cy="10" r="1.5" />
-          </svg>
-        </button>
-        {menuOpen && (
-          <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-            <button
-              className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 text-sm"
-              onClick={handleClose}
-            >
-              Close
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="text-xs text-gray-400 mb-1 pr-10">{req.posted}</div>
-      <div className="font-medium text-gray-800 mb-1 pr-10 truncate">{req.title}</div>
+      <div className="text-xs text-gray-400 mb-1">{req.posted}</div>
+      <div className="font-medium text-gray-800 mb-1 truncate">{req.title}</div>
       <div className="text-sm text-gray-600 leading-relaxed line-clamp-2">{req.desc}</div>
     </div>
   );
