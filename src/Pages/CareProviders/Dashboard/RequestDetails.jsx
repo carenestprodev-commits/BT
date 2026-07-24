@@ -23,6 +23,7 @@ function RequestDetails() {
     (s) => s.careProviderRequests || { current: null },
   );
   const [submitting, setSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState("");
   const defaultCurrency = getUserCurrencyInfo();
   const rateDisplay =
     current?.localized_rate_per_hour ?? current?.rate_per_hour ?? null;
@@ -124,31 +125,43 @@ function RequestDetails() {
           <div className="text-gray-700 font-medium mb-2">
             Message to Care Provider
           </div>
-          <textarea
-            className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-white text-gray-800 min-h-[100px] resize-none mb-2"
-            placeholder="Input feedback of your time with care provider"
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-          />
           {showReviewForm && (
-            <div className="flex gap-1 mb-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setRating(i + 1)}
-                  className="focus:outline-none -mt-20 ml-5"
-                >
-                  <FaStar
-                    className={
-                      i < rating
-                        ? "text-[#cb9e49] text-xl"
-                        : "text-gray-300 text-xl"
-                    }
-                  />
-                </button>
-              ))}
-            </div>
+            <>
+              <textarea
+                className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-white text-gray-800 min-h-[100px] resize-none mb-3"
+                placeholder="Share your experience with this care seeker"
+                value={feedback}
+                onChange={(e) => {
+                  setFeedback(e.target.value);
+                  setReviewError("");
+                }}
+              />
+              <div className="flex gap-2" aria-label="Rating">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setRating(i + 1);
+                      setReviewError("");
+                    }}
+                    className="rounded focus:outline-none focus:ring-2 focus:ring-[#0d99c9]"
+                    aria-label={`${i + 1} star${i ? "s" : ""}`}
+                  >
+                    <FaStar
+                      className={
+                        i < rating
+                          ? "text-[#cb9e49] text-2xl"
+                          : "text-gray-300 text-2xl"
+                      }
+                    />
+                  </button>
+                ))}
+              </div>
+              {reviewError && (
+                <p className="mt-2 text-sm text-red-600">{reviewError}</p>
+              )}
+            </>
           )}
         </div>
         <div className="mb-8">
@@ -196,7 +209,13 @@ function RequestDetails() {
             onClick={async () => {
               const booking_id = current?.id || current?.booking_id || Number(id);
               const ratingValue = rating;
-              const comment = feedback;
+              const comment = feedback.trim();
+              if (!ratingValue || !comment) {
+                setReviewError(
+                  "Choose a rating and write feedback before submitting.",
+                );
+                return;
+              }
               if (!booking_id) {
                 alert("Missing booking id");
                 return;

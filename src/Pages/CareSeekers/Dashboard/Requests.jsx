@@ -6,6 +6,7 @@ import {
   fetchSeekerActiveRequests,
   fetchSeekerClosedRequests,
   fetchSeekerPendingRequests,
+  deletePendingRequest,
 } from "../../../Redux/SeekerRequest";
 import {
   ApplicantsAvatarStack,
@@ -193,10 +194,17 @@ function Requests() {
                     </div>
                     <div className="flex items-center mb-2">
                       <span className="text-xs text-gray-500">
-                        {req.rating}.0
+                        {Number.isFinite(Number(req.rating))
+                          ? Number(req.rating).toFixed(1)
+                          : "Not rated"}
                       </span>
                       <span className="text-[#cb9e49] mr-1">
-                        {"★".repeat(req.rating)}
+                        {"★".repeat(
+                          Math.max(
+                            0,
+                            Math.min(5, Math.round(Number(req.rating) || 0)),
+                          ),
+                        )}
                       </span>
                     </div>
                     <div className="text-sm text-gray-600 leading-relaxed">
@@ -222,17 +230,41 @@ function Requests() {
 
 function PendingRequestCard({ req }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [closing, setClosing] = React.useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const handleMenu = (e) => {
     e.stopPropagation();
     setMenuOpen((v) => !v);
   };
-  const handleClose = () => {
+  const handleClose = async (event) => {
+    event.stopPropagation();
     setMenuOpen(false);
+    if (
+      !window.confirm(
+        "Close this care request? Providers will no longer be able to apply.",
+      )
+    )
+      return;
+    setClosing(true);
+    const result = await dispatch(deletePendingRequest(req.id));
+    setClosing(false);
+    if (result.error) {
+      alert(
+        result.payload?.detail ||
+          result.error.message ||
+          "Could not close request.",
+      );
+      return;
+    }
+    dispatch(fetchSeekerPendingRequests());
   };
-  const handleEdit = () => {
+  const handleEdit = (event) => {
+    event.stopPropagation();
     setMenuOpen(false);
-    navigate("/careseekers/dashboard/summary");
+    navigate(`/careseekers/dashboard/pending_details/${req.id}`, {
+      state: { details: req, edit: true },
+    });
   };
   return (
     <div
@@ -266,7 +298,7 @@ function PendingRequestCard({ req }) {
               className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 text-sm"
               onClick={handleClose}
             >
-              Close
+              {closing ? "Closing…" : "Close request"}
             </button>
             <button
               className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 text-sm"

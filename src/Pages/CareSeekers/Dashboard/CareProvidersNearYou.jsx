@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useEffect, useContext } from "react";
+import { useEffect, useContext, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./../Dashboard/Sidebar";
 import { useDispatch, useSelector } from "react-redux";
@@ -17,6 +17,7 @@ function CareProvidersNearYou() {
   const dispatch = useDispatch();
   const { user } = useContext(AuthContext);
   const defaultCurrency = getUserCurrencyInfo();
+  const [search, setSearch] = useState("");
 
   const { providers, loading, error } = useSelector(
     (s) =>
@@ -55,6 +56,24 @@ function CareProvidersNearYou() {
   const handleMessageClick = (providerId) => {
     navigate("/careseekers/dashboard/message_provider/" + providerId);
   };
+  const filteredProviders = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return providers;
+    return providers.filter((provider) =>
+      [
+        provider.user?.full_name,
+        provider.profile_title,
+        provider.category_name,
+        provider.city,
+        provider.country,
+        ...(provider.skills || []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [providers, search]);
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
@@ -66,6 +85,19 @@ function CareProvidersNearYou() {
             <h2 className="text-2xl md:text-3xl font-semibold text-gray-800">
               {getCategoryTitle()}
             </h2>
+          </div>
+          <div className="px-4 md:px-8 pt-6">
+            <label className="relative block max-w-xl">
+              <span className="sr-only">Search care providers</span>
+              <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-gray-400">⌕</span>
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search by name, service, skill, or location"
+                className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-800 outline-none focus:border-[#0093d1] focus:ring-2 focus:ring-[#0093d1]/15"
+              />
+            </label>
           </div>
 
           {/* Cards Grid */}
@@ -93,7 +125,7 @@ function CareProvidersNearYou() {
 
               {!loading &&
                 !error &&
-                providers.map((p) => (
+                filteredProviders.map((p) => (
                   <div
                     key={p.id}
                     className="bg-white border border-gray-100 rounded-2xl p-4 md:p-5 shadow-sm hover:shadow-md transition relative"
@@ -209,6 +241,9 @@ function CareProvidersNearYou() {
                     </div>
                   </div>
                 ))}
+              {!loading && !error && providers.length > 0 && filteredProviders.length === 0 && (
+                <div className="text-sm text-gray-500">No providers match “{search}”.</div>
+              )}
             </div>
           </div>
         </div>

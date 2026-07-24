@@ -45,14 +45,16 @@ function ViewDetails() {
   };
 
   useEffect(() => {
-    // Try to obtain provider id from location.state or route params or fallback to 48 (example)
-    const id = location?.state?.providerId || params?.id || 48;
+    const id = location?.state?.providerId || params?.id;
+    if (!id) return;
     dispatch(fetchProviderDetails(id));
 
     return () => {
       dispatch(clearProviderDetails());
     };
   }, [dispatch, location, params]);
+
+  const providerId = location?.state?.providerId || params?.id;
 
   const handleMessageClick = () => {
     proceedToMessage();
@@ -89,7 +91,13 @@ function ViewDetails() {
           </h2>
         </div>
 
-        {loading && <div className="py-8">Loading provider details…</div>}
+        {!providerId && (
+          <div className="py-12 text-center">
+            <h2 className="text-lg font-semibold text-gray-800">Profile unavailable</h2>
+            <p className="mt-2 text-sm text-gray-500">This provider link is incomplete.</p>
+          </div>
+        )}
+        {providerId && loading && <div className="py-8">Loading provider details…</div>}
         {error && (
           <div className="text-red-500 py-4">
             Failed to load provider:{" "}
@@ -256,6 +264,11 @@ function ViewDetails() {
             >
               Message
             </button>
+            {plan === "Free" && !(location.state && location.state.messageable) && (
+              <p className="mt-2 text-center text-sm text-gray-500">
+                Messaging becomes available after this provider applies to your request.
+              </p>
+            )}
 
           </>
         )}

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Sidebar from "./Sidebar";
+import UserProfileModal from "../../../Components/UserProfileModal";
 import {
   fetchConversations,
   fetchMessages,
@@ -552,6 +553,7 @@ function Message() {
   const defaultCurrency = getUserCurrencyInfo();
 
   const [input, setInput] = useState("");
+  const [profileUser, setProfileUser] = useState(null);
   const [search, setSearch] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -977,6 +979,7 @@ function Message() {
 
   return (
     <div className="flex h-screen bg-white overflow-hidden font-sfpro">
+      <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />
       <Sidebar active="Message" />
       <div className="flex-1 font-sfpro md:ml-64 flex h-screen min-h-0">
         {/* ══════════════ DESKTOP VIEW ══════════════ */}
@@ -1096,7 +1099,11 @@ function Message() {
             <div className="flex items-center px-6 sm:px-8 py-4 sm:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0">
               {currentConversation ? (
                 <>
-                  <div className="flex items-center flex-1 cursor-pointer hover:opacity-80 transition">
+                  <button
+                    type="button"
+                    className="flex items-center flex-1 cursor-pointer hover:opacity-80 transition text-left"
+                    onClick={() => setProfileUser(currentConversation.other_participant)}
+                  >
                     <img
                       src={resolveImage(
                         currentConversation.other_participant
@@ -1115,7 +1122,7 @@ function Message() {
                         <span className="ml-2 text-xs text-green-500"></span>
                       )}
                     </div>
-                  </div>
+                  </button>
                 </>
               ) : (
                 <div className="flex-1">
