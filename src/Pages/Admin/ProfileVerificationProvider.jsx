@@ -11,6 +11,7 @@ import {
 } from "../../Redux/Verification";
 import { fetchAdminStats } from "../../Redux/AdminUsers";
 import AdminStatusTag from "../../Components/AdminStatusTag";
+import VerificationDocumentPreview from "../../Components/Admin/VerificationDocumentPreview";
 
 function ProfileVerificationProvider() {
   const dispatch = useDispatch();
@@ -444,11 +445,7 @@ function ProfileVerificationProvider() {
                   {current?.government_id_url && (
                     <div className="mt-4">
                       <div className="text-sm text-gray-500">Government ID</div>
-                      <img
-                        src={current.government_id_url}
-                        alt="gov"
-                        className="mt-2 max-h-48"
-                      />
+                      <VerificationDocumentPreview url={current.government_id_url} />
                     </div>
                   )}
                   <div className="mt-4">

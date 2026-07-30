@@ -132,6 +132,39 @@ const UserAvatar = ({ name, imageUrl, className, textClassName = "text-sm" }) =>
   );
 };
 
+const GovernmentIdPreview = ({ verification }) => {
+  const documents = [
+    ["Government ID", verification?.government_id_url],
+    ["Identity photo", verification?.identity_photo_url],
+  ].filter(([, url]) => url);
+  if (!documents.length) return null;
+
+  return (
+    <section className="border-b border-gray-100 pb-5">
+      <h4 className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Identity documents</h4>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {documents.map(([label, url]) => {
+          const resolvedUrl = resolveImageUrl(url);
+          const isImage = /\.(?:png|jpe?g|webp|gif)(?:$|\?)/i.test(resolvedUrl);
+          return (
+            <div key={label} className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+              <div className="border-b border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">{label}</div>
+              {isImage ? (
+                <img src={resolvedUrl} alt={label} className="h-52 w-full object-contain" />
+              ) : (
+                <iframe title={label} src={resolvedUrl} className="h-52 w-full" />
+              )}
+              <a href={resolvedUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 text-xs font-medium text-[#0b93c6] hover:underline">
+                Open full document
+              </a>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
 const makeField = (label, value) => ({ label, value: formatText(value) });
 const makeSection = (title, items) => ({ title, items });
 const EDIT_CONTROL = "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#0b93c6] focus:ring-2 focus:ring-[#0b93c6]/15";
@@ -511,6 +544,7 @@ function Users({ initialStat = "all" }) {
         onboard: u.date_joined ? dayjs(u.date_joined).format("DD-MM-YYYY") : "",
         lastLogin: u.last_login ? dayjs(u.last_login).format("DD-MM-YYYY") : "",
         profileImageUrl: u.profile_image_url || "",
+        is_online: Boolean(u.is_online),
         requestHistory: u.request_count ?? 0,
         requestsMade: u.request_count ?? 0,
         country: u.country || profile.country || location.country || "",
@@ -555,7 +589,8 @@ function Users({ initialStat = "all" }) {
         ? dayjs(u.updated_at).format("DD-MM-YYYY")
         : dayjs(u.date_joined).format("DD-MM-YYYY") || "",
       lastUpdatedDate: u.updated_at || u.date_joined || "",
-      profileImageUrl: u.profile_image_url || "",
+        profileImageUrl: u.profile_image_url || "",
+        is_online: Boolean(u.is_online),
       requestHistory: 0,
       requestsMade: 0,
       country: "",
@@ -1629,6 +1664,7 @@ function Users({ initialStat = "all" }) {
                     )}
                   </form>
                 ) : <div className="grid gap-4">
+                  <GovernmentIdPreview verification={detailUser?.verification} />
                   {detailSections.map((section) => (
                     <section
                       key={section.title}
@@ -2193,6 +2229,7 @@ function Users({ initialStat = "all" }) {
                   Name
                 </th>
                 <th className="p-3 text-left">User Type</th>
+                <th className="p-3 text-left">Status</th>
                 <th className="p-3 text-left">Email address</th>
                 <th className="p-3 text-left">Phone Number</th>
                 <th className="p-3 text-left">Verification Status</th>
@@ -2229,6 +2266,12 @@ function Users({ initialStat = "all" }) {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{r.userType}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center gap-1.5 ${r.is_online ? "text-emerald-600" : "text-slate-400"}`}>
+                      <span className={`h-2 w-2 rounded-full ${r.is_online ? "bg-emerald-500" : "bg-slate-300"}`} />
+                      {r.is_online ? "Online" : "Offline"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-slate-600">{r.email}</td>
                   <td className="px-4 py-3 text-slate-600">{r.phone}</td>
                   <td className="px-4 py-3">{getVerificationBadge(r)}</td>
@@ -2343,7 +2386,8 @@ function Users({ initialStat = "all" }) {
               {" "}
               to {Math.min(currentPage * pageSize, filtered.length)}
               {" "}
-              of {filtered.length}
+              of {filtered.length} users in this table
+              {selectedIds.length > 0 && ` • ${selectedIds.length} selected`}
             </div>
             <div className="flex items-center gap-2">
               <button
