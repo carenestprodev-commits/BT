@@ -9,6 +9,7 @@ import PaymentModal from "./PaymentModal";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
+import { uploadVerificationId } from "../../../Redux/Verification";
 import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
 import {
   getUserCountry,
@@ -132,6 +133,8 @@ function Settings() {
 
   const [dragActive, setDragActive] = useState(false);
   const [otherDetails, setOtherDetails] = useState(null);
+  const [certificateUploading, setCertificateUploading] = useState(false);
+  const [certificateName, setCertificateName] = useState("");
   const [categoryState, setCategoryState] = useState(() =>
     buildCategoryFormState(""),
   );
@@ -441,6 +444,10 @@ function Settings() {
     }
 
     if (!validateForm()) return;
+    if (activeTab === "other" && !profile?.has_training_certificate && !certificateName) {
+      setMessage({ type: "error", text: "Please upload your training certificate." });
+      return;
+    }
 
     setLoading(true);
     setMessage({ type: "", text: "" });
@@ -1885,6 +1892,38 @@ function Settings() {
                         <option>3-5</option>
                         <option>5+</option>
                       </select>
+                      <div className="mt-4">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                          Training certificate
+                        </label>
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          disabled={certificateUploading}
+                          onChange={async (event) => {
+                            const file = event.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 15 * 1024 * 1024) {
+                              setMessage({ type: "error", text: "File must be less than 15MB." });
+                              return;
+                            }
+                            setCertificateUploading(true);
+                            const action = await dispatch(uploadVerificationId({ file, type: "certificate" }));
+                            setCertificateUploading(false);
+                            if (action?.error) {
+                              setMessage({ type: "error", text: action.payload?.error || "Certificate upload failed." });
+                              return;
+                            }
+                            setCertificateName(file.name);
+                            dispatch(fetchProviderProfile());
+                            setMessage({ type: "success", text: "Training certificate uploaded." });
+                          }}
+                          className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm"
+                        />
+                        <p className="text-xs text-gray-500 mt-2">
+                          {certificateUploading ? "Uploading..." : certificateName || (profile?.has_training_certificate ? "Certificate uploaded" : "PDF, JPG or PNG; max 15MB")}
+                        </p>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
