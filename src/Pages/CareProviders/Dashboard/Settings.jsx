@@ -32,6 +32,7 @@ import ProviderCategoryPreferences, {
 import { readApiErrorMessage } from "../../../utils/parseApiError";
 import PhoneNumberInput from "../../../Components/PhoneNumberInput";
 import { isValidPhoneNumber } from "../../../utils/phoneValidation";
+import { MAX_FILE_SIZE as VERIFICATION_MAX_FILE_SIZE } from "../../../lib/constants";
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 async function assertOkResponse(res, fallback = "Save failed") {
@@ -1903,8 +1904,8 @@ function Settings() {
                           onChange={async (event) => {
                             const file = event.target.files?.[0];
                             if (!file) return;
-                            if (file.size > 15 * 1024 * 1024) {
-                              setMessage({ type: "error", text: "File must be less than 15MB." });
+                            if (file.size > VERIFICATION_MAX_FILE_SIZE) {
+                              setMessage({ type: "error", text: "File must be 10MB or smaller." });
                               return;
                             }
                             setCertificateUploading(true);
@@ -1921,7 +1922,7 @@ function Settings() {
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm"
                         />
                         <p className="text-xs text-gray-500 mt-2">
-                          {certificateUploading ? "Uploading..." : certificateName || (profile?.has_training_certificate ? "Certificate uploaded" : "PDF, JPG or PNG; max 15MB")}
+                          {certificateUploading ? "Uploading..." : certificateName || (profile?.has_training_certificate ? "Certificate uploaded" : "PDF, JPG or PNG; max 10MB")}
                         </p>
                       </div>
                     </div>
