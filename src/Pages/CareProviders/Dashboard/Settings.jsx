@@ -445,6 +445,10 @@ function Settings() {
     }
 
     if (!validateForm()) return;
+    if (activeTab === "other" && certificateUploading) {
+      setMessage({ type: "error", text: "Please wait for the certificate upload to finish." });
+      return;
+    }
     if (activeTab === "other" && !profile?.has_training_certificate && !certificateName) {
       setMessage({ type: "error", text: "Please upload your training certificate." });
       return;
