@@ -19,6 +19,7 @@ const STATUS_OPTIONS = [
   ["cancelled_by_seeker", "Cancelled by seeker"],
   ["cancelled_by_provider", "Cancelled by provider"],
 ];
+const COMPLETION_SOURCES = ["active", "rejected"];
 
 const formatDate = (value) => (value ? dayjs(value).format("DD-MM-YYYY") : "—");
 
@@ -28,6 +29,10 @@ function Jobs() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [statusValue, setStatusValue] = useState("");
+  const [walletAmount, setWalletAmount] = useState("");
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
@@ -95,6 +100,52 @@ function Jobs() {
     link.download = "jobs.csv";
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const openJob = (row) => {
+    setSelectedJob(row);
+    setStatusValue(row.status);
+    setWalletAmount("");
+    setStatusError("");
+  };
+
+  const saveStatus = async (event) => {
+    event.preventDefault();
+    setStatusSaving(true);
+    setStatusError("");
+
+    const completionTransition =
+      COMPLETION_SOURCES.includes(selectedJob.status) && statusValue === "completed";
+    const payload = { status: statusValue };
+    if (completionTransition && walletAmount.trim()) {
+      payload.provider_wallet_amount = walletAmount;
+    }
+
+    try {
+      const response = await fetchWithAuth(
+        BASE_URL + "/api/admin/jobs/" + selectedJob.id + "/status/",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          data?.detail || data?.provider_wallet_amount?.[0] || "Unable to update booking status"
+        );
+      }
+
+      setSelectedJob(data);
+      setRows((currentRows) => currentRows.map((row) => (row.id === data.id ? data : row)));
+      setStatusValue(data.status);
+      setWalletAmount("");
+    } catch (saveError) {
+      setStatusError(saveError.message || "Unable to update booking status");
+    } finally {
+      setStatusSaving(false);
+    }
   };
 
   return (
@@ -221,7 +272,7 @@ function Jobs() {
                     <td className="px-5 py-4">
                       <button
                         type="button"
-                        onClick={() => setSelectedJob(row)}
+                        onClick={() => openJob(row)}
                         className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100"
                         aria-label={"View booking " + row.id}
                       >
@@ -304,6 +355,61 @@ function Jobs() {
                   </div>
                 ))}
               </div>
+              <form onSubmit={saveStatus} className="mt-7 border-t border-[#EAECF0] pt-5">
+                <h3 className="text-sm font-semibold text-[#0E2F43]">Change booking status</h3>
+                <label className="mt-4 block text-xs font-medium text-slate-500">
+                  Status
+                  <select
+                    value={statusValue}
+                    onChange={(event) => {
+                      setStatusValue(event.target.value);
+                      setWalletAmount("");
+                      setStatusError("");
+                    }}
+                    className="mt-1.5 w-full rounded-lg border border-[#D0D5DD] bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0E2F43]"
+                  >
+                    {STATUS_OPTIONS.map(([value, label]) => (
+                      <option
+                        key={value}
+                        value={value}
+                        disabled={
+                          value === "completed" &&
+                          selectedJob.status !== "completed" &&
+                          !COMPLETION_SOURCES.includes(selectedJob.status)
+                        }
+                      >
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {COMPLETION_SOURCES.includes(selectedJob.status) && statusValue === "completed" && (
+                  <label className="mt-4 block text-xs font-medium text-slate-500">
+                    Provider wallet credit (offline payment)
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={walletAmount}
+                      onChange={(event) => setWalletAmount(event.target.value)}
+                      required={selectedJob.payment_status !== "paid"}
+                      placeholder="Amount to add"
+                      className="mt-1.5 w-full rounded-lg border border-[#D0D5DD] px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0E2F43]"
+                    />
+                    <span className="mt-1 block font-normal text-slate-400">
+                      Required unless this booking already has an online wallet credit.
+                    </span>
+                  </label>
+                )}
+                {statusError && <p className="mt-3 text-xs text-red-600">{statusError}</p>}
+                <button
+                  type="submit"
+                  disabled={statusSaving || statusValue === selectedJob.status}
+                  className="mt-5 w-full rounded-lg bg-[#0E2F43] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#174b68] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {statusSaving ? "Saving..." : "Save status"}
+                </button>
+              </form>
             </div>
           </aside>
         </>
