@@ -393,7 +393,7 @@ function Jobs() {
                       onChange={(event) => setWalletAmount(event.target.value)}
                       required={selectedJob.payment_status !== "paid"}
                       placeholder="Amount to add"
-                      className="mt-1.5 w-full rounded-lg border border-[#D0D5DD] px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0E2F43]"
+                      className="mt-1.5 w-full rounded-lg border border-[#D0D5DD] bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#0E2F43]"
                     />
                     <span className="mt-1 block font-normal text-slate-400">
                       Required unless this booking already has an online wallet credit.
