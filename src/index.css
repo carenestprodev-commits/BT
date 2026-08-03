@@ -24,6 +24,17 @@
 @tailwind utilities;
 
 @layer base {
+  :where(
+    input:not([type='button']):not([type='submit']):not([type='reset']):not([type='checkbox']):not([type='radio']):not([type='hidden']),
+    select,
+    textarea
+  ) {
+    color-scheme: light;
+    background-color: #fff;
+  }
+}
+
+@layer base {
   #root:has(aside.font-sfpro) {
     --admin-navy: #0e2f43;
     --admin-navy-hover: #1d4353;
