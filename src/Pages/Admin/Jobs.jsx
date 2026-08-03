@@ -37,6 +37,7 @@ function Jobs() {
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,7 +66,7 @@ function Jobs() {
     return () => {
       cancelled = true;
     };
-  }, [page, query, statusFilter]);
+  }, [page, query, statusFilter, refreshKey]);
 
   const pageSize = 8;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -137,10 +138,8 @@ function Jobs() {
         );
       }
 
-      setSelectedJob(data);
-      setRows((currentRows) => currentRows.map((row) => (row.id === data.id ? data : row)));
-      setStatusValue(data.status);
-      setWalletAmount("");
+      setSelectedJob(null);
+      setRefreshKey((value) => value + 1);
     } catch (saveError) {
       setStatusError(saveError.message || "Unable to update booking status");
     } finally {
