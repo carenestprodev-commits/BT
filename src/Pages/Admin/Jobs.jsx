@@ -82,10 +82,11 @@ function Jobs() {
 
   const downloadCSV = () => {
     const csv = [
-      ["ID", "Job request", "Provider", "Status", "Agreed rate", "Hired at", "Completed at"],
+      ["ID", "Job request", "Care seeker", "Provider", "Status", "Agreed rate", "Hired at", "Completed at"],
       ...rows.map((row) => [
         row.id,
         row.job_request_title || "",
+        row.seeker_name || "",
         row.provider_name || "",
         row.status_label || row.status || "",
         row.agreed_rate || "",
@@ -207,7 +208,7 @@ function Jobs() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[980px] text-sm">
             <thead className="bg-[#f5f9fc] text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="w-12 px-5 py-3 text-left">
@@ -215,6 +216,7 @@ function Jobs() {
                 </th>
                 <th className="px-3 py-3 text-left">ID</th>
                 <th className="px-3 py-3 text-left">Job request</th>
+                <th className="px-3 py-3 text-left">Care seeker</th>
                 <th className="px-3 py-3 text-left">Provider</th>
                 <th className="px-3 py-3 text-left">Status</th>
                 <th className="px-3 py-3 text-left">Agreed rate</th>
@@ -250,15 +252,21 @@ function Jobs() {
                 visibleRows.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-b border-slate-100 last:border-b-0 hover:bg-cyan-50/40"
+                    onClick={() => openJob(row)}
+                    className="cursor-pointer border-b border-slate-100 last:border-b-0 hover:bg-cyan-50/40"
                   >
                     <td className="px-5 py-4">
-                      <input type="checkbox" aria-label={"Select booking " + row.id} />
+                      <input
+                        type="checkbox"
+                        aria-label={"Select booking " + row.id}
+                        onClick={(event) => event.stopPropagation()}
+                      />
                     </td>
                     <td className="px-3 py-4 font-semibold text-[#344054]">{row.id}</td>
                     <td className="max-w-[220px] px-3 py-4 text-[#475467]">
                       <span className="line-clamp-2">{row.job_request_title || "—"}</span>
                     </td>
+                    <td className="px-3 py-4 text-[#475467]">{row.seeker_name || "—"}</td>
                     <td className="px-3 py-4 text-[#475467]">{row.provider_name || "—"}</td>
                     <td className="px-3 py-4">
                       <AdminStatusTag value={row.status} />
@@ -268,16 +276,6 @@ function Jobs() {
                     </td>
                     <td className="px-3 py-4 text-[#475467]">{formatDate(row.hired_at)}</td>
                     <td className="px-3 py-4 text-[#475467]">{formatDate(row.completed_at)}</td>
-                    <td className="px-5 py-4">
-                      <button
-                        type="button"
-                        onClick={() => openJob(row)}
-                        className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100"
-                        aria-label={"View booking " + row.id}
-                      >
-                        •••
-                      </button>
-                    </td>
                   </tr>
                 ))}
             </tbody>
@@ -341,7 +339,10 @@ function Jobs() {
               <div className="space-y-3 text-sm">
                 {[
                   ["Job request", selectedJob.job_request_title || "—"],
+                  ["Care seeker", selectedJob.seeker_name || "—"],
+                  ["Care seeker email", selectedJob.seeker_email || "—"],
                   ["Provider", selectedJob.provider_name || "—"],
+                  ["Provider email", selectedJob.provider_email || "—"],
                   ["Status", <AdminStatusTag key="status" value={selectedJob.status} />],
                   ["Agreed rate", selectedJob.agreed_rate ? "₦" + Number(selectedJob.agreed_rate).toLocaleString() : "—"],
                   ["Payment status", <AdminStatusTag key="payment" value={selectedJob.payment_status} />],
@@ -350,7 +351,7 @@ function Jobs() {
                 ].map(([label, value]) => (
                   <div key={label} className="flex items-start justify-between gap-4 border-b border-gray-50 pb-2">
                     <span className="text-[#A6A6A7]">{label}</span>
-                    <span className="max-w-[60%] text-right font-semibold text-[#0E2F43]">{value}</span>
+                    <span className="max-w-[60%] break-words text-right font-semibold text-[#0E2F43]">{value}</span>
                   </div>
                 ))}
               </div>
