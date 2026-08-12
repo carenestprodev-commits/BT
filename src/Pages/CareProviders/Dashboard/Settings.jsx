@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
-import PaymentModal from "./PaymentModal";
+import VerificationPaymentModal from "../../../Components/VerificationPaymentModal";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
@@ -16,7 +16,6 @@ import {
   resolveCountryIso2,
   getIso2FromCountryName,
   detectUserCountry,
-  formatCurrencyAmount,
 } from "../../../utils/countryHelper";
 import { useHourlyRateConfig } from "../../../constants/hourlyRates";
 import {
@@ -55,7 +54,6 @@ function Settings() {
     (s) => s.providerSettings || { profile: null, loading: false, error: null },
   );
 
-  const [plans, setPlans] = useState([]);
   const [billingCycle, setBillingCycle] = useState("hourly");
 
   const [activeTab, setActiveTab] = useState("personal");
@@ -432,15 +430,14 @@ function Settings() {
         if (!verificationPlans.length) {
           throw new Error("Provider verification plan is not configured");
         }
-        setPlans(verificationPlans);
-        setShowPlanModal(true); // open plan modal
+        setSelectedPlan(verificationPlans[0]);
+        setShowPaymentModal(true);
       } catch (e) {
         setMessage({ type: "error", text: e.message });
       } finally {
         setLoading(false);
       }
 
-      // setShowPaymentModal(true); // modal opens
       return;
     }
 
@@ -592,38 +589,6 @@ function Settings() {
     }
   };
 
-  /* -------------------- PAYMENT -------------------- */
-
-  const handlePayment = async () => {
-    setPaymentLoading(true);
-    try {
-      await fetchWithAuth("/api/user/verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uploadedPhoto: formData.uploadedPhoto,
-          uploadedId: formData.uploadedId,
-        }),
-      });
-
-      setOriginalFormData(formData);
-      setHasChanges(false);
-      setShowPaymentModal(false);
-      setMessage({ type: "success", text: "Verification submitted!" });
-    } catch {
-      setMessage({ type: "error", text: "Payment failed" });
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
-  // Close payment modal
-  const closePaymentModal = () => {
-    if (!paymentLoading) {
-      setShowPaymentModal(false);
-    }
-  };
-
   const handleDragOver = (e) => {
     e.preventDefault();
     setDragActive(true);
@@ -649,66 +614,8 @@ function Settings() {
     setHasChanges(false);
   };
 
-  const [showPlanModal, setShowPlanModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
-
-  const handlePlanSelect = (plan) => {
-    setSelectedPlan(plan);
-    setShowPlanModal(false);
-    setShowPaymentModal(true);
-  };
-
-  const PlanSelectionModal = ({ isOpen, plans, onSelect, onClose }) => {
-    if (!isOpen) return null;
-
-    const handleLogout = () => {
-      try {
-        localStorage.clear();
-      } catch (e) {
-        console.warn("Failed to clear localStorage", e);
-      }
-
-      navigate("/careproviders/login/", { replace: true });
-      window.location.reload();
-    };
-
-    return (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
-          <h2 className="text-xl font-semibold mb-4 text-slate-900">
-            Choose a Plan
-          </h2>
-
-          <div className="space-y-4">
-            {plans.map((plan) => (
-              <div
-                key={plan.id}
-                className="border border-slate-200 rounded-lg p-4 hover:border-[#0093d1] cursor-pointer bg-white text-slate-900 transition-colors"
-                onClick={() => onSelect(plan)}
-              >
-                <h3 className="font-semibold text-slate-900">{plan.name}</h3>
-                <p className="text-[#0093d1] font-bold">
-                  {formatCurrencyAmount(
-                    plan.localized_price ?? plan.localizedPrice ?? plan.price,
-                    plan.currency_code ?? plan.currencyCode ?? "",
-                    plan.currency_symbol ?? plan.currencySymbol ?? "",
-                  )}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={onClose}
-            className="mt-6 w-full bg-gray-100 py-2 rounded-lg text-slate-700 hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  };
 
   /* ---------------- LOGOUT MODAL ---------------- */
   const LogoutModal = () => {
@@ -1913,15 +1820,20 @@ function Settings() {
                               return;
                             }
                             setCertificateUploading(true);
-                            const action = await dispatch(uploadVerificationId({ file, type: "certificate" }));
-                            setCertificateUploading(false);
-                            if (action?.error) {
-                              setMessage({ type: "error", text: action.payload?.error || "Certificate upload failed." });
-                              return;
+                            try {
+                              const action = await dispatch(uploadVerificationId({ file, type: "certificate" }));
+                              if (action?.error) {
+                                setMessage({ type: "error", text: action.payload?.error || "Certificate upload failed." });
+                                return;
+                              }
+                              setCertificateName(file.name);
+                              dispatch(fetchProviderProfile());
+                              setMessage({ type: "success", text: "Training certificate uploaded." });
+                            } catch (error) {
+                              setMessage({ type: "error", text: error?.message || "Certificate upload failed." });
+                            } finally {
+                              setCertificateUploading(false);
                             }
-                            setCertificateName(file.name);
-                            dispatch(fetchProviderProfile());
-                            setMessage({ type: "success", text: "Training certificate uploaded." });
                           }}
                           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm"
                         />
@@ -2083,20 +1995,13 @@ function Settings() {
       {/* Logout Modal */}
       <LogoutModal />
 
-      {/* Plan selection modal */}
-      <PlanSelectionModal
-        isOpen={showPlanModal}
-        plans={plans}
-        onSelect={handlePlanSelect}
-        onClose={() => setShowPlanModal(false)}
-      />
-
-      {/* Payment modal */}
       {showPaymentModal && selectedPlan && (
-        <PaymentModal
+        <VerificationPaymentModal
           isOpen={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
-          selectedPlan={selectedPlan}
+          onMaybeLater={() => setShowPaymentModal(false)}
+          plan={selectedPlan}
+          userType="provider"
         />
       )}
     </div>

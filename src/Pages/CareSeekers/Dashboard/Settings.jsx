@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
-import PaymentModal from "./PaymentModal";
+import VerificationPaymentModal from "../../../Components/VerificationPaymentModal";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
@@ -11,7 +11,6 @@ import {
   resolveCountryIso2,
   getIso2FromCountryName,
   detectUserCountry,
-  formatCurrencyAmount,
 } from "../../../utils/countryHelper";
 import {
   COUNTRY_OPTIONS,
@@ -283,7 +282,6 @@ function Settings() {
 
         // ✅ Auto-show payment modal if verify tab and both files are uploaded
         // if (activeTab === "verify" && updated.uploadedPhoto && updated.uploadedId) {
-        //   setShowPaymentModal(true);
         // }
 
         return updated;
@@ -388,15 +386,14 @@ function Settings() {
         if (!verificationPlans.length) {
           throw new Error("Seeker verification plan is not configured");
         }
-        setPlans(verificationPlans);
-        setShowPlanModal(true); // open plan modal
+        setSelectedPlan(verificationPlans[0]);
+        setShowPaymentModal(true);
       } catch (e) {
         setMessage({ type: "error", text: e.message });
       } finally {
         setLoading(false);
       }
 
-      // setShowPaymentModal(true); // modal opens
       return;
     }
 
@@ -502,56 +499,8 @@ function Settings() {
     window.location.reload();
   };
 
-  const [showPlanModal, setShowPlanModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [plans, setPlans] = useState([]);
-
-  const handlePlanSelect = (plan) => {
-    setSelectedPlan(plan);
-    setShowPlanModal(false);
-    setShowPaymentModal(true);
-  };
-
-  const PlanSelectionModal = ({ isOpen, plans, onSelect, onClose }) => {
-    if (!isOpen) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl max-w-md w-full p-6 text-slate-900 shadow-2xl">
-          <h2 className="text-xl font-semibold mb-4 text-slate-900">
-            Choose a Plan
-          </h2>
-
-          <div className="space-y-4">
-            {plans.map((plan) => (
-              <div
-                key={plan.id}
-                className="border border-slate-200 rounded-lg p-4 hover:border-[#0093d1] cursor-pointer bg-white text-slate-900 transition-colors"
-                onClick={() => onSelect(plan)}
-              >
-                <h3 className="font-semibold text-slate-900">{plan.name}</h3>
-                <p className="text-[#0093d1] font-bold">
-                  {formatCurrencyAmount(
-                    plan.localized_price ?? plan.localizedPrice ?? plan.price,
-                    plan.currency_code ?? plan.currencyCode ?? "",
-                    plan.currency_symbol ?? plan.currencySymbol ?? "",
-                  )}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={onClose}
-            className="mt-6 w-full bg-gray-100 py-2 rounded-lg text-slate-700 hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  };
 
   /* ---------------- LOGOUT MODAL ---------------- */
   const LogoutModal = () => {
@@ -1544,20 +1493,12 @@ function Settings() {
       {/* Logout Modal */}
       <LogoutModal />
 
-      {/* Plan selection modal */}
-      <PlanSelectionModal
-        isOpen={showPlanModal}
-        plans={plans}
-        onSelect={handlePlanSelect}
-        onClose={() => setShowPlanModal(false)}
-      />
-
-      {/* Payment modal */}
-
-      <PaymentModal
+      <VerificationPaymentModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
-        selectedPlan={selectedPlan} // ✅ Pass selected plan
+        onMaybeLater={() => setShowPaymentModal(false)}
+        plan={selectedPlan}
+        userType="seeker"
       />
     </div>
   );

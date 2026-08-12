@@ -1,14 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
-import {
-  FaSearch,
-  FaDownload,
-  FaCalendarAlt,
-  FaWallet,
-  FaChevronLeft,
-  FaChevronRight,
-} from "react-icons/fa";
+import { FaSearch, FaDownload, FaCalendarAlt, FaWallet } from "react-icons/fa";
 import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
+import AdminPagination from "../../Components/Admin/AdminPagination";
+import { useClientPagination } from "../../hooks/useAdminCollection";
 import {
   fetchEarningsStats,
   fetchProviderEarnings,
@@ -17,26 +12,21 @@ import {
 
 function Earnings() {
   const dispatch = useDispatch();
-  const {
-    stats,
-    providerEarnings,
-    currentProviderEarning,
-    currentLoading,
-  } = useSelector(
-    (s) =>
-      s.adminEarning || {
-        stats: {},
-        providerEarnings: [],
-        currentProviderEarning: null,
-        currentLoading: false,
-      }
-  );
+  const { stats, providerEarnings, currentProviderEarning, currentLoading } =
+    useSelector(
+      (s) =>
+        s.adminEarning || {
+          stats: {},
+          providerEarnings: [],
+          currentProviderEarning: null,
+          currentLoading: false,
+        },
+    );
   const [rows, setRows] = useState([]);
   const [activeStat, setActiveStat] = useState("careProviders");
   const [detailRow, setDetailRow] = useState(null);
   const [q, setQ] = useState("");
   const [date, setDate] = useState("");
-  const [page, setPage] = useState(1);
 
   useEffect(() => {
     dispatch(fetchEarningsStats());
@@ -44,14 +34,16 @@ function Earnings() {
   }, [dispatch]);
 
   useEffect(() => {
-    setRows((providerEarnings || []).map((t) => ({
-      id: t.transaction_id,
-      user: t.user_name || "Unknown provider",
-      amount: t.amount,
-      time: t.time,
-      date: t.date,
-      bookingId: t.booking_id,
-    })));
+    setRows(
+      (providerEarnings || []).map((t) => ({
+        id: t.transaction_id,
+        user: t.user_name || "Unknown provider",
+        amount: t.amount,
+        time: t.time,
+        date: t.date,
+        bookingId: t.booking_id,
+      })),
+    );
   }, [providerEarnings]);
 
   const filtered = useMemo(() => {
@@ -60,7 +52,8 @@ function Earnings() {
       const t = q.toLowerCase();
       data = data.filter(
         (r) =>
-          String(r.id).toLowerCase().includes(t) || r.user.toLowerCase().includes(t)
+          String(r.id).toLowerCase().includes(t) ||
+          r.user.toLowerCase().includes(t),
       );
     }
     if (date) {
@@ -69,25 +62,30 @@ function Earnings() {
     return data;
   }, [rows, q, date]);
 
-  const pageSize = 8;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const visibleRows = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  useEffect(() => {
-    setPage(1);
-  }, [q, date]);
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  const { page, setPage, pageSize, totalPages, visibleRows } =
+    useClientPagination(filtered, { pageSize: 8, resetKey: `${q}|${date}` });
 
   function downloadCSV() {
     const csv = [
-      ["Transaction ID", "Care Provider", "Amount", "Time", "Date", "Booking ID"],
-      ...filtered.map((r) => [r.id, r.user, r.amount, r.time, r.date, r.bookingId || ""]),
+      [
+        "Transaction ID",
+        "Care Provider",
+        "Amount",
+        "Time",
+        "Date",
+        "Booking ID",
+      ],
+      ...filtered.map((r) => [
+        r.id,
+        r.user,
+        r.amount,
+        r.time,
+        r.date,
+        r.bookingId || "",
+      ]),
     ]
       .map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
       )
       .join("\n");
 
@@ -102,11 +100,18 @@ function Earnings() {
 
   function downloadRowCSV(row) {
     const csv = [
-      ["Transaction ID", "Care Provider", "Amount", "Time", "Date", "Booking ID"],
+      [
+        "Transaction ID",
+        "Care Provider",
+        "Amount",
+        "Time",
+        "Date",
+        "Booking ID",
+      ],
       [row.id, row.user, row.amount, row.time, row.date, row.bookingId || ""],
     ]
       .map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
       )
       .join("\n");
 
@@ -243,9 +248,13 @@ function Earnings() {
                 </td>
                 <td className="px-3 py-2.5 font-semibold">{r.id}</td>
                 <td className="px-3 py-2.5">{r.user}</td>
-                <td className="px-3 py-2.5">₦{Number(r.amount || 0).toLocaleString()}</td>
+                <td className="px-3 py-2.5">
+                  ₦{Number(r.amount || 0).toLocaleString()}
+                </td>
                 <td className="px-3 py-2.5">{r.time}</td>
-                <td className="px-3 py-2.5">{r.date ? dayjs(r.date).format("DD-MM-YYYY") : "—"}</td>
+                <td className="px-3 py-2.5">
+                  {r.date ? dayjs(r.date).format("DD-MM-YYYY") : "—"}
+                </td>
               </tr>
             ))}
             {visibleRows.length === 0 && (
@@ -259,33 +268,13 @@ function Earnings() {
         </table>
       </div>
       {filtered.length > 0 && (
-        <div className="mt-4 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row">
-          <span>
-            Showing {(page - 1) * pageSize + 1} to{" "}
-            {Math.min(page * pageSize, filtered.length)} of {filtered.length}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={page === 1}
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <FaChevronLeft /> Previous
-            </button>
-            <span className="min-w-[84px] text-center text-xs text-slate-500">
-              Page {page} / {totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={page === totalPages}
-              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next <FaChevronRight />
-            </button>
-          </div>
-        </div>
+        <AdminPagination
+          page={page}
+          count={filtered.length}
+          pageSize={pageSize}
+          totalPages={totalPages}
+          onPage={setPage}
+        />
       )}
       {/* Details Modal */}
       {detailRow && (
@@ -313,7 +302,9 @@ function Earnings() {
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-500">Amount</span>
-                <span className="text-right">₦{Number(detailRow.amount || 0).toLocaleString()}</span>
+                <span className="text-right">
+                  ₦{Number(detailRow.amount || 0).toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-500">Time</span>
@@ -326,7 +317,9 @@ function Earnings() {
               <div className="flex justify-between py-2">
                 <span className="text-slate-500">Date</span>
                 <span className="text-right">
-                  {detailRow.date ? dayjs(detailRow.date).format("DD-MM-YYYY") : "—"}
+                  {detailRow.date
+                    ? dayjs(detailRow.date).format("DD-MM-YYYY")
+                    : "—"}
                 </span>
               </div>
             </div>
@@ -338,7 +331,9 @@ function Earnings() {
                 Download
               </button>
               {currentLoading && (
-                <p className="mt-2 text-center text-xs text-slate-400">Loading latest details…</p>
+                <p className="mt-2 text-center text-xs text-slate-400">
+                  Loading latest details…
+                </p>
               )}
               <button
                 className="w-full border border-slate-200 text-slate-700 py-2 rounded-md"

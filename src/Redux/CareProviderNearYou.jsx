@@ -4,7 +4,7 @@ import { getUserCurrencyInfo } from "../utils/countryHelper";
 
 export const fetchProviders = createAsyncThunk(
   "careProviderNearYou/fetchProviders",
-  async (_, { rejectWithValue }) => {
+  async (filters = {}, { rejectWithValue }) => {
     try {
       const access = localStorage.getItem("access");
       const headers = access ? { Authorization: `Bearer ${access}` } : {};
@@ -13,6 +13,20 @@ export const fetchProviders = createAsyncThunk(
       if (countryIso2) {
         url.searchParams.set("country", countryIso2);
       }
+      const query = {
+        service_category: filters.serviceCategory,
+        search: filters.search,
+        min_experience: filters.minExperience,
+        max_experience: filters.maxExperience,
+        min_rating: filters.minRating,
+        verified: filters.verified ? "true" : undefined,
+        radius_km: filters.radiusKm,
+      };
+      Object.entries(query).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          url.searchParams.set(key, value);
+        }
+      });
       const res = await fetch(url.toString(), { headers });
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);

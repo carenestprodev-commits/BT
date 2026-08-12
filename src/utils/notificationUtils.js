@@ -7,7 +7,13 @@ export const getNotificationIcon = (type) => {
     provider_application: "🔔",
     activity_started: "▶️",
     activity_ended: "⏹️",
+    payment_ready: "💳",
+    payment_confirmed: "✅",
+    payment_failed: "⚠️",
+    provider_fee_pending: "⏳",
     booking_completed: "✅",
+    booking_rejected: "📭",
+    booking_cancelled: "✖️",
     wallet_credit: "💰",
     new_message: "💬",
     call_started: "📞",
@@ -27,8 +33,20 @@ export const getNotificationTitle = (notification) => {
       return "Activity started";
     case "activity_ended":
       return "Activity ended";
+    case "payment_ready":
+      return "Payment ready";
+    case "payment_confirmed":
+      return "Payment confirmed";
+    case "payment_failed":
+      return "Payment failed";
+    case "provider_fee_pending":
+      return "Provider payout pending";
     case "booking_completed":
       return "Booking completed";
+    case "booking_rejected":
+      return "Application not selected";
+    case "booking_cancelled":
+      return "Booking cancelled";
     case "wallet_credit":
       return `Credit: ₦${amount || "0"}`;
     case "new_message":
@@ -54,8 +72,20 @@ export const getNotificationDescription = (notification) => {
       return message || "An activity has started";
     case "activity_ended":
       return message || "An activity has ended";
+    case "payment_ready":
+      return message || "Your payment is ready to review";
+    case "payment_confirmed":
+      return message || "Your payment has been confirmed";
+    case "payment_failed":
+      return message || "Your payment failed. Please try again.";
+    case "provider_fee_pending":
+      return message || "Your provider payout is pending verification balance settlement.";
     case "booking_completed":
       return message || "A booking has been completed";
+    case "booking_rejected":
+      return message || "Your application was not selected for this booking";
+    case "booking_cancelled":
+      return message || "This booking was cancelled";
     case "wallet_credit":
       return `₦${amount || "0"} credited to your wallet. Balance: ₦${balance || "0"}`;
     case "new_message":
@@ -89,6 +119,25 @@ export const handleNotificationNavigation = (
       ? "/careproviders/dashboard"
       : `/care${role}s/dashboard`;
 
+  const directBookingTypes = new Set([
+    "provider_application",
+    "activity_started",
+    "activity_ended",
+    "payment_ready",
+    "payment_confirmed",
+    "payment_failed",
+    "booking_completed",
+    "booking_cancelled",
+  ]);
+  if (
+    directBookingTypes.has(type) &&
+    notification.path &&
+    notification.path.startsWith(basePath)
+  ) {
+    navigate(notification.path);
+    return;
+  }
+
   const navigationMap = {
     provider_application: () => {
       // Navigate to requests/job details
@@ -114,7 +163,41 @@ export const handleNotificationNavigation = (
         navigate(`${basePath}/requests`);
       }
     },
+    payment_ready: () => {
+      if (booking_id) {
+        navigate(`${basePath}/request_details/${booking_id}`);
+      } else {
+        navigate(`${basePath}/requests`);
+      }
+    },
+    payment_confirmed: () => {
+      if (booking_id) {
+        navigate(`${basePath}/request_details/${booking_id}`);
+      } else {
+        navigate(`${basePath}/requests`);
+      }
+    },
+    payment_failed: () => {
+      if (booking_id) {
+        navigate(`${basePath}/request_details/${booking_id}`);
+      } else {
+        navigate(`${basePath}/requests`);
+      }
+    },
+    provider_fee_pending: () => {
+      navigate(`${basePath}/wallet`);
+    },
     booking_completed: () => {
+      if (booking_id) {
+        navigate(`${basePath}/request_details/${booking_id}`);
+      } else {
+        navigate(`${basePath}/requests`);
+      }
+    },
+    booking_rejected: () => {
+      navigate(`${basePath}/requests`);
+    },
+    booking_cancelled: () => {
       if (booking_id) {
         navigate(`${basePath}/request_details/${booking_id}`);
       } else {
@@ -176,7 +259,13 @@ export const getNotificationStyles = (type, read) => {
     provider_application: "border-l-4 border-l-blue-500",
     activity_started: "border-l-4 border-l-green-500",
     activity_ended: "border-l-4 border-l-orange-500",
+    payment_ready: "border-l-4 border-l-blue-500",
+    payment_confirmed: "border-l-4 border-l-emerald-500",
+    payment_failed: "border-l-4 border-l-red-500",
+    provider_fee_pending: "border-l-4 border-l-yellow-500",
     booking_completed: "border-l-4 border-l-emerald-500",
+    booking_rejected: "border-l-4 border-l-slate-500",
+    booking_cancelled: "border-l-4 border-l-red-500",
     wallet_credit: "border-l-4 border-l-emerald-500",
     new_message: "border-l-4 border-l-purple-500",
     call_started: "border-l-4 border-l-cyan-500",

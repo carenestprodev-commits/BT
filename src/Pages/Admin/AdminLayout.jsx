@@ -14,6 +14,7 @@ function AdminLayout() {
     "users/providers": "Care Providers",
     "users/seekers": "Care Seekers",
     activities: "Activities",
+    organisations: "Organisations",
     jobs: "Jobs",
     "jobs/conversations": "Conversations",
     "jobs/requests": "Job Requests",

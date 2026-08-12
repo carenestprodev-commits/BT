@@ -36,6 +36,7 @@ import {
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import { useNotifications } from "../../../Context/NotificationContext";
 import { containsPhoneNumber } from "../../../utils/phoneUtils";
+import ActivityCountdown from "../../../Components/ActivityCountdown";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -312,13 +313,14 @@ const MobileChatView = ({
   dispatch,
   navigate,
   bookingId,
-  setShowPayment,
+  scheduledEndAt,
   showMenu,
   currentUserId,
   audioCallRoute,
   videoCallRoute,
   isCallLive,
   startActivityIfVerified,
+  endActivityWithCode,
   handleCallPress,
 }) => {
   return (
@@ -419,10 +421,8 @@ const MobileChatView = ({
                         className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
                         onClick={async () => {
                           setMenuOpen(false);
-                          const result = await dispatch(endActivity(bookingId));
-                          if (endActivity.fulfilled.match(result)) {
-                            setShowPayment(true);
-                          } else {
+                          const result = await endActivityWithCode(bookingId);
+                          if (!result || !endActivity.fulfilled.match(result)) {
                             const message = extractErrorMessage(
                               result?.payload || result?.error?.message,
                               "Failed to end activity.",
@@ -446,6 +446,7 @@ const MobileChatView = ({
         ref={chatBodyRef}
         className="flex-1 px-4 py-6 overflow-y-auto bg-white pb-24"
       >
+        <ActivityCountdown endAt={scheduledEndAt} />
         {!currentConversation ? (
           <div className="flex items-center justify-center h-full text-gray-400">
             Select a conversation
@@ -561,12 +562,17 @@ function Message() {
     paymentError,
     checkoutUrl,
     activityStarted,
+    scheduledEndAt,
     currencyCode,
     currencySymbol,
     countryUsed,
     localizedPerHourRate,
+    localizedScheduledHours,
+    localizedOvertimeHours,
+    localizedExtraHours,
     localizedSubtotal,
     localizedServiceFee,
+    localizedVerificationFee,
     localizedTotalAmount,
     isFallbackPrice,
   } = useSelector((state) => state.startActivity);
@@ -579,7 +585,6 @@ function Message() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [totalHours, setTotalHours] = useState("1");
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [isMobile, setIsMobile] = useState(
@@ -632,23 +637,22 @@ function Message() {
     );
   }, [conversations, search]);
 
-  const RATE_PER_HOUR = currentConversation?.hourly_rate || 1;
-  const SERVICE_FEE = 7;
-  const displayHours = totalHours === "" ? 0 : Number(totalHours);
-  const calculatedSubtotal = RATE_PER_HOUR * displayHours;
-  const calculatedTotal = calculatedSubtotal + SERVICE_FEE;
+  const RATE_PER_HOUR = currentConversation?.hourly_rate || 0;
   const uiCurrencyCode = currencyCode || defaultCurrency.currencyCode;
   const uiCurrencySymbol = currencySymbol || defaultCurrency.currencySymbol;
   const displayPerHourRate = localizedPerHourRate ?? RATE_PER_HOUR;
-  const displaySubtotal =
-    localizedSubtotal ?? displayPerHourRate * displayHours;
-  const displayServiceFee = localizedServiceFee ?? SERVICE_FEE;
-  const displayTotal = localizedTotalAmount ?? calculatedTotal;
+  const displaySubtotal = localizedSubtotal ?? 0;
+  const displayServiceFee = localizedServiceFee ?? 0;
+  const displayVerificationFee = localizedVerificationFee ?? 0;
+  const displayTotal = localizedTotalAmount ?? 0;
   const paymentDetails = {
     rate: displayPerHourRate,
-    hours: displayHours,
+    scheduledHours: localizedScheduledHours ?? 0,
+    overtimeHours: localizedOvertimeHours ?? 0,
+    extraHours: localizedExtraHours ?? 0,
     subtotal: displaySubtotal,
     fee: displayServiceFee,
+    verificationFee: displayVerificationFee,
     total: displayTotal,
   };
 
@@ -715,18 +719,6 @@ function Message() {
       dispatch(clearSendMessageError());
     };
   }, [dispatch]);
-
-  useEffect(() => {
-    if (!showPayment || !bookingId) return;
-    const parsedHours = Number.parseInt(totalHours, 10);
-    if (!Number.isFinite(parsedHours) || parsedHours < 1) return;
-    const timeout = setTimeout(() => {
-      dispatch(
-        fetchActivityPaymentPreview({ bookingId, totalHours: parsedHours }),
-      );
-    }, 250);
-    return () => clearTimeout(timeout);
-  }, [showPayment, bookingId, totalHours, dispatch]);
 
   useEffect(() => {
     if (checkoutUrl) {
@@ -805,7 +797,13 @@ function Message() {
         "call_ended",
         "activity_started",
         "activity_ended",
+        "payment_ready",
+        "payment_confirmed",
+        "payment_failed",
+        "provider_fee_pending",
         "booking_completed",
+        "booking_cancelled",
+        "booking_rejected",
         "wallet_credit",
       ].includes(latestNotificationType)
     ) {
@@ -842,6 +840,31 @@ function Message() {
     if (bookingId) {
       dispatch(startActivity(String(bookingId)));
     }
+  };
+
+  const endActivityWithCode = async (id) => {
+    const code = window.prompt("Enter the 6-digit code from the care provider.");
+    if (!/^\d{6}$/.test((code || "").trim())) {
+      alert("Enter the 6-digit provider code.");
+      return null;
+    }
+    const result = await dispatch(
+      endActivity({ bookingId: id, endCode: code.trim() }),
+    );
+    if (endActivity.fulfilled.match(result)) {
+      const preview = await dispatch(fetchActivityPaymentPreview({ bookingId: id }));
+      if (fetchActivityPaymentPreview.fulfilled.match(preview)) {
+        setShowPayment(true);
+      } else {
+        alert(
+          extractErrorMessage(
+            preview?.payload || preview?.error?.message,
+            "The payment review could not be loaded.",
+          ),
+        );
+      }
+    }
+    return result;
   };
 
   const displayMessages = useMemo(
@@ -963,17 +986,12 @@ function Message() {
       alert("No active conversation selected");
       return;
     }
-    const parsedHours = Number.parseInt(totalHours, 10);
-    if (!Number.isFinite(parsedHours) || parsedHours < 1) {
-      alert("Total hours must be at least 1.");
-      return;
-    }
     try {
       const result = await dispatch(
         initiateActivityPayment({
           bookingId,
-          totalHours: parsedHours,
-          paymentGateway: "stripe",
+          paymentGateway:
+            countryUsed?.toUpperCase() === "NG" ? "paystack" : "stripe",
         }),
       );
       if (!initiateActivityPayment.fulfilled.match(result)) {
@@ -1041,13 +1059,14 @@ function Message() {
                 dispatch={dispatch}
                 navigate={navigate}
                 bookingId={bookingId}
-                setShowPayment={setShowPayment}
+                scheduledEndAt={scheduledEndAt}
                 showMenu={true}
                 currentUserId={currentUserId}
                 audioCallRoute={audioCallRoute}
                 videoCallRoute={videoCallRoute}
                 isCallLive={Boolean(activeCallSession)}
                 startActivityIfVerified={startActivityIfVerified}
+                endActivityWithCode={endActivityWithCode}
                 handleCallPress={handleCallPress}
               />
             )}
@@ -1286,10 +1305,8 @@ function Message() {
                           className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
                           onClick={async () => {
                             setMenuOpen(false);
-                            const result = await dispatch(endActivity(bookingId));
-                            if (endActivity.fulfilled.match(result)) {
-                              setShowPayment(true);
-                            } else {
+                            const result = await endActivityWithCode(bookingId);
+                            if (!result || !endActivity.fulfilled.match(result)) {
                               const message = extractErrorMessage(
                                 result?.payload || result?.error?.message,
                                 "Failed to end activity.",
@@ -1311,6 +1328,7 @@ function Message() {
                 ref={chatBodyRef}
                 className="flex-1 px-8 py-6 overflow-y-auto bg-white"
               >
+                <ActivityCountdown endAt={scheduledEndAt} />
                 {!currentConversation ? (
                   <div className="flex items-center justify-center h-full text-gray-400">
                     Select a conversation to start messaging
@@ -1406,7 +1424,6 @@ function Message() {
                   dispatch(clearPaymentState());
                   setShowPayment(false);
                   setPaymentSuccess(false);
-                  setTotalHours("1");
                 }}
               >
                 &times;
@@ -1417,7 +1434,7 @@ function Message() {
                     Proceed to Payment
                   </h2>
                   <p className="text-center text-gray-500 mb-6 text-sm sm:text-base">
-                    Enter total hours and confirm payment
+                    Review recorded activity time, overtime, and fees before paying.
                   </p>
                   <div className="bg-gray-50 rounded-lg p-4 mb-6">
                     <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
@@ -1431,18 +1448,16 @@ function Message() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
-                      <span className="text-gray-500">Total hours</span>
-                      <input
-                        className="bg-white border border-gray-300 rounded w-20 px-2 py-1 text-gray-800 font-semibold text-right text-sm"
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={totalHours}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) =>
-                          setTotalHours(e.target.value.replace(/\D/g, ""))
-                        }
-                      />
+                      <span className="text-gray-500">Activity hours</span>
+                      <span className="text-gray-800 font-semibold">{paymentDetails.scheduledHours}</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
+                      <span className="text-gray-500">Overtime hours</span>
+                      <span className="text-gray-800 font-semibold">{paymentDetails.overtimeHours}</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
+                      <span className="text-gray-500">Extra activity hours</span>
+                      <span className="text-gray-800 font-semibold">{paymentDetails.extraHours}</span>
                     </div>
                     <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
                       <span className="text-gray-500">Subtotal</span>
@@ -1455,10 +1470,20 @@ function Message() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
-                      <span className="text-gray-500">Service Fee</span>
+                      <span className="text-gray-500">Platform fee</span>
                       <span className="text-gray-800 font-semibold">
                         {formatCurrencyAmount(
                           paymentDetails.fee,
+                          uiCurrencyCode,
+                          uiCurrencySymbol,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
+                      <span className="text-gray-500">Verification balance</span>
+                      <span className="text-gray-800 font-semibold">
+                        {formatCurrencyAmount(
+                          paymentDetails.verificationFee,
                           uiCurrencyCode,
                           uiCurrencySymbol,
                         )}
@@ -1486,7 +1511,7 @@ function Message() {
                   )}
                   {!countryUsed && (
                     <p className="text-xs text-gray-500 mb-4">
-                      Calculated from completed activity logs
+                      Calculated from the booked schedule and recorded extra time
                     </p>
                   )}
                   {loadingPaymentPreview && (
@@ -1519,7 +1544,6 @@ function Message() {
                       dispatch(clearPaymentState());
                       setShowPayment(false);
                       setPaymentSuccess(false);
-                      setTotalHours("1");
                     }}
                     disabled={initiatingPayment}
                   >
@@ -1549,7 +1573,6 @@ function Message() {
                       dispatch(clearPaymentState());
                       setShowPayment(false);
                       setPaymentSuccess(false);
-                      setTotalHours("1");
                     }}
                   >
                     Close
@@ -1560,7 +1583,6 @@ function Message() {
                       dispatch(clearPaymentState());
                       setShowPayment(false);
                       setPaymentSuccess(false);
-                      setTotalHours("1");
                       navigate(
                         `/careseekers/dashboard/request_details/${bookingId}`,
                       );

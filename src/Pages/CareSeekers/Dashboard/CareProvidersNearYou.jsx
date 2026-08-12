@@ -1,5 +1,4 @@
-/* eslint-disable no-unused-vars */
-import { useEffect, useContext, useMemo, useState } from "react";
+import { useEffect, useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./../Dashboard/Sidebar";
 import { useDispatch, useSelector } from "react-redux";
@@ -11,28 +10,41 @@ import {
 } from "../../../utils/countryHelper";
 import { formatDisplayName } from "../../../utils/formatDisplayName";
 import { resolveImage } from "../../../Components/CareRequestSections";
+import ImageLightbox from "../../../Components/ImageLightbox";
+import { Search, SlidersHorizontal } from "lucide-react";
 
 function CareProvidersNearYou() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useContext(AuthContext);
   const defaultCurrency = getUserCurrencyInfo();
-  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState({
+    search: "",
+    serviceCategory: null,
+    radiusKm: null,
+    minExperience: null,
+    maxExperience: null,
+    minRating: null,
+    verified: false,
+  });
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterSection, setFilterSection] = useState(null);
 
   const { providers, loading, error } = useSelector(
     (s) =>
       s.careProviderNearYou || { providers: [], loading: false, error: null },
   );
 
+  const getServiceCategory = () =>
+    user?.service_category ||
+    user?.care_category ||
+    user?.job_data?.service_category ||
+    localStorage.getItem("seeker_care_category") ||
+    localStorage.getItem("service_category");
+
   // Helper function to get category title based on service category
   const getCategoryTitle = () => {
-    // Try to get service_category from various sources
-    const serviceCategory =
-      user?.service_category ||
-      user?.care_category ||
-      user?.job_data?.service_category ||
-      localStorage.getItem("seeker_care_category") ||
-      localStorage.getItem("service_category");
+    const serviceCategory = getServiceCategory();
 
     const categoryMap = {
       childcare: "Child Care Providers Near You",
@@ -49,31 +61,58 @@ function CareProvidersNearYou() {
     return categoryMap[normalizedCategory] || "Care Providers near you";
   };
 
+  const effectiveServiceCategory =
+    filters.serviceCategory === null
+      ? getServiceCategory()
+      : filters.serviceCategory;
+  const normalizedEffectiveServiceCategory =
+    effectiveServiceCategory?.toLowerCase().trim().replace(/\s+/g, "");
   useEffect(() => {
-    dispatch(fetchProviders());
-  }, [dispatch]);
+    const timer = setTimeout(() => {
+      dispatch(
+        fetchProviders({
+          ...filters,
+          serviceCategory: effectiveServiceCategory,
+        }),
+      );
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [dispatch, filters, effectiveServiceCategory]);
 
   const handleMessageClick = (providerId) => {
     navigate("/careseekers/dashboard/message_provider/" + providerId);
   };
-  const filteredProviders = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return providers;
-    return providers.filter((provider) =>
-      [
-        provider.user?.full_name,
-        provider.profile_title,
-        provider.category_name,
-        provider.city,
-        provider.country,
-        ...(provider.skills || []),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [providers, search]);
+  const updateFilter = (patch) =>
+    setFilters((current) => ({ ...current, ...patch }));
+  const clearFilters = () =>
+    setFilters({
+      search: "",
+      serviceCategory: null,
+      radiusKm: null,
+      minExperience: null,
+      maxExperience: null,
+      minRating: null,
+      verified: false,
+    });
+  const hasActiveFilters =
+    Boolean(filters.search.trim()) ||
+    filters.serviceCategory !== null ||
+    filters.radiusKm !== null ||
+    filters.minExperience !== null ||
+    filters.maxExperience !== null ||
+    filters.minRating !== null ||
+    filters.verified;
+
+  const categoryLabels = {
+    childcare: "Childcare",
+    elderlycare: "Adult/Senior care",
+    tutoring: "Tutoring",
+    housekeeping: "Housekeeping",
+  };
+  const serviceLabel =
+    filters.serviceCategory === ""
+      ? "All care services"
+      : categoryLabels[normalizedEffectiveServiceCategory] || "All care services";
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
@@ -86,18 +125,171 @@ function CareProvidersNearYou() {
               {getCategoryTitle()}
             </h2>
           </div>
-          <div className="px-4 md:px-8 pt-6">
-            <label className="relative block max-w-xl">
-              <span className="sr-only">Search care providers</span>
-              <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-gray-400">⌕</span>
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by name, service, skill, or location"
-                className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-800 outline-none focus:border-[#0093d1] focus:ring-2 focus:ring-[#0093d1]/15"
-              />
-            </label>
+          <div className="relative px-4 md:px-8 pt-6">
+            <div className="flex max-w-3xl gap-3">
+              <label className="relative block flex-1">
+                <span className="sr-only">Search care providers</span>
+                <Search className="pointer-events-none absolute inset-y-0 left-4 my-auto text-gray-500" size={22} />
+                <input
+                  type="search"
+                  value={filters.search}
+                  onChange={(event) => updateFilter({ search: event.target.value })}
+                  placeholder="Search"
+                  className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-800 outline-none focus:border-[#0093d1] focus:ring-2 focus:ring-[#0093d1]/15"
+                />
+              </label>
+              <button
+                type="button"
+                aria-label="Open provider filters"
+                onClick={() => {
+                  setFilterOpen((open) => !open);
+                  setFilterSection(null);
+                }}
+                className={`rounded-xl border px-4 text-gray-700 transition ${
+                  hasActiveFilters
+                    ? "border-[#0093d1] text-[#0093d1]"
+                    : "border-gray-200 bg-white"
+                }`}
+              >
+                <SlidersHorizontal aria-hidden="true" size={22} />
+              </button>
+            </div>
+            {filterOpen && (
+              <div className="absolute right-4 top-[calc(100%+8px)] z-30 w-72 rounded-xl border border-gray-200 bg-white p-4 shadow-xl md:right-8">
+                {filterSection ? (
+                  <div>
+                    <button
+                      type="button"
+                      className="mb-3 text-sm font-semibold text-[#0093d1]"
+                      onClick={() => setFilterSection(null)}
+                    >
+                      ← Filter by
+                    </button>
+                    {filterSection === "service" && (
+                      <div className="space-y-1">
+                        {[
+                          ["childcare", "Childcare"],
+                          ["elderlycare", "Adult/Senior care"],
+                          ["tutoring", "Tutoring"],
+                          ["housekeeping", "Housekeeping"],
+                        ].map(([value, label]) => (
+                          <button
+                            key={label}
+                            type="button"
+                            className="flex w-full items-center justify-between border-b border-gray-100 py-3 text-left text-sm"
+                            onClick={() => {
+                              updateFilter({ serviceCategory: value });
+                              setFilterSection(null);
+                            }}
+                          >
+                            {label}
+                            {serviceLabel === label && <span>✓</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {filterSection === "location" && (
+                      <div className="space-y-1">
+                        {[
+                          [1, "Near me"],
+                          [5, "Within 5km"],
+                          [10, "Within 10km"],
+                        ].map(([value, label]) => (
+                          <button
+                            key={label}
+                            type="button"
+                            className="block w-full border-b border-gray-100 py-3 text-left text-sm"
+                            onClick={() => {
+                              updateFilter({ radiusKm: value });
+                              setFilterSection(null);
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {filterSection === "experience" && (
+                      <div className="space-y-1">
+                        {[
+                          [1, 2, "1–2 years"],
+                          [3, 5, "3–5 years"],
+                          [6, 10, "6–10 years"],
+                          [10, null, "10+ years"],
+                        ].map(([min, max, label]) => (
+                          <button
+                            key={label}
+                            type="button"
+                            className="block w-full border-b border-gray-100 py-3 text-left text-sm"
+                            onClick={() => {
+                              updateFilter({ minExperience: min, maxExperience: max });
+                              setFilterSection(null);
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {filterSection === "rating" && (
+                      <div className="space-y-1">
+                        {[4.5, 4, 3.5, 3].map((value) => (
+                          <button
+                            key={value ?? "any"}
+                            type="button"
+                            className="block w-full border-b border-gray-100 py-3 text-left text-sm"
+                            onClick={() => {
+                              updateFilter({ minRating: value });
+                              setFilterSection(null);
+                            }}
+                          >
+                            {`${value.toFixed(1)} & above`}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="mb-2 flex items-center justify-between border-b border-gray-100 pb-3">
+                      <h3 className="text-xl font-medium text-gray-800">Filter by</h3>
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-[#0093d1]"
+                        onClick={clearFilters}
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    {[
+                      ["service", "Care services"],
+                      ["location", "Location"],
+                      ["experience", "Experience"],
+                      ["rating", "Rating"],
+                    ].map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className="flex w-full items-center justify-between border-b border-gray-100 py-3 text-left text-sm text-gray-700"
+                        onClick={() => setFilterSection(key)}
+                      >
+                        <span>{label}</span>
+                        <span aria-hidden="true">›</span>
+                      </button>
+                    ))}
+                    <label className="flex cursor-pointer items-center gap-2 py-4 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={filters.verified}
+                        onChange={(event) => updateFilter({ verified: event.target.checked })}
+                        className="h-4 w-4 accent-[#0093d1]"
+                      />
+                      Verified providers
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Cards Grid */}
@@ -111,7 +303,14 @@ function CareProvidersNearYou() {
                   <p>{error.error || "Failed to load providers."}</p>
                   <button
                     className="mt-2 text-[#0093d1] font-semibold"
-                    onClick={() => dispatch(fetchProviders())}
+                    onClick={() =>
+                      dispatch(
+                        fetchProviders({
+                          ...filters,
+                          serviceCategory: effectiveServiceCategory,
+                        }),
+                      )
+                    }
                   >
                     Retry
                   </button>
@@ -119,26 +318,25 @@ function CareProvidersNearYou() {
               )}
               {!loading && !error && providers.length === 0 && (
                 <div className="text-sm text-gray-500">
-                  No matched providers yet. Check back soon or adjust your request.
+                  {hasActiveFilters
+                    ? "No providers match your search or filters."
+                    : "No matched providers yet. Check back soon or adjust your request."}
                 </div>
               )}
 
               {!loading &&
                 !error &&
-                filteredProviders.map((p) => (
+                providers.map((p) => (
                   <div
                     key={p.id}
                     className="bg-white border border-gray-100 rounded-2xl p-4 md:p-5 shadow-sm hover:shadow-md transition relative"
                   >
                     {/* Top Profile Section */}
                     <div className="flex items-start gap-4 mb-4">
-                      <img
+                      <ImageLightbox
                         src={resolveImage(p.user?.profile_image_url, p.user?.full_name)}
-                        alt="Provider"
+                        alt={p.user?.full_name || "Provider"}
                         className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                        onError={(e) => {
-                          e.currentTarget.src = resolveImage(null, p.user?.full_name);
-                        }}
                       />
                       <div className="flex-1 pr-6">
                         <div className="flex items-center gap-1">
@@ -241,9 +439,6 @@ function CareProvidersNearYou() {
                     </div>
                   </div>
                 ))}
-              {!loading && !error && providers.length > 0 && filteredProviders.length === 0 && (
-                <div className="text-sm text-gray-500">No providers match “{search}”.</div>
-              )}
             </div>
           </div>
         </div>

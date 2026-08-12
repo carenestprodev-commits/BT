@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
 import { FiSearch } from "react-icons/fi";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
@@ -12,7 +11,7 @@ import { fetchJobsFeed } from "../../../Redux/JobsFeed";
 import { fetchProviderProfile } from "../../../Redux/ProviderSettings";
 import LiveCareSessionCard from "../../../Components/LiveCareSessionCard";
 import avatar_user from "../../../../public/avatar_user.png";
-import { useAppNotifications } from "../../../hooks/useAppNotifications.js";
+import { useNotifications } from "../../../Context/NotificationContext";
 import { useJobFeedSearch } from "../../../hooks/useJobFeedSearch";
 import { formatDisplayName } from "../../../utils/formatDisplayName";
 
@@ -60,12 +59,7 @@ export default function HomePage() {
   const [filterBy, setFilterBy] = useState("All");
   const [verifiedFilter, setVerifiedFilter] = useState(false);
 
-  const [notifications, setNotifications] = useState([]);
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  useAppNotifications((data) => {
-    setNotifications((prev) => [{ ...data, read: false }, ...prev]);
-  });
+  const { unreadCount } = useNotifications();
 
   const handleClearAll = () => {
     setSearch("");

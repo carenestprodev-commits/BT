@@ -78,7 +78,7 @@ const normalizeApiError = (
       return obj.message;
     if (typeof obj.error === "string" && obj.error.trim()) return obj.error;
 
-    const entries = Object.entries(obj).filter(([key]) => key !== "logged_total_hours");
+    const entries = Object.entries(obj);
     for (const [, value] of entries) {
       if (Array.isArray(value) && value.length > 0) {
         const first = value.find((item) => typeof item === "string");
@@ -97,9 +97,6 @@ const normalizeApiError = (
       const parsed = JSON.parse(trimmed);
       const extracted = extractFromObject(parsed);
       if (extracted) {
-        if (parsed?.logged_total_hours != null) {
-          return `${extracted} Logged total hours: ${parsed.logged_total_hours}`;
-        }
         return extracted;
       }
       return trimmed;
@@ -111,9 +108,6 @@ const normalizeApiError = (
   if (typeof errorPayload === "object") {
     const extracted = extractFromObject(errorPayload);
     if (extracted) {
-      if (errorPayload?.logged_total_hours != null) {
-        return `${extracted} Logged total hours: ${errorPayload.logged_total_hours}`;
-      }
       return extracted;
     }
   }
@@ -121,24 +115,13 @@ const normalizeApiError = (
   return fallback;
 };
 
-// Fetch server-calculated payment preview for an activity booking
+// Fetch the server-calculated final payment preview.
 export const fetchActivityPaymentPreview = createAsyncThunk(
   "startActivity/fetchPaymentPreview",
-  async ({ bookingId, totalHours }, { rejectWithValue }) => {
+  async ({ bookingId }, { rejectWithValue }) => {
     try {
-      const previewUrl = new URL(
-        `${BASE_URL}/api/bookings/${bookingId}/initiate-payment/`,
-      );
-      if (totalHours !== undefined && totalHours !== null && totalHours !== "") {
-        previewUrl.searchParams.set("total_hours", String(totalHours));
-      }
-      const country = getProfileCountryIso2();
-      if (country) {
-        previewUrl.searchParams.set("country", country);
-      }
-
       const res = await fetch(
-        previewUrl.toString(),
+        `${BASE_URL}/api/bookings/${bookingId}/initiate-payment/`,
         {
           method: "GET",
           headers: {
@@ -159,15 +142,14 @@ export const fetchActivityPaymentPreview = createAsyncThunk(
   },
 );
 
-// Initiate payment for starting an activity
+// Initiate the final booking payment after the server creates the settlement.
 export const initiateActivityPayment = createAsyncThunk(
   "startActivity/initiatePayment",
   async (
-    { bookingId, totalHours, paymentGateway = "stripe", perHourRate = null },
+    { bookingId, paymentGateway = "stripe" },
     { rejectWithValue }
   ) => {
     try {
-      const country = getProfileCountryIso2();
       const res = await fetch(
         `${BASE_URL}/api/bookings/${bookingId}/initiate-payment/`,
         {
@@ -176,12 +158,7 @@ export const initiateActivityPayment = createAsyncThunk(
             ...getAuthHeaders(),
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            ...(perHourRate !== null ? { per_hour_rate: perHourRate } : {}),
-            ...(totalHours !== undefined ? { total_hours: totalHours } : {}),
-            ...(country ? { country } : {}),
-            payment_gateway: paymentGateway,
-          }),
+          body: JSON.stringify({ payment_gateway: paymentGateway }),
         }
       );
 
@@ -227,13 +204,14 @@ export const startActivity = createAsyncThunk(
 // End an activity (POST to /api/bookings/{bookingId}/end-activity/)
 export const endActivity = createAsyncThunk(
   "startActivity/endActivity",
-  async (bookingId, { rejectWithValue }) => {
+  async ({ bookingId, endCode }, { rejectWithValue }) => {
     try {
       const res = await fetch(
         `${BASE_URL}/api/bookings/${bookingId}/end-activity/`,
         {
           method: "POST",
-          headers: getAuthHeaders(),
+          headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ end_code: endCode }),
         }
       );
 
@@ -259,9 +237,12 @@ const initialState = {
   checkoutUrl: null,
   ...getPaymentDefaults(),
   localizedPerHourRate: null,
-  localizedTotalHours: null,
+  localizedScheduledHours: null,
+  localizedOvertimeHours: null,
+  localizedExtraHours: null,
   localizedSubtotal: null,
   localizedServiceFee: null,
+  localizedVerificationFee: null,
   localizedTotalAmount: null,
   isFallbackPrice: false,
   // Ending activity
@@ -272,6 +253,7 @@ const initialState = {
   // Activity state
   activityStarted: false,
   lastBookingId: null,
+  scheduledEndAt: null,
   // Starting activity API state
   startingActivity: false,
   startActivityError: null,
@@ -296,9 +278,12 @@ const startActivitySlice = createSlice({
       state.currencySymbol = defaults.currencySymbol;
       state.countryUsed = defaults.countryUsed;
       state.localizedPerHourRate = null;
-      state.localizedTotalHours = null;
+      state.localizedScheduledHours = null;
+      state.localizedOvertimeHours = null;
+      state.localizedExtraHours = null;
       state.localizedSubtotal = null;
       state.localizedServiceFee = null;
+      state.localizedVerificationFee = null;
       state.localizedTotalAmount = null;
       state.isFallbackPrice = false;
     },
@@ -340,11 +325,13 @@ const startActivitySlice = createSlice({
         state.currencySymbol = payload.currency_symbol || state.currencySymbol;
         state.countryUsed =
           payload.country_used || payload.country || state.countryUsed;
-        // Backend returns system-calculated values from activity logs
-        state.localizedPerHourRate = payload.per_hour_rate ?? null;
-        state.localizedTotalHours = payload.total_hours ?? null;
-        state.localizedSubtotal = payload.subtotal ?? null;
-        state.localizedServiceFee = payload.service_fee ?? null;
+        state.localizedPerHourRate = payload.hourly_rate ?? payload.per_hour_rate ?? null;
+        state.localizedScheduledHours = payload.scheduled_hours ?? null;
+        state.localizedOvertimeHours = payload.overtime_hours ?? null;
+        state.localizedExtraHours = payload.extra_hours ?? null;
+        state.localizedSubtotal = payload.work_subtotal ?? payload.subtotal ?? null;
+        state.localizedServiceFee = payload.platform_fee ?? payload.service_fee ?? null;
+        state.localizedVerificationFee = payload.seeker_verification_fee ?? null;
         state.localizedTotalAmount = payload.total_amount ?? null;
         state.isFallbackPrice = payload.is_fallback_price || false;
       })
@@ -380,14 +367,18 @@ const startActivitySlice = createSlice({
         state.countryUsed =
           payload.country_used || payload.country || state.countryUsed;
         state.localizedPerHourRate =
-          payload.localized_per_hour_rate ?? payload.per_hour_rate ?? null;
+          payload.hourly_rate ?? payload.localized_per_hour_rate ?? payload.per_hour_rate ?? null;
         state.localizedSubtotal =
-          payload.localized_subtotal ?? payload.subtotal ?? null;
+          payload.work_subtotal ?? payload.localized_subtotal ?? payload.subtotal ?? null;
         state.localizedServiceFee =
-          payload.localized_service_fee ??
+          payload.platform_fee ?? payload.localized_service_fee ??
           payload.service_fee ??
           payload.fee ??
           null;
+        state.localizedScheduledHours = payload.scheduled_hours ?? null;
+        state.localizedOvertimeHours = payload.overtime_hours ?? null;
+        state.localizedExtraHours = payload.extra_hours ?? null;
+        state.localizedVerificationFee = payload.seeker_verification_fee ?? null;
         state.localizedTotalAmount =
           payload.localized_total_amount ??
           payload.total_amount ??
@@ -421,6 +412,7 @@ const startActivitySlice = createSlice({
           action.payload?.booking_id || action.payload?.id || null;
         state.activityStarted = true;
         state.lastBookingId = bookingIdFromArg || bookingIdFromPayload || null;
+        state.scheduledEndAt = action.payload?.scheduled_end_at || null;
       })
       .addCase(startActivity.rejected, (state, action) => {
         state.startingActivity = false;
@@ -433,12 +425,13 @@ const startActivitySlice = createSlice({
         state.endingActivity = false;
         state.endActivityResponse = action.payload || null;
         // mark activity ended using booking id from arg or payload
-        const bookingIdFromArg = action.meta?.arg;
+        const bookingIdFromArg = action.meta?.arg?.bookingId;
         const bookingIdFromPayload =
           action.payload?.booking_id || action.payload?.id || null;
         state.activityEnded = true;
         state.lastEndedBookingId =
           bookingIdFromArg || bookingIdFromPayload || null;
+        state.scheduledEndAt = null;
       })
       .addCase(endActivity.rejected, (state, action) => {
         state.endingActivity = false;

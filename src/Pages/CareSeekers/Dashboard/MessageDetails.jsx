@@ -35,6 +35,7 @@ import {
 } from "../../../utils/countryHelper";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import { containsPhoneNumber } from "../../../utils/phoneUtils";
+import ActivityCountdown from "../../../Components/ActivityCountdown";
 
 const resolveImage = (url) => {
   if (!url)
@@ -143,12 +144,17 @@ function MessageDetails() {
     checkoutUrl,
     activityStarted,
     activityEnded,
+    scheduledEndAt,
     currencyCode,
     currencySymbol,
     countryUsed,
     localizedPerHourRate,
+    localizedScheduledHours,
+    localizedOvertimeHours,
+    localizedExtraHours,
     localizedSubtotal,
     localizedServiceFee,
+    localizedVerificationFee,
     localizedTotalAmount,
     isFallbackPrice,
   } = useSelector((state) => state.startActivity);
@@ -159,7 +165,6 @@ function MessageDetails() {
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [totalHours, setTotalHours] = useState("1");
   const [messageCount, setMessageCount] = useState(0);
   const [showVerification, setShowVerification] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -179,7 +184,6 @@ function MessageDetails() {
           c.provider_id === parseInt(providerId) ||
           c.other_user_id === parseInt(providerId),
       ),
-    // ✅ Only recompute when the conversation list length changes or providerId changes
     // Using conversations.length + the actual IDs prevents new-reference churn
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [conversations.length, providerId],
@@ -197,20 +201,15 @@ function MessageDetails() {
     [currentConversation, messagesByConversation],
   );
 
-  // Service fee is 15% of total
   const perHourRate =
     currentConversation?.hourly_rate || providerDetails?.hourly_rate || 0;
-  const serviceFeeFlat = 7;
-  const displayHours = totalHours === "" ? 0 : Number(totalHours);
-  const subtotal = perHourRate * displayHours;
-  const serviceFee = serviceFeeFlat;
-  const calculatedTotal = subtotal + serviceFee;
   const uiCurrencyCode = currencyCode || defaultCurrency.currencyCode;
   const uiCurrencySymbol = currencySymbol || defaultCurrency.currencySymbol;
   const displayPerHourRate = localizedPerHourRate ?? perHourRate;
-  const displaySubtotal = localizedSubtotal ?? subtotal;
-  const displayServiceFee = localizedServiceFee ?? serviceFee;
-  const displayTotal = localizedTotalAmount ?? calculatedTotal;
+  const displaySubtotal = localizedSubtotal ?? 0;
+  const displayServiceFee = localizedServiceFee ?? 0;
+  const displayVerificationFee = localizedVerificationFee ?? 0;
+  const displayTotal = localizedTotalAmount ?? 0;
 
   const bookingId =
     currentConversation?.booking ||
@@ -226,18 +225,6 @@ function MessageDetails() {
       dispatch(startActivity(String(bookingId)));
     }
   };
-
-  useEffect(() => {
-    if (!showPayment || !bookingId) return;
-    const parsedHours = Number.parseInt(totalHours, 10);
-    if (!Number.isFinite(parsedHours) || parsedHours < 1) return;
-    const timeout = setTimeout(() => {
-      dispatch(
-        fetchActivityPaymentPreview({ bookingId, totalHours: parsedHours }),
-      );
-    }, 250);
-    return () => clearTimeout(timeout);
-  }, [showPayment, bookingId, totalHours, dispatch]);
 
   // Initialize user and load data
   useEffect(() => {
@@ -257,7 +244,6 @@ function MessageDetails() {
     };
   }, [dispatch, providerId]);
 
-  // ✅ Use the stable ID as dependency, not the whole object
   const currentConversationId = currentConversation?.id;
 
   // Load/update messages when conversation changes
@@ -281,7 +267,6 @@ function MessageDetails() {
   }, [dispatch, wsFallbackActive, currentConversationId]);
 
   // Update message count when messages arrive
-  // ✅ Depend on length, not the array reference
   useEffect(() => {
     setMessageCount(currentMessages.length);
   }, [currentMessages.length]);
@@ -299,7 +284,7 @@ function MessageDetails() {
     }
   }, [checkoutUrl, dispatch]);
 
-  // Handle activity started — send system message, then clear flags
+  // The API creates the system event; refresh the conversation here.
   useEffect(() => {
     if (!activityStarted || !currentConversation) return;
 
@@ -308,27 +293,17 @@ function MessageDetails() {
 
     activityStartedSentForRef.current = convId;
 
-    dispatch(
-      sendMessage({
-        conversationId: currentConversation.id,
-        content: "Activity has started",
-      }),
-    );
-
-    // ✅ Clear payment + activity state so no payment modal leaks in from this effect
+    dispatch(fetchMessages(currentConversation.id));
+    dispatch(fetchConversations());
     dispatch(clearPaymentState());
     dispatch(clearActivityStarted());
   }, [activityStarted, currentConversation, dispatch]);
 
-  // Handle activity ended — send system message (payment modal is shown by the handler, not here)
+  // The API creates the system event; refresh the conversation here.
   useEffect(() => {
     if (activityEnded && currentConversation) {
-      dispatch(
-        sendMessage({
-          conversationId: currentConversation.id,
-          content: "Activity has ended",
-        }),
-      );
+      dispatch(fetchMessages(currentConversation.id));
+      dispatch(fetchConversations());
       setTimeout(() => {
         dispatch(clearActivityEnded());
       }, 1000);
@@ -340,8 +315,7 @@ function MessageDetails() {
     return currentMessages.map((message) =>
       toDisplayMessage(message, currentUserId),
     );
-    // ✅ Only recompute when the actual messages change, not on every render
-  }, [currentMessages, currentUser]);
+  }, [currentMessages, currentUserId]);
 
   const handleSendMessage = async () => {
     if (!currentConversation || !input.trim()) return;
@@ -368,8 +342,6 @@ function MessageDetails() {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
 
-    // ✅ If backend returned 500, message was still saved.
-    // Refetch to confirm delivery, then silently clear the error.
     if (sendMessage.rejected.match(resultAction)) {
       dispatch(fetchMessages(currentConversation.id));
       setTimeout(() => dispatch(clearSendMessageError()), 2000);
@@ -379,9 +351,34 @@ function MessageDetails() {
    * Called when the Careseeker picks an action from the "Initiate Activity" modal
    * that appears on their very first message.
    *
-   * ✅ "start" → send the message + call startActivity API. NO payment modal.
-   * ✅ "end"   → send the message + call endActivity API + show payment modal.
+   * "start" sends the message and starts the activity.
+   * "end" requests the provider code, ends the activity, and opens payment review.
    */
+  const endActivityWithCode = async (id) => {
+    const code = window.prompt("Enter the 6-digit code from the care provider.");
+    if (!/^\d{6}$/.test((code || "").trim())) {
+      alert("Enter the 6-digit provider code.");
+      return null;
+    }
+    const result = await dispatch(
+      endActivity({ bookingId: id, endCode: code.trim() }),
+    );
+    if (endActivity.fulfilled.match(result)) {
+      const preview = await dispatch(fetchActivityPaymentPreview({ bookingId: id }));
+      if (fetchActivityPaymentPreview.fulfilled.match(preview)) {
+        setShowPayment(true);
+      } else {
+        alert(
+          extractErrorMessage(
+            preview?.payload || preview?.error?.message,
+            "The payment review could not be loaded.",
+          ),
+        );
+      }
+    }
+    return result;
+  };
+
   const handleFirstMessageAction = async (action) => {
     if (action === "start") {
       // Send the queued message
@@ -401,7 +398,6 @@ function MessageDetails() {
         console.error("Failed to start activity:", e);
       }
 
-      // ✅ Close the modal — do NOT open the payment modal here
       setShowActivityModal(false);
     } else if (action === "end") {
       // Send the queued message
@@ -417,15 +413,12 @@ function MessageDetails() {
       // End the activity via API
       let endResult = null;
       if (bookingId) {
-        endResult = await dispatch(endActivity(bookingId));
+        endResult = await endActivityWithCode(bookingId);
       }
 
       setShowActivityModal(false);
 
-      if (endResult && endActivity.fulfilled.match(endResult)) {
-        // ✅ Only successful End Activity opens the payment modal
-        setShowPayment(true);
-      } else {
+      if (!endResult || !endActivity.fulfilled.match(endResult)) {
         const message = extractErrorMessage(
           endResult?.payload || endResult?.error?.message,
           "Failed to end activity.",
@@ -440,18 +433,12 @@ function MessageDetails() {
       alert("No active conversation selected");
       return;
     }
-    const parsedHours = Number.parseInt(totalHours, 10);
-    if (!Number.isFinite(parsedHours) || parsedHours < 1) {
-      alert("Total hours must be at least 1.");
-      return;
-    }
-
     try {
       const result = await dispatch(
         initiateActivityPayment({
           bookingId,
-          totalHours: parsedHours,
-          paymentGateway: "stripe",
+          paymentGateway:
+            countryUsed?.toUpperCase() === "NG" ? "paystack" : "stripe",
         }),
       );
 
@@ -469,8 +456,8 @@ function MessageDetails() {
   /**
    * Called from the three-dot menu in the chat header.
    *
-   * ✅ "start" → only dispatches startActivity, no payment modal.
-   * ✅ "end"   → dispatches endActivity, then opens payment modal.
+   * "start" starts the activity.
+   * "end" ends the activity with the provider code and opens payment review.
    */
   const handleMenuAction = async (action) => {
     if (action === "start") {
@@ -479,14 +466,11 @@ function MessageDetails() {
       } catch (e) {
         console.error("Failed to start activity:", e);
       }
-      // ✅ Close menu only — no payment modal for Start Activity
       setMenuOpen(false);
     } else if (action === "end") {
       setMenuOpen(false);
-      const result = await dispatch(endActivity(bookingId));
-      if (endActivity.fulfilled.match(result)) {
-        setShowPayment(true);
-      } else {
+      const result = await endActivityWithCode(bookingId);
+      if (!result || !endActivity.fulfilled.match(result)) {
         const message = extractErrorMessage(
           result?.payload || result?.error?.message,
           "Failed to end activity.",
@@ -625,7 +609,6 @@ function MessageDetails() {
                   role="menu"
                   aria-orientation="vertical"
                 >
-                  {/* ✅ Start Activity: only starts the activity, no payment modal */}
                   <button
                     className="w-full text-left px-4 py-3 text-gray-700 hover:bg-[#f7fafd] focus:bg-[#f7fafd] focus:outline-none text-sm font-medium transition border-b border-gray-100"
                     onClick={() => handleMenuAction("start")}
@@ -646,12 +629,12 @@ function MessageDetails() {
                       Start Activity
                     </span>
                   </button>
-                  {/* ✅ End Activity: ends the activity and opens payment modal */}
+                  {/* End Activity: requires the provider's six-digit code */}
                   <button
                     className="w-full text-left px-4 py-3 text-gray-700 hover:bg-[#f7fafd] focus:bg-[#f7fafd] focus:outline-none text-sm font-medium transition"
                     onClick={() => handleMenuAction("end")}
                     role="menuitem"
-                    aria-label="End activity and proceed to payment"
+                    aria-label="End activity"
                   >
                     <span className="flex items-center">
                       <svg
@@ -678,6 +661,7 @@ function MessageDetails() {
           ref={chatBodyRef}
           className="flex-1 px-3 sm:px-4 md:px-8 py-4 sm:py-6 overflow-y-auto bg-white"
         >
+          <ActivityCountdown endAt={scheduledEndAt} />
           {conversationsLoading ? (
             <div className="flex items-center justify-center h-full text-gray-400">
               Loading conversation...
@@ -708,7 +692,6 @@ function MessageDetails() {
                 />
               ))}
               <div ref={chatEndRef} />
-              {/* ✅ Show a clean error if message sending fails */}
               {sendMessageError && (
                 <div className="flex justify-center mt-2">
                   <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm max-w-[90%] text-center">
@@ -763,8 +746,8 @@ function MessageDetails() {
         {/**
          * "Initiate Activity" modal — appears only on the first message send.
          *
-         * ✅ "Start Activity" → starts conversation/activity, NO payment
-         * ✅ "End Activity"   → ends activity and opens payment modal
+         * "Start Activity" starts the activity.
+         * "End Activity" ends the activity and opens payment review.
          */}
         {showActivityModal && (
           <div
@@ -789,7 +772,6 @@ function MessageDetails() {
               </p>
 
               <div className="space-y-3">
-                {/* ✅ Start Activity — lets Careseeker begin the conversation/job. No payment. */}
                 <button
                   className="w-full bg-[#0d99c9] text-white py-3 sm:py-4 rounded-lg font-semibold hover:bg-[#007bb0] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition text-sm sm:text-base"
                   onClick={() => handleFirstMessageAction("start")}
@@ -810,11 +792,10 @@ function MessageDetails() {
                   </span>
                 </button>
 
-                {/* ✅ End Activity — ends the activity and proceeds to payment */}
                 <button
                   className="w-full border-2 border-[#0d99c9] text-[#0d99c9] py-3 sm:py-4 rounded-lg font-semibold bg-white hover:bg-[#f7fafd] focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition text-sm sm:text-base"
                   onClick={() => handleFirstMessageAction("end")}
-                  aria-label="End activity - proceed to payment"
+                  aria-label="End activity"
                 >
                   <span className="flex items-center justify-center">
                     <svg
@@ -835,7 +816,7 @@ function MessageDetails() {
           </div>
         )}
 
-        {/* Payment Modal — only shown when End Activity is triggered */}
+        {/* Payment Modal — shown after the provider-authorized activity end */}
         {showPayment && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4"
@@ -850,7 +831,6 @@ function MessageDetails() {
                   dispatch(clearPaymentState());
                   setShowPayment(false);
                   setPaymentSuccess(false);
-                  setTotalHours("1");
                 }}
                 aria-label="Close payment modal"
               >
@@ -873,7 +853,7 @@ function MessageDetails() {
                     Proceed to Payment
                   </h2>
                   <p className="text-center text-gray-500 text-sm sm:text-base mb-6">
-                    Enter total hours and confirm payment
+                    Review recorded activity time, overtime, and fees before paying.
                   </p>
                   <div className="bg-gradient-to-br from-[#f7fafd] to-[#f0f8fc] rounded-xl p-4 sm:p-6 mb-6 border border-gray-200">
                     <div className="space-y-4">
@@ -890,25 +870,16 @@ function MessageDetails() {
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <label
-                          htmlFor="total-hours"
-                          className="text-gray-600 text-sm font-medium"
-                        >
-                          Total hours
-                        </label>
-                        <input
-                          id="total-hours"
-                          className="bg-white border-2 border-gray-300 rounded-lg w-20 px-3 py-2 text-gray-800 font-semibold text-right text-sm focus:outline-none focus:border-[#0d99c9] focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition"
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={totalHours}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) =>
-                            setTotalHours(e.target.value.replace(/\D/g, ""))
-                          }
-                          aria-label="Total hours for service"
-                        />
+                        <span className="text-gray-600 text-sm font-medium">Activity hours</span>
+                        <span className="text-gray-800 font-semibold">{localizedScheduledHours ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm font-medium">Overtime hours</span>
+                        <span className="text-gray-800 font-semibold">{localizedOvertimeHours ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm font-medium">Extra activity hours</span>
+                        <span className="text-gray-800 font-semibold">{localizedExtraHours ?? 0}</span>
                       </div>
                       <div className="border-t border-gray-300 my-3"></div>
                       <div className="flex justify-between items-center">
@@ -925,11 +896,23 @@ function MessageDetails() {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600 text-sm font-medium">
-                          Service Fee
+                          Platform fee
                         </span>
                         <span className="text-[#0d99c9] font-semibold">
                           {formatCurrencyAmount(
                             displayServiceFee,
+                            uiCurrencyCode,
+                            uiCurrencySymbol,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm font-medium">
+                          Verification balance
+                        </span>
+                        <span className="text-[#0d99c9] font-semibold">
+                          {formatCurrencyAmount(
+                            displayVerificationFee,
                             uiCurrencyCode,
                             uiCurrencySymbol,
                           )}
@@ -958,7 +941,7 @@ function MessageDetails() {
                   )}
                   {!countryUsed && (
                     <p className="text-xs text-gray-500 mb-4">
-                      Calculated from completed activity logs
+                      Calculated from the booked schedule and recorded extra time
                     </p>
                   )}
                   {loadingPaymentPreview && (
@@ -1010,7 +993,6 @@ function MessageDetails() {
                         dispatch(clearPaymentState());
                         setShowPayment(false);
                         setPaymentSuccess(false);
-                        setTotalHours("1");
                       }}
                       disabled={initiatingPayment}
                       aria-label="Cancel payment"
@@ -1052,7 +1034,6 @@ function MessageDetails() {
                       dispatch(clearPaymentState());
                       setShowPayment(false);
                       setPaymentSuccess(false);
-                      setTotalHours("1");
                     }}
                     aria-label="Close payment success modal"
                   >
