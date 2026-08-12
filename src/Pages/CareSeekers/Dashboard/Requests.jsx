@@ -101,16 +101,14 @@ function Requests() {
               ) : null}
 
               {activeRequests.map((req, i) => {
-                const raw = req.raw || req;
-                const isInProgress = raw.is_activity_in_progress ?? false;
-                const hasEnded = raw.has_ended_activity ?? false;
-                const providerName =
-                  raw.provider?.user?.full_name || raw.providerName || "Provider";
+                const isInProgress = req.isInProgress;
+                const hasEnded = req.hasEnded;
+                const providerName = req.providerName || "Provider";
                 const providerAvatar =
                   resolveImage(
-                    raw.provider?.user?.profile_image_url ||
-                      raw.provider?.provider_image_url ||
-                      raw.providerImageUrl,
+                    req.provider?.user?.profile_image_url ||
+                      req.provider?.provider_image_url ||
+                      req.providerImageUrl,
                     providerName,
                   ) || req.avatar;
 
@@ -119,7 +117,7 @@ function Requests() {
                     key={i}
                     onClick={() =>
                       navigate(
-                        `/careseekers/dashboard/request_details/${req.id || raw.id}`,
+                        `/careseekers/dashboard/request_details/${req.id}`,
                       )
                     }
                     className="w-full text-left flex items-center bg-gray-50 rounded-lg shadow-sm p-4 mb-4 hover:bg-gray-100 transition"
@@ -138,7 +136,7 @@ function Requests() {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-800 truncate">
-                        {req.title || raw.title || "Active care"}
+                        {req.title || "Active care"}
                       </div>
                       <div className="text-sm text-gray-600 mt-0.5 truncate">
                         {providerName}

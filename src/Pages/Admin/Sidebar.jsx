@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Boxes,
+  Building2,
   ChevronDown,
   CircleHelp,
   CreditCard,
@@ -133,6 +134,13 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
           {group("Users", UsersRound, openUsers, setOpenUsers, usersActive, userLinks)}
           {group("Payments", CreditCard, openPayments, setOpenPayments, paymentsActive, paymentLinks)}
           {group("Jobs", Boxes, openJobs, setOpenJobs, jobsActive, jobLinks)}
+
+          <li>
+            <NavLink to="/admin/organisations" onClick={closeOnMobile} className={({ isActive }) => rootLinkClass(isActive)}>
+              <Building2 className="h-[21px] w-[21px]" strokeWidth={1.6} />
+              <span>Organisations</span>
+            </NavLink>
+          </li>
 
           <li>
             <NavLink to="/admin/token-blacklist" onClick={closeOnMobile} className={({ isActive }) => rootLinkClass(isActive)}>

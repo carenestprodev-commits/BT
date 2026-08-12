@@ -6,11 +6,11 @@ import {
   FaEdit,
   FaChevronDown,
   FaCalendarAlt,
-  FaChevronLeft,
-  FaChevronRight,
 } from "react-icons/fa";
 import dayjs from "dayjs";
 import AdminStatusTag from "../../Components/AdminStatusTag";
+import AdminPagination from "../../Components/Admin/AdminPagination";
+import { useClientPagination } from "../../hooks/useAdminCollection";
 import CubeIcon from "../../../public/3dcube.svg?react";
 import CubeIconGreen from "../../../public/3dcubeGreen.svg?react";
 import CubeIconPink from "../../../public/3dcubePink.svg?react";
@@ -43,7 +43,6 @@ function Activities() {
   const [serviceFilter, setServiceFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [dateFilter, setDateFilter] = useState("");
-  const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState({ key: "date", dir: "desc" });
   const [alert, setAlert] = useState(null);
   const alertTimer = useRef(null);
@@ -131,7 +130,9 @@ function Activities() {
     if (statusFilter !== "All")
       data = data.filter((r) => r.status === statusFilter);
     if (dateFilter)
-      data = data.filter((r) => dayjs(r.date, "DD-MM-YYYY").isSame(dayjs(dateFilter), "day"));
+      data = data.filter((r) =>
+        dayjs(r.date, "DD-MM-YYYY").isSame(dayjs(dateFilter), "day"),
+      );
 
     // Sort
     data.sort((a, b) => {
@@ -148,19 +149,28 @@ function Activities() {
     });
 
     return data;
-  }, [rows, activeStat, query, serviceFilter, statusFilter, dateFilter, sortBy]);
+  }, [
+    rows,
+    activeStat,
+    query,
+    serviceFilter,
+    statusFilter,
+    dateFilter,
+    sortBy,
+  ]);
 
-  const pageSize = 8;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const visibleRows = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  useEffect(() => {
-    setPage(1);
-  }, [activeStat, query, serviceFilter, statusFilter, dateFilter, sortBy]);
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  const { page, setPage, pageSize, totalPages, visibleRows } =
+    useClientPagination(filtered, {
+      pageSize: 8,
+      resetKey: JSON.stringify([
+        activeStat,
+        query,
+        serviceFilter,
+        statusFilter,
+        dateFilter,
+        sortBy,
+      ]),
+    });
 
   function toggleSort(key) {
     setSortBy((s) =>
@@ -451,30 +461,13 @@ function Activities() {
       </div>
 
       {filtered.length > 0 && (
-        <div className="mt-4 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row">
-          <span>
-            Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, filtered.length)} of {filtered.length}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={page === 1}
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <FaChevronLeft /> Previous
-            </button>
-            <span className="min-w-[84px] text-center text-xs text-slate-500">Page {page} / {totalPages}</span>
-            <button
-              type="button"
-              disabled={page === totalPages}
-              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next <FaChevronRight />
-            </button>
-          </div>
-        </div>
+        <AdminPagination
+          page={page}
+          count={filtered.length}
+          pageSize={pageSize}
+          totalPages={totalPages}
+          onPage={setPage}
+        />
       )}
 
       {/* Edit / Details Modal */}

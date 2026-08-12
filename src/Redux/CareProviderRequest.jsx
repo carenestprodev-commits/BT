@@ -1,5 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL, getAuthHeaders } from "./config";
+import {
+  projectProviderRequest,
+  projectProviderRequests,
+} from "../lib/requestProjection";
 
 export const fetchActiveRequests = createAsyncThunk(
   "careProviderRequests/fetchActive",
@@ -12,7 +16,7 @@ export const fetchActiveRequests = createAsyncThunk(
         const text = await res.text();
         return rejectWithValue(text);
       }
-      return await res.json();
+      return projectProviderRequests(await res.json());
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -30,7 +34,7 @@ export const fetchClosedRequests = createAsyncThunk(
         const text = await res.text();
         return rejectWithValue(text);
       }
-      return await res.json();
+      return projectProviderRequests(await res.json());
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -48,7 +52,7 @@ export const fetchPendingRequests = createAsyncThunk(
         const text = await res.text();
         return rejectWithValue(text);
       }
-      return await res.json();
+      return projectProviderRequests(await res.json());
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -67,7 +71,7 @@ export const fetchRequestById = createAsyncThunk(
         const text = await res.text();
         return rejectWithValue(text);
       }
-      return await res.json();
+      return projectProviderRequest(await res.json());
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -86,7 +90,7 @@ export const fetchActiveRequestById = createAsyncThunk(
         const text = await res.text();
         return rejectWithValue(text);
       }
-      return await res.json();
+      return projectProviderRequest(await res.json());
     } catch (err) {
       return rejectWithValue(err.message);
     }

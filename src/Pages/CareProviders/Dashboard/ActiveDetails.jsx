@@ -1,50 +1,32 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import Sidebar from "./Sidebar";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchActiveRequestById,
-  stopActivity,
-  fetchActiveRequests,
 } from "../../../Redux/CareProviderRequest";
 import { BASE_URL } from "../../../Redux/config";
 import { formatDisplayName } from "../../../utils/formatDisplayName";
 
 /**
  * ActiveDetails — provider view of a single ACTIVE booking.
- * Shows seeker info, activity timing, and the End Activity button.
+ * Shows seeker info, activity timing, and the provider's end code.
  * The review form only appears in RequestDetails (closed bookings).
  */
 function ActiveDetails() {
   const navigate = useNavigate();
   const { id } = useParams();
   const dispatch = useDispatch();
-  const { currentActive, stoppingActivity, stopActivityError } = useSelector(
+  const { currentActive } = useSelector(
     (s) =>
       s.careProviderRequests || {
         currentActive: null,
-        stoppingActivity: false,
-        stopActivityError: null,
       },
   );
-  const [stopError, setStopError] = useState(null);
-  const [stopSuccess, setStopSuccess] = useState(false);
 
   useEffect(() => {
     if (id) dispatch(fetchActiveRequestById(id));
   }, [id, dispatch]);
-
-  useEffect(() => {
-    if (stopActivityError) {
-      const msg =
-        typeof stopActivityError === "string"
-          ? stopActivityError
-          : stopActivityError?.detail ||
-            stopActivityError?.message ||
-            JSON.stringify(stopActivityError);
-      setStopError(msg);
-    }
-  }, [stopActivityError]);
 
   const resolveImage = (url) => {
     if (!url)
@@ -52,18 +34,6 @@ function ActiveDetails() {
     if (url.startsWith("http") || url.startsWith("https")) return url;
     if (url.startsWith("/")) return `${BASE_URL}${url}`;
     return url;
-  };
-
-  const handleEndActivity = async () => {
-    setStopError(null);
-    const bookingId = currentActive?.id || Number(id);
-    if (!bookingId) return setStopError("Missing booking ID.");
-    const res = await dispatch(stopActivity(bookingId));
-    if (res.error) return; // error handled via stopActivityError above
-    setStopSuccess(true);
-    // Refresh the active list and navigate back after a short delay
-    dispatch(fetchActiveRequests());
-    setTimeout(() => navigate("/careproviders/dashboard/requests"), 1800);
   };
 
   const seeker = currentActive?.seeker;
@@ -104,8 +74,21 @@ function ActiveDetails() {
     }
   };
 
+  const formatActivityMoment = (value) => {
+    if (!value) return "—";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? value
+      : date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  };
+
   const isInProgress = currentActive?.is_activity_in_progress ?? true;
   const hasEnded = currentActive?.has_ended_activity ?? false;
+  const activeScheduledActivity = currentActive?.scheduled_activities?.find(
+    (activity) => activity.status === "in_progress",
+  );
+  const activityCode =
+    currentActive?.provider_end_code || activeScheduledActivity?.end_code;
 
   return (
     <div className="flex min-h-screen bg-white font-sfpro">
@@ -182,6 +165,36 @@ function ActiveDetails() {
                 />
               </div>
 
+              {currentActive.scheduled_activities?.length > 0 && (
+                <section className="mb-8">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Activity schedule</p>
+                  <div className="space-y-2">
+                    {currentActive.scheduled_activities.map((activity) => (
+                      <div
+                        key={activity.id}
+                        className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-800">
+                            {activity.source === "extra" ? "Extra activity" : "Scheduled activity"}
+                          </p>
+                          <p className="mt-1 text-gray-500">
+                            Scheduled: {formatActivityMoment(activity.scheduled_start_at)} — {formatActivityMoment(activity.scheduled_end_at)}
+                          </p>
+                          <p className="text-gray-500">
+                            Actual: {formatActivityMoment(activity.actual_start_time)} — {formatActivityMoment(activity.actual_end_time)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium capitalize text-gray-700">{activity.status || "scheduled"}</p>
+                          <p className="text-xs text-gray-500">Overtime: {activity.overtime_hours || "0.00"}h</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* Job summary */}
               {currentActive.job_details?.summary && (
                 <div className="mb-8">
@@ -194,71 +207,18 @@ function ActiveDetails() {
                 </div>
               )}
 
-              {/* Success banner */}
-              {stopSuccess && (
-                <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 text-green-700 text-sm font-medium text-center">
-                  ✅ Activity ended successfully. Redirecting…
+              {isInProgress && !hasEnded && activityCode && (
+                <div className="mb-6 rounded-xl bg-blue-50 p-5 text-center">
+                  <p className="text-sm font-medium text-blue-700">Activity end code</p>
+                  <p className="mt-2 text-4xl font-bold tracking-[0.35em] text-blue-900">{activityCode}</p>
+                  <p className="mt-2 text-xs text-blue-700">Give this code to the care seeker when you agree to end the activity.</p>
                 </div>
-              )}
-
-              {/* Error banner */}
-              {stopError && (
-                <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm">
-                  <p className="font-semibold mb-1">Could not end activity</p>
-                  <p>{stopError}</p>
-                  <button
-                    className="mt-2 text-xs underline text-red-500"
-                    onClick={() => setStopError(null)}
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
-
-              {/* End Activity button — only shown while session is running */}
-              {isInProgress && !hasEnded && !stopSuccess && (
-                <button
-                  onClick={handleEndActivity}
-                  disabled={stoppingActivity}
-                  className={`w-full py-3.5 rounded-xl font-semibold text-white transition-all duration-200 shadow-sm ${
-                    stoppingActivity
-                      ? "bg-gray-300 cursor-not-allowed"
-                      : "bg-red-500 hover:bg-red-600 active:scale-[0.98]"
-                  }`}
-                >
-                  {stoppingActivity ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg
-                        className="animate-spin h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"
-                        />
-                      </svg>
-                      Ending activity…
-                    </span>
-                  ) : (
-                    "End Activity"
-                  )}
-                </button>
               )}
 
               {/* Awaiting payment note — session already ended */}
               {hasEnded && !isInProgress && (
                 <div className="w-full py-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm font-medium text-center">
-                  ⏳ Activity ended — awaiting seeker payment
+                  ⏳ Activity ended — the seeker can use the code to review and pay
                 </div>
               )}
             </>

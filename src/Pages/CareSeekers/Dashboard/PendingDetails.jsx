@@ -15,9 +15,18 @@ import {
   resolveImage,
 } from "../../../Components/CareRequestSections";
 import {
-  initiateSeekerCheckout,
-  resetPaymentState,
-} from "../../../Redux/SeekerPayment";
+  formatCurrencyAmount,
+  getUserCurrencyInfo,
+} from "../../../utils/countryHelper";
+import {
+  clearPaymentState,
+  clearActivityStarted,
+  endActivity,
+  fetchActivityPaymentPreview,
+  initiateActivityPayment,
+  startActivity,
+} from "../../../Redux/StartActivity";
+import ActivityCountdown from "../../../Components/ActivityCountdown";
 
 function PendingDetails() {
   const navigate = useNavigate();
@@ -49,8 +58,24 @@ function PendingDetails() {
   const [paymentError, setPaymentError] = useState(null);
   const [initiatingPayment, setInitiatingPayment] = useState(false);
 
-  const { authorizationUrl, error: paymentReduxError } =
-    useSelector((s) => s.seekerPayment || {});
+  const {
+    activityStarted,
+    scheduledEndAt,
+    startingActivity,
+    endingActivity,
+    loadingPaymentPreview,
+    checkoutUrl,
+    currencyCode,
+    currencySymbol,
+    localizedScheduledHours,
+    localizedOvertimeHours,
+    localizedExtraHours,
+    localizedSubtotal,
+    localizedServiceFee,
+    localizedVerificationFee,
+    localizedTotalAmount,
+    countryUsed,
+  } = useSelector((s) => s.startActivity || {});
 
   useEffect(() => {
     const id = params.id || params.requestId || null;
@@ -68,13 +93,18 @@ function PendingDetails() {
     );
   }, [source]);
 
-  // Redirect to Paystack when authorization URL is received
   useEffect(() => {
-    if (authorizationUrl && showPaymentModal) {
-      window.location.href = authorizationUrl;
-      dispatch(resetPaymentState());
-    }
-  }, [authorizationUrl, showPaymentModal, dispatch]);
+    if (!checkoutUrl || !showPaymentModal) return;
+    window.location.href = checkoutUrl;
+    dispatch(clearPaymentState());
+  }, [checkoutUrl, showPaymentModal, dispatch]);
+
+  useEffect(() => {
+    if (!activityStarted) return;
+    const id = params.id || params.requestId || null;
+    if (id) dispatch(fetchPendingRequestById(id));
+    dispatch(clearActivityStarted());
+  }, [activityStarted, dispatch, params.id, params.requestId]);
 
   // Check for payment callback (reference in URL)
   useEffect(() => {
@@ -88,14 +118,6 @@ function PendingDetails() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
-
-  // Handle payment redux errors
-  useEffect(() => {
-    if (paymentReduxError) {
-      setPaymentError(typeof paymentReduxError === "string" ? paymentReduxError : "Payment failed. Please try again.");
-      setInitiatingPayment(false);
-    }
-  }, [paymentReduxError]);
 
   const matchedBooking = source?.matched_booking || null;
   const isMatched = !!matchedBooking;
@@ -151,36 +173,84 @@ function PendingDetails() {
     );
   };
 
-  const handlePayMatchedProvider = async () => {
+  const openPaymentReview = async () => {
     if (!matchedBooking) return;
     setShowPaymentModal(true);
     setPaymentSuccess(false);
     setPaymentError(null);
+    const result = await dispatch(
+      fetchActivityPaymentPreview({ bookingId: matchedBooking.id }),
+    );
+    if (fetchActivityPaymentPreview.rejected.match(result)) {
+      setPaymentError(
+        result.payload || "Payment review could not be loaded. Please try again.",
+      );
+    }
+  };
+
+  const handlePayMatchedProvider = async () => {
+    if (!matchedBooking) return;
     setInitiatingPayment(true);
 
     try {
       const result = await dispatch(
-        initiateSeekerCheckout({
+        initiateActivityPayment({
           bookingId: matchedBooking.id,
-          amount: null, // server calculates
-          bookingDetails: { payment_method: "paystack" },
+          paymentGateway: countryUsed?.toUpperCase() === "NG" ? "paystack" : "stripe",
         }),
       );
 
-      if (initiateSeekerCheckout.rejected.match(result)) {
+      if (initiateActivityPayment.rejected.match(result)) {
         setPaymentError(
-          result.payload?.message || "Payment initiation failed. Please try again.",
+          result.payload || "Payment initiation failed. Please try again.",
         );
-        setInitiatingPayment(false);
       }
-      // On fulfilled, authorizationUrl effect handles redirect
     } catch {
       setPaymentError("Payment initiation failed. Please try again.");
-      setInitiatingPayment(false);
+    }
+    setInitiatingPayment(false);
+  };
+
+  const startMatchedActivity = async () => {
+    if (!matchedBooking) return;
+    const result = await dispatch(startActivity(String(matchedBooking.id)));
+    if (startActivity.rejected.match(result)) {
+      alert(result.payload || "The activity could not be started.");
     }
   };
 
+  const endMatchedActivity = async () => {
+    if (!matchedBooking) return;
+    const code = window.prompt("Enter the 6-digit code from the care provider.");
+    if (!/^\d{6}$/.test((code || "").trim())) {
+      alert("Enter the 6-digit provider code.");
+      return;
+    }
+    const result = await dispatch(
+      endActivity({
+        bookingId: matchedBooking.id,
+        endCode: code.trim(),
+      }),
+    );
+    if (endActivity.rejected.match(result)) {
+      alert(result.payload || "The activity could not be ended.");
+      return;
+    }
+    const id = params.id || params.requestId || null;
+    if (id) dispatch(fetchPendingRequestById(id));
+    await openPaymentReview();
+  };
+
   const provider = matchedBooking?.provider || null;
+  const userCurrency = getUserCurrencyInfo();
+  const displayAmount = (value) =>
+    value == null
+      ? "—"
+      : formatCurrencyAmount(
+          Number(value),
+          currencyCode || userCurrency.currencyCode,
+          currencySymbol || userCurrency.currencySymbol,
+        );
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sfpro">
@@ -291,6 +361,28 @@ function PendingDetails() {
                         ) : null}
                       </div>
                     </div>
+                    <ActivityCountdown endAt={scheduledEndAt} />
+                    {!matchedBooking.has_ended_activity && (
+                      <div className="mt-4 flex gap-3">
+                        {matchedBooking.is_activity_in_progress ? (
+                          <button
+                            className="flex-1 rounded-md bg-[#0093d1] px-4 py-2 text-sm font-medium text-white hover:bg-[#007bb0] disabled:opacity-60"
+                            disabled={endingActivity}
+                            onClick={endMatchedActivity}
+                          >
+                            {endingActivity ? "Ending..." : "End activity"}
+                          </button>
+                        ) : (
+                          <button
+                            className="flex-1 rounded-md bg-[#0093d1] px-4 py-2 text-sm font-medium text-white hover:bg-[#007bb0] disabled:opacity-60"
+                            disabled={startingActivity}
+                            onClick={startMatchedActivity}
+                          >
+                            {startingActivity ? "Starting..." : "Start activity"}
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <div className="mt-4 flex gap-3">
                       <button
                         className="flex-1 rounded-md bg-[#0093d1] px-4 py-2 text-sm font-medium text-white hover:bg-[#007bb0] transition-colors disabled:opacity-60"
@@ -304,7 +396,7 @@ function PendingDetails() {
                       <button
                         className="flex-1 rounded-md bg-white text-[#0093d1] px-4 py-2 text-sm font-medium border border-[#0093d1] hover:bg-gray-50 transition-colors disabled:opacity-60"
                         disabled={!matchedBooking.has_ended_activity || initiatingPayment}
-                        onClick={handlePayMatchedProvider}
+                        onClick={openPaymentReview}
                       >
                         {initiatingPayment ? "Processing..." : "Pay"}
                       </button>
@@ -552,7 +644,7 @@ function PendingDetails() {
                 setShowPaymentModal(false);
                 setPaymentError(null);
                 setInitiatingPayment(false);
-                dispatch(resetPaymentState());
+                dispatch(clearPaymentState());
               }}
             >
               &times;
@@ -570,10 +662,47 @@ function PendingDetails() {
               </div>
             )}
 
+            {loadingPaymentPreview ? (
+              <p className="mb-5 text-center text-sm text-gray-500">
+                Calculating the final payment...
+              </p>
+            ) : (
+              <div className="mb-5 space-y-2 rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+                <div className="flex justify-between">
+                  <span>Activity hours</span>
+                  <span>{localizedScheduledHours ?? 0}h</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Overtime hours</span>
+                  <span>{localizedOvertimeHours ?? 0}h</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Extra activity hours</span>
+                  <span>{localizedExtraHours ?? 0}h</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Work subtotal</span>
+                  <span>{displayAmount(localizedSubtotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Platform fee</span>
+                  <span>{displayAmount(localizedServiceFee)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Verification balance</span>
+                  <span>{displayAmount(localizedVerificationFee)}</span>
+                </div>
+                <div className="flex justify-between border-t border-gray-200 pt-2 font-semibold text-gray-800">
+                  <span>Total</span>
+                  <span>{displayAmount(localizedTotalAmount)}</span>
+                </div>
+              </div>
+            )}
+
             <button
               className="w-full bg-[#0093d1] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition mb-3 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               onClick={handlePayMatchedProvider}
-              disabled={initiatingPayment}
+              disabled={initiatingPayment || loadingPaymentPreview}
             >
               {initiatingPayment ? "Processing..." : "Pay with Paystack"}
             </button>
@@ -583,7 +712,7 @@ function PendingDetails() {
                 setShowPaymentModal(false);
                 setPaymentError(null);
                 setInitiatingPayment(false);
-                dispatch(resetPaymentState());
+                dispatch(clearPaymentState());
               }}
               disabled={initiatingPayment}
             >

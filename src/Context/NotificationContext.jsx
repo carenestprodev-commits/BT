@@ -9,6 +9,8 @@ import {
 } from "react";
 import { AuthContext } from "./AuthContext";
 import { useDispatch } from "react-redux";
+import { BASE_URL } from "../Redux/config";
+import { fetchWithAuth } from "../lib/fetchWithAuth.js";
 import { fetchSeekerDashboard } from "../Redux/SeekerDashboardHome";
 import { fetchProviderProfile } from "../Redux/ProviderSettings";
 import {
@@ -24,9 +26,29 @@ import {
 
 export const NotificationContext = createContext();
 
+const notificationsUrl = () =>
+  `${(BASE_URL || window.location.origin).replace(/\/$/, "")}/api/notifications/inbox`;
+
+const notificationKey = (notification) =>
+  notification?.id != null
+    ? `id:${notification.id}`
+    : `${notification?.type || "notification"}:${notification?.timestamp || ""}:${notification?.message || ""}`;
+
+const mergeNotifications = (current, incoming) => {
+  const merged = new Map();
+  [...incoming, ...current].forEach((notification) => {
+    const key = notificationKey(notification);
+    if (!merged.has(key)) merged.set(key, notification);
+  });
+  return [...merged.values()].sort(
+    (left, right) =>
+      new Date(right.timestamp || 0).getTime() -
+      new Date(left.timestamp || 0).getTime(),
+  );
+};
+
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const [isDegraded, setIsDegraded] = useState(false);
   const socketRef = useRef(null);
@@ -52,7 +74,10 @@ export const NotificationProvider = ({ children }) => {
   // Get API host from environment or config
   const getWSHost = useCallback(() => {
     // Try to use the same backend as the app
-    const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const apiUrl =
+      import.meta.env.VITE_API_BASE_URL ||
+      import.meta.env.VITE_API_URL ||
+      window.location.origin;
 
     // For local development
     if (apiUrl.includes("localhost") || apiUrl.includes("127.0.0.1")) {
@@ -86,6 +111,18 @@ export const NotificationProvider = ({ children }) => {
     [dispatch],
   );
 
+  const loadNotifications = useCallback(async () => {
+    try {
+      const response = await fetchWithAuth(`${notificationsUrl()}/`);
+      if (!response.ok) return;
+      const stored = await response.json();
+      if (!Array.isArray(stored)) return;
+      setNotifications((current) => mergeNotifications(current, stored));
+    } catch (error) {
+      console.warn("Could not load stored notifications:", error);
+    }
+  }, []);
+
   // Connect WebSocket
   const connectWebSocket = useCallback(() => {
     const token = getAccessToken();
@@ -96,7 +133,7 @@ export const NotificationProvider = ({ children }) => {
     }
 
     const wsHost = getWSHost();
-    const wsUrl = `${wsHost}/ws/notifications/?token=${token}`;
+    const wsUrl = `${wsHost}/ws/appnotifications/?token=${token}`;
 
     try {
       console.log("🔌 Attempting WebSocket connection to:", wsUrl);
@@ -130,15 +167,20 @@ export const NotificationProvider = ({ children }) => {
             ...data,
           };
 
-          setNotifications((prev) => [newNotification, ...prev]);
-          setUnreadCount((prev) => prev + 1);
+          setNotifications((prev) => mergeNotifications(prev, [newNotification]));
 
           // Trigger dashboard/profile reload on session changes
           const userType = user?.user_type || user?.userType;
           if (
             data.type === "activity_started" ||
             data.type === "activity_ended" ||
+            data.type === "payment_ready" ||
+            data.type === "payment_confirmed" ||
+            data.type === "payment_failed" ||
+            data.type === "provider_fee_pending" ||
             data.type === "booking_completed" ||
+            data.type === "booking_cancelled" ||
+            data.type === "booking_rejected" ||
             data.type === "wallet_credit"
           ) {
             if (userType === "seeker") {
@@ -204,6 +246,15 @@ export const NotificationProvider = ({ children }) => {
 
   // Auto-connect when user is available
   useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return undefined;
+    }
+    loadNotifications();
+    return undefined;
+  }, [loadNotifications, user]);
+
+  useEffect(() => {
     if (user && !socketRef.current) {
       connectWebSocket();
     }
@@ -214,37 +265,54 @@ export const NotificationProvider = ({ children }) => {
       }
       if (socketRef.current) {
         socketRef.current.close();
+        socketRef.current = null;
       }
+      setIsConnected(false);
     };
   }, [user, connectWebSocket]);
 
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
+
   // Mark notification as read
   const markAsRead = useCallback((notificationId) => {
-    setNotifications((prev) =>
-      prev.map((notif) =>
-        notif.id === notificationId ? { ...notif, read: true } : notif,
-      ),
+    setNotifications((prev) => prev.map((notif) =>
+      String(notif.id) === String(notificationId)
+        ? { ...notif, read: true }
+        : notif,
+    ));
+    const id = Number(notificationId);
+    if (!Number.isInteger(id) || id <= 0) return;
+    fetchWithAuth(`${notificationsUrl()}/${id}/read/`, { method: "POST" }).catch(
+      () => {},
     );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
   }, []);
 
   // Mark all as read
   const markAllAsRead = useCallback(() => {
     setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
-    setUnreadCount(0);
+    fetchWithAuth(`${notificationsUrl()}/read-all/`, { method: "POST" }).catch(
+      () => {},
+    );
   }, []);
 
   // Clear notification
   const clearNotification = useCallback((notificationId) => {
     setNotifications((prev) =>
-      prev.filter((notif) => notif.id !== notificationId),
+      prev.filter((notif) => String(notif.id) !== String(notificationId)),
+    );
+    const id = Number(notificationId);
+    if (!Number.isInteger(id) || id <= 0) return;
+    fetchWithAuth(`${notificationsUrl()}/${id}/`, { method: "DELETE" }).catch(
+      () => {},
     );
   }, []);
 
   // Clear all notifications
   const clearAllNotifications = useCallback(() => {
     setNotifications([]);
-    setUnreadCount(0);
+    fetchWithAuth(`${notificationsUrl()}/dismiss-all/`, { method: "POST" }).catch(
+      () => {},
+    );
   }, []);
 
   const value = {

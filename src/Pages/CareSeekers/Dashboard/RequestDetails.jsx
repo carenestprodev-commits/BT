@@ -26,6 +26,15 @@ function RequestDetails() {
   );
   const params = useParams();
   const routeId = params?.id || params?.requestId || params?.bookingId;
+  const scheduledActivities = currentRequest?.scheduled_activities || [];
+
+  const formatActivityMoment = (value) => {
+    if (!value) return "—";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? value
+      : date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  };
 
   const userCurrency = getUserCurrencyInfo();
 
@@ -166,6 +175,38 @@ function RequestDetails() {
             </div>
           </div>
         </div>
+
+        {scheduledActivities.length > 0 && (
+          <section className="mb-8">
+            <div className="text-gray-700 font-medium mb-2">Activity schedule</div>
+            <div className="space-y-2">
+              {scheduledActivities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 text-sm"
+                >
+                  <div>
+                    <div className="font-medium text-gray-800">
+                      {activity.source === "extra" ? "Extra activity" : "Scheduled activity"}
+                    </div>
+                    <div className="mt-1 text-gray-500">
+                      Scheduled: {formatActivityMoment(activity.scheduled_start_at)} — {formatActivityMoment(activity.scheduled_end_at)}
+                    </div>
+                    <div className="text-gray-500">
+                      Actual: {formatActivityMoment(activity.actual_start_time)} — {formatActivityMoment(activity.actual_end_time)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium capitalize text-gray-700">{activity.status || "scheduled"}</div>
+                    <div className="text-xs text-gray-500">
+                      Overtime: {activity.overtime_hours || "0.00"}h
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <DetailRows
           title="Job Summary"

@@ -15,13 +15,10 @@ import {
   clearSendMessageError,
 } from "../../../Redux/Messenger";
 import {
-  fetchActivityPaymentPreview,
-  initiateActivityPayment,
-  clearPaymentState,
   clearActivityStarted,
   clearActivityEnded,
+  startActivity,
 } from "../../../Redux/StartActivity";
-import { endActivity, startActivity } from "../../../Redux/StartActivity";
 import { BASE_URL } from "../../../Redux/config";
 import ChatMessageItem from "../../../Components/Chat/ChatMessageItem";
 import {
@@ -29,10 +26,6 @@ import {
   toDisplayMessage,
 } from "../../../lib/chatMessages";
 import { getCurrentUserIdFromProfile } from "../../../lib/currentUser";
-import {
-  formatCurrencyAmount,
-  getUserCurrencyInfo,
-} from "../../../utils/countryHelper";
 import { useNotifications } from "../../../Context/NotificationContext";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import { containsPhoneNumber } from "../../../utils/phoneUtils";
@@ -75,29 +68,6 @@ const cleanErrorMessage = (err) => {
   if (isServerHtmlError(err))
     return "Message delivery confirmation failed. The message may have been sent — please wait or refresh.";
   return err;
-};
-
-const extractErrorMessage = (value, fallback = "Request failed.") => {
-  if (!value) return fallback;
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      if (parsed?.error) return parsed.error;
-      if (parsed?.detail) return parsed.detail;
-      if (parsed?.message) return parsed.message;
-      const first = Object.values(parsed).find((entry) =>
-        Array.isArray(entry) ? typeof entry[0] === "string" : typeof entry === "string",
-      );
-      if (Array.isArray(first)) return first[0] || fallback;
-      return first || value;
-    } catch {
-      return value;
-    }
-  }
-  if (typeof value === "object") {
-    return value.error || value.detail || value.message || fallback;
-  }
-  return fallback;
 };
 
 const buildCallRoute = (bookingId, mode, title) => {
@@ -307,7 +277,6 @@ const MobileChatView = ({
   dispatch,
   navigate,
   bookingId,
-  setShowPayment,
   showMenu,
   currentUserId,
   audioCallRoute,
@@ -407,24 +376,9 @@ const MobileChatView = ({
                     >
                       Start Activity
                     </button>
-                    <button
-                      className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 text-sm"
-                      onClick={async () => {
-                        setMenuOpen(false);
-                        const result = await dispatch(endActivity(bookingId));
-                        if (endActivity.fulfilled.match(result)) {
-                          setShowPayment(true);
-                        } else {
-                          const message = extractErrorMessage(
-                            result?.payload || result?.error?.message,
-                            "Failed to end activity.",
-                          );
-                          alert(message);
-                        }
-                      }}
-                    >
-                      End Activity
-                    </button>
+                    <div className="px-4 py-3 text-xs leading-5 text-gray-500">
+                      Give the six-digit code in your job details to the care seeker when you agree to end the activity.
+                    </div>
                   </div>
                 )}
               </div>
@@ -533,33 +487,14 @@ function Message() {
     sendMessageError,
   } = useSelector((state) => state.messenger);
 
-  const {
-    loadingPaymentPreview,
-    paymentPreviewError,
-    initiatingPayment,
-    paymentError,
-    checkoutUrl,
-    activityStarted,
-    currencyCode,
-    currencySymbol,
-    countryUsed,
-    localizedPerHourRate,
-    localizedSubtotal,
-    localizedServiceFee,
-    localizedTotalAmount,
-    isFallbackPrice,
-  } = useSelector((state) => state.startActivity);
+  const { activityStarted } = useSelector((state) => state.startActivity);
   const { notifications, isDegraded } = useNotifications();
-  const defaultCurrency = getUserCurrencyInfo();
 
   const [input, setInput] = useState("");
   const [profileUser, setProfileUser] = useState(null);
   const [search, setSearch] = useState("");
   const [selectedConversationId, setSelectedConversationId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [totalHours, setTotalHours] = useState("1");
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [isMobile, setIsMobile] = useState(
@@ -612,27 +547,6 @@ function Message() {
         (conv.job_title || "").toLowerCase().includes(query),
     );
   }, [conversations, search]);
-
-  const RATE_PER_HOUR = currentConversation?.hourly_rate || 1;
-  const SERVICE_FEE = 7;
-  const displayHours = totalHours === "" ? 0 : Number(totalHours);
-  const calculatedSubtotal = RATE_PER_HOUR * displayHours;
-  const calculatedTotal = calculatedSubtotal + SERVICE_FEE;
-  const uiCurrencyCode = currencyCode || defaultCurrency.currencyCode;
-  const uiCurrencySymbol = currencySymbol || defaultCurrency.currencySymbol;
-  const displayPerHourRate = localizedPerHourRate ?? RATE_PER_HOUR;
-  const displaySubtotal =
-    localizedSubtotal ?? displayPerHourRate * displayHours;
-  const displayServiceFee = localizedServiceFee ?? SERVICE_FEE;
-  const displayTotal = localizedTotalAmount ?? calculatedTotal;
-
-  const paymentDetails = {
-    rate: displayPerHourRate,
-    hours: displayHours,
-    subtotal: displaySubtotal,
-    fee: displayServiceFee,
-    total: displayTotal,
-  };
 
   const bookingId = currentBookingId;
   const activeCallSession = getActiveCallSession(currentConversation);
@@ -707,34 +621,6 @@ function Message() {
     };
   }, [dispatch]);
 
-  useEffect(() => {
-    if (!showPayment || !bookingId) return;
-    const parsedHours = Number.parseInt(totalHours, 10);
-    if (!Number.isFinite(parsedHours) || parsedHours < 1) return;
-    const timeout = setTimeout(() => {
-      dispatch(
-        fetchActivityPaymentPreview({ bookingId, totalHours: parsedHours }),
-      );
-    }, 250);
-    return () => clearTimeout(timeout);
-  }, [showPayment, bookingId, totalHours, dispatch]);
-
-  useEffect(() => {
-    if (checkoutUrl) {
-      try {
-        window.open(checkoutUrl, "_blank", "noopener,noreferrer");
-      } catch {
-        window.location.href = checkoutUrl;
-      }
-      try {
-        setShowPayment(false);
-      } catch {
-        // ignore
-      }
-      dispatch(clearPaymentState());
-    }
-  }, [checkoutUrl, dispatch]);
-
   const activityStartedSentForRef = useRef(null);
 
   useEffect(() => {
@@ -744,7 +630,6 @@ function Message() {
     activityStartedSentForRef.current = convId;
     dispatch(fetchMessages(currentConversation.id));
     dispatch(fetchConversations());
-    dispatch(clearPaymentState());
     dispatch(clearActivityStarted());
   }, [activityStarted, currentConversation, dispatch]);
 
@@ -770,7 +655,13 @@ function Message() {
         "call_ended",
         "activity_started",
         "activity_ended",
+        "payment_ready",
+        "payment_confirmed",
+        "payment_failed",
+        "provider_fee_pending",
         "booking_completed",
+        "booking_cancelled",
+        "booking_rejected",
         "wallet_credit",
       ].includes(latestNotificationType)
     ) {
@@ -947,33 +838,6 @@ function Message() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
-    }
-  };
-
-  const handleProceedToPayment = async () => {
-    if (!currentConversation) {
-      alert("No active conversation selected");
-      return;
-    }
-    const parsedHours = Number.parseInt(totalHours, 10);
-    if (!Number.isFinite(parsedHours) || parsedHours < 1) {
-      alert("Total hours must be at least 1.");
-      return;
-    }
-    try {
-      const result = await dispatch(
-        initiateActivityPayment({
-          bookingId,
-          totalHours: parsedHours,
-          paymentGateway: "stripe",
-        }),
-      );
-      if (!initiateActivityPayment.fulfilled.match(result)) {
-        alert("Failed to initiate payment. Please try again.");
-      }
-    } catch (error) {
-      console.error("Payment error:", error);
-      alert("Failed to initiate payment. Please try again.");
     }
   };
 
@@ -1275,7 +1139,6 @@ function Message() {
                 dispatch={dispatch}
                 navigate={navigate}
                 bookingId={bookingId}
-                setShowPayment={setShowPayment}
                 showMenu={false}
                 currentUserId={currentUserId}
                 audioCallRoute={audioCallRoute}
@@ -1302,171 +1165,6 @@ function Message() {
           </div>
         )}
 
-        {/* Payment Modal - Positioned outside ternary to display on all screens */}
-        {showPayment && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-[400px] p-6 sm:p-8 relative">
-              <button
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
-                onClick={() => {
-                  dispatch(clearPaymentState());
-                  setShowPayment(false);
-                  setPaymentSuccess(false);
-                  setTotalHours("1");
-                }}
-              >
-                &times;
-              </button>
-              {!paymentSuccess ? (
-                <>
-                  <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 text-center mb-2">
-                    Proceed to Payment
-                  </h2>
-                  <p className="text-center text-gray-500 mb-6 text-sm sm:text-base">
-                    Enter total hours and confirm payment
-                  </p>
-                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                    <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
-                      <span className="text-gray-500">Rate per hour</span>
-                      <span className="text-gray-800 font-semibold">
-                        {formatCurrencyAmount(
-                          paymentDetails.rate,
-                          uiCurrencyCode,
-                          uiCurrencySymbol,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
-                      <span className="text-gray-500">Total hours</span>
-                      <input
-                        className="bg-white border border-gray-300 rounded w-20 px-2 py-1 text-gray-800 font-semibold text-right text-sm"
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={totalHours}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) =>
-                          setTotalHours(e.target.value.replace(/\D/g, ""))
-                        }
-                      />
-                    </div>
-                    <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
-                      <span className="text-gray-500">Subtotal</span>
-                      <span className="text-gray-800 font-semibold">
-                        {formatCurrencyAmount(
-                          paymentDetails.subtotal,
-                          uiCurrencyCode,
-                          uiCurrencySymbol,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center mb-3 text-sm sm:text-base">
-                      <span className="text-gray-500">Service Fee</span>
-                      <span className="text-gray-800 font-semibold">
-                        {formatCurrencyAmount(
-                          paymentDetails.fee,
-                          uiCurrencyCode,
-                          uiCurrencySymbol,
-                        )}
-                      </span>
-                    </div>
-                    <div className="border-t border-gray-200 my-3"></div>
-                    <div className="flex justify-between items-center text-sm sm:text-base">
-                      <span className="text-gray-700 font-medium">
-                        Total Amount
-                      </span>
-                      <span className="text-[#0d99c9] text-lg sm:text-xl font-bold">
-                        {formatCurrencyAmount(
-                          paymentDetails.total,
-                          uiCurrencyCode,
-                          uiCurrencySymbol,
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                  {countryUsed && (
-                    <p className="text-xs text-gray-500 mb-4">
-                      Localized for {countryUsed}
-                      {isFallbackPrice ? " (fallback pricing)" : ""}
-                    </p>
-                  )}
-                  {!countryUsed && (
-                    <p className="text-xs text-gray-500 mb-4">
-                      Calculated from completed activity logs
-                    </p>
-                  )}
-                  {loadingPaymentPreview && (
-                    <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded text-blue-700 text-xs sm:text-sm">
-                      Loading payment breakdown...
-                    </div>
-                  )}
-                  {paymentPreviewError && (
-                    <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded text-amber-700 text-xs sm:text-sm">
-                      Could not load server preview. Final charge will still use
-                      server-calculated totals.
-                      <div className="mt-1">{paymentPreviewError}</div>
-                    </div>
-                  )}
-                  {paymentError && (
-                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-xs sm:text-sm">
-                      {paymentError}
-                    </div>
-                  )}
-                  <button
-                    className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition mb-3 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                    onClick={handleProceedToPayment}
-                    disabled={initiatingPayment || loadingPaymentPreview}
-                  >
-                    {initiatingPayment
-                      ? "Processing..."
-                      : "Proceed to Payment for Activity"}
-                  </button>
-                  <button
-                    className="w-full border border-[#0d99c9] text-[#0d99c9] py-3 rounded-md font-semibold bg-white hover:bg-[#f7fafd] transition disabled:opacity-50 text-sm sm:text-base"
-                    onClick={() => {
-                      dispatch(clearPaymentState());
-                      setShowPayment(false);
-                      setPaymentSuccess(false);
-                      setTotalHours("1");
-                    }}
-                    disabled={initiatingPayment}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 sm:py-16">
-                  <svg
-                    width="48"
-                    height="48"
-                    fill="#0d99c9"
-                    viewBox="0 0 24 24"
-                    className="mb-4"
-                  >
-                    <path d="M20.285 6.709l-11.285 11.285-5.285-5.285 1.415-1.415 3.87 3.87 9.87-9.87z" />
-                  </svg>
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
-                    Payment Successful!
-                  </h3>
-                  <p className="text-gray-500 mb-4 text-center text-sm sm:text-base">
-                    Your payment has been processed.
-                  </p>
-                  <button
-                    className="w-full bg-[#0d99c9] text-white py-3 rounded-md font-semibold hover:bg-[#007bb0] transition text-sm sm:text-base"
-                    onClick={() => {
-                      dispatch(clearPaymentState());
-                      setShowPayment(false);
-                      setPaymentSuccess(false);
-                      setTotalHours("1");
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
         <VerificationCheckModal
           isOpen={showVerification}
           user={authUser}
