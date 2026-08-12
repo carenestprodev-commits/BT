@@ -222,7 +222,7 @@ function Jobs() {
                   </td>
                 </tr>
               )}
-              {!loading && !error && visibleRows.length === 0 && (
+              {!loading && !error && rows.length === 0 && (
                 <tr>
                   <td colSpan={10} className="p-8 text-center text-slate-500">
                     No bookings found.
@@ -231,7 +231,7 @@ function Jobs() {
               )}
               {!loading &&
                 !error &&
-                visibleRows.map((row) => (
+                rows.map((row) => (
                   <tr
                     key={row.id}
                     onClick={() => openJob(row)}

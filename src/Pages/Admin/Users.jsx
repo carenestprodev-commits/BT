@@ -626,8 +626,6 @@ function Users({ initialStat = "all" }) {
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("All");
   const [sortBy, setSortBy] = useState({ key: "onboard", dir: "desc" });
-  const [currentPage, setCurrentPage] = useState(1);
-
   const [activeStat, setActiveStat] = useState(initialStat);
   const [accountStatusFilter, setAccountStatusFilter] = useState("All");
   const [editRow, setEditRow] = useState(null);
