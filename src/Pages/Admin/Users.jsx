@@ -12,6 +12,7 @@ import {
   FaEnvelope,
   FaClock,
   FaComments,
+  FaTimes,
 } from "react-icons/fa";
 import DataExportModal from "../../Components/Admin/DataExportModal";
 import SendEmailModal from "../../Components/Admin/SendEmailModal";
@@ -625,6 +626,7 @@ function Users({ initialStat = "all" }) {
   const [query, setQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("All");
   const [sortBy, setSortBy] = useState({ key: "onboard", dir: "desc" });
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [activeStat, setActiveStat] = useState(initialStat);
   const [accountStatusFilter, setAccountStatusFilter] = useState("All");
@@ -882,6 +884,7 @@ function Users({ initialStat = "all" }) {
     setAccountStatusFilter("All");
     setProfileStatusFilters([]);
     setProfileFilterOpen(false);
+    setCurrentPage(1);
   };
 
   const filtered = useMemo(() => {
@@ -1671,113 +1674,125 @@ function Users({ initialStat = "all" }) {
               />
               <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[560px] flex-col overflow-hidden bg-white shadow-2xl transition-transform duration-300">
                 <button
-                  className="absolute right-5 top-5 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  type="button"
+                  className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:border-slate-300 hover:text-[#0E2F43]"
                   onClick={() => {
                     dispatch(clearCurrentUser());
                     setSelectedUserId(null);
                     setEditRow(null);
                   }}
+                  aria-label="Close user details"
                 >
-                  ✕
+                  <FaTimes className="h-4 w-4" />
                 </button>
 
-                <div className="border-b border-[#EAECF0] bg-white px-6 py-6 pr-16 text-[#0E2F43] sm:px-8 sm:pr-16">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <UserAvatar
-                          name={editRow.name}
-                          imageUrl={
-                            editRow.profileImageUrl || editRow.profile_image_url
-                          }
-                          className="h-16 w-16 rounded-2xl bg-white/10 ring-1 ring-white/10"
-                          textClassName="text-2xl text-slate-100"
-                        />
-                        {(editRow.profileImageUrl ||
-                          editRow.profile_image_url) && (
-                          <button
-                            onClick={async () => {
-                              if (
-                                !window.confirm(
-                                  "Are you sure you want to delete this user's profile image?",
-                                )
-                              )
-                                return;
-                              try {
-                                await dispatch(
-                                  deleteUserImage(editRow.id),
-                                ).unwrap();
-                                setEditRow((prev) => ({
-                                  ...prev,
-                                  profileImageUrl: "",
-                                  profile_image_url: "",
-                                }));
-                                if (alertTimerRef.current) {
-                                  clearTimeout(alertTimerRef.current);
-                                  alertTimerRef.current = null;
-                                }
-                                setAlert({
-                                  type: "success",
-                                  text: "Profile image deleted successfully",
-                                });
-                                alertTimerRef.current = setTimeout(
-                                  () => setAlert(null),
-                                  3000,
-                                );
-                              } catch (err) {
-                                console.error(err);
-                                if (alertTimerRef.current) {
-                                  clearTimeout(alertTimerRef.current);
-                                  alertTimerRef.current = null;
-                                }
-                                setAlert({
-                                  type: "error",
-                                  text: "Failed to delete profile image",
-                                });
-                                alertTimerRef.current = setTimeout(
-                                  () => setAlert(null),
-                                  3000,
-                                );
-                              }
-                            }}
-                            className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white transition hover:bg-red-600 shadow-md ring-2 ring-slate-900"
-                            title="Delete Profile Image"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-[#A6A6A7]">
-                          {userTypeLabel(editRow.user_type)}
-                        </p>
-                        <h3 className="mt-1 text-2xl font-semibold">
-                          {editRow.name}
-                        </h3>
-                        <p className="mt-1 text-sm text-[#667085]">
-                          {editRow.email}
-                        </p>
+                <div className="relative border-b border-slate-200 bg-[#f8fafc] px-6 py-7 text-[#0E2F43] sm:px-8">
+                  <div className="absolute inset-x-0 top-0 h-1 bg-[#0b93c6]" />
+                  <div className="flex items-start gap-4 pr-10">
+                    <div className="relative shrink-0">
+                      <UserAvatar
+                        name={editRow.name}
+                        imageUrl={
+                          editRow.profileImageUrl || editRow.profile_image_url
+                        }
+                        className="h-20 w-20 rounded-2xl bg-[#e5f5fa] shadow-[0_8px_20px_-12px_rgba(14,47,67,0.65)] ring-4 ring-white"
+                        textClassName="text-2xl text-[#0E2F43]"
+                      />
+                      {(editRow.profileImageUrl ||
+                        editRow.profile_image_url) && (
                         <button
                           type="button"
-                          onClick={() => setIsEditing(true)}
-                          className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                          onClick={async () => {
+                            if (
+                              !window.confirm(
+                                "Are you sure you want to delete this user's profile image?",
+                              )
+                            )
+                              return;
+                            try {
+                              await dispatch(
+                                deleteUserImage(editRow.id),
+                              ).unwrap();
+                              setEditRow((prev) => ({
+                                ...prev,
+                                profileImageUrl: "",
+                                profile_image_url: "",
+                              }));
+                              if (alertTimerRef.current) {
+                                clearTimeout(alertTimerRef.current);
+                                alertTimerRef.current = null;
+                              }
+                              setAlert({
+                                type: "success",
+                                text: "Profile image deleted successfully",
+                              });
+                              alertTimerRef.current = setTimeout(
+                                () => setAlert(null),
+                                3000,
+                              );
+                            } catch (err) {
+                              console.error(err);
+                              if (alertTimerRef.current) {
+                                clearTimeout(alertTimerRef.current);
+                                alertTimerRef.current = null;
+                              }
+                              setAlert({
+                                type: "error",
+                                text: "Failed to delete profile image",
+                              });
+                              alertTimerRef.current = setTimeout(
+                                () => setAlert(null),
+                                3000,
+                              );
+                            }
+                          }}
+                          className="absolute -bottom-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-rose-500 text-white shadow-md transition hover:bg-rose-600"
+                          title="Delete profile image"
+                          aria-label="Delete profile image"
                         >
-                          <FaEdit /> Edit
+                          <FaTrashAlt className="h-3 w-3" />
                         </button>
-                      </div>
+                      )}
                     </div>
-
-                    <div className="flex flex-wrap gap-2 md:justify-end">
-                      {getVerificationBadge(editRow)}
-                      {getScreeningBadge(editRow)}
-                      <span className="rounded-full bg-[#F4F9FC] px-3 py-1 text-xs text-[#344054]">
-                        {editRow.accountStatus}
-                      </span>
-                      <span className="rounded-full bg-[#F4F9FC] px-3 py-1 text-xs text-[#344054]">
-                        Joined {editRow.onboard}
-                      </span>
+                    <div className="min-w-0 pt-0.5">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                        {userTypeLabel(editRow.user_type)}
+                      </p>
+                      <h3 className="mt-1 truncate text-2xl font-semibold tracking-tight text-[#0E2F43]">
+                        {editRow.name}
+                      </h3>
+                      <p className="mt-2 flex min-w-0 items-center gap-2 text-sm text-slate-600">
+                        <FaEnvelope className="h-3.5 w-3.5 shrink-0 text-[#0b93c6]" />
+                        <span className="truncate">{editRow.email}</span>
+                      </p>
                     </div>
                   </div>
+
+                  <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-200 pt-4">
+                    {getVerificationBadge(editRow)}
+                    {getScreeningBadge(editRow)}
+                    <span className="inline-flex items-center gap-2 text-xs font-medium text-slate-600">
+                      <span
+                        className={`h-2 w-2 rounded-full ${editRow.accountStatus === "Active" ? "bg-emerald-500" : "bg-rose-500"}`}
+                      />
+                      {editRow.accountStatus}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      Joined{" "}
+                      <span className="font-medium text-slate-700">
+                        {editRow.onboard}
+                      </span>
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#0E2F43] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#174b68] active:translate-y-px"
+                  >
+                    <FaEdit className="h-3.5 w-3.5" />
+                    Edit profile
+                  </button>
 
                   {currentUserLoading && (
                     <p className="mt-4 text-sm text-slate-500">

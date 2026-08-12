@@ -43,6 +43,7 @@ function Jobs() {
       [
         "ID",
         "Job request",
+        "Care seeker",
         "Provider",
         "Status",
         "Agreed rate",
@@ -52,6 +53,7 @@ function Jobs() {
       ...rows.map((row) => [
         row.id,
         row.job_request_title || "",
+        row.seeker_name || "",
         row.provider_name || "",
         row.status_label || row.status || "",
         row.agreed_rate || "",
@@ -111,10 +113,8 @@ function Jobs() {
         );
       }
 
-      setSelectedJob(data);
+      setSelectedJob(null);
       await collection.reload();
-      setStatusValue(data.status);
-      setWalletAmount("");
     } catch (saveError) {
       setStatusError(saveError.message || "Unable to update booking status");
     } finally {
@@ -190,7 +190,7 @@ function Jobs() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[980px] text-sm">
             <thead className="bg-[#f5f9fc] text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="w-12 px-5 py-3 text-left">
@@ -198,6 +198,7 @@ function Jobs() {
                 </th>
                 <th className="px-3 py-3 text-left">ID</th>
                 <th className="px-3 py-3 text-left">Job request</th>
+                <th className="px-3 py-3 text-left">Care seeker</th>
                 <th className="px-3 py-3 text-left">Provider</th>
                 <th className="px-3 py-3 text-left">Status</th>
                 <th className="px-3 py-3 text-left">Agreed rate</th>
@@ -209,36 +210,38 @@ function Jobs() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-slate-500">
+                  <td colSpan={10} className="p-8 text-center text-slate-500">
                     Loading bookings...
                   </td>
                 </tr>
               )}
               {!loading && error && (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-red-600">
+                  <td colSpan={10} className="p-8 text-center text-red-600">
                     {error}
                   </td>
                 </tr>
               )}
-              {!loading && !error && rows.length === 0 && (
+              {!loading && !error && visibleRows.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-slate-500">
+                  <td colSpan={10} className="p-8 text-center text-slate-500">
                     No bookings found.
                   </td>
                 </tr>
               )}
               {!loading &&
                 !error &&
-                rows.map((row) => (
+                visibleRows.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-b border-slate-100 last:border-b-0 hover:bg-cyan-50/40"
+                    onClick={() => openJob(row)}
+                    className="cursor-pointer border-b border-slate-100 last:border-b-0 hover:bg-cyan-50/40"
                   >
                     <td className="px-5 py-4">
                       <input
                         type="checkbox"
                         aria-label={"Select booking " + row.id}
+                        onClick={(event) => event.stopPropagation()}
                       />
                     </td>
                     <td className="px-3 py-4 font-semibold text-[#344054]">
@@ -248,6 +251,9 @@ function Jobs() {
                       <span className="line-clamp-2">
                         {row.job_request_title || "—"}
                       </span>
+                    </td>
+                    <td className="px-3 py-4 text-[#475467]">
+                      {row.seeker_name || "—"}
                     </td>
                     <td className="px-3 py-4 text-[#475467]">
                       {row.provider_name || "—"}
@@ -265,16 +271,6 @@ function Jobs() {
                     </td>
                     <td className="px-3 py-4 text-[#475467]">
                       {formatDate(row.completed_at)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <button
-                        type="button"
-                        onClick={() => openJob(row)}
-                        className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100"
-                        aria-label={"View booking " + row.id}
-                      >
-                        •••
-                      </button>
                     </td>
                   </tr>
                 ))}
@@ -320,7 +316,10 @@ function Jobs() {
               <div className="space-y-3 text-sm">
                 {[
                   ["Job request", selectedJob.job_request_title || "—"],
+                  ["Care seeker", selectedJob.seeker_name || "—"],
+                  ["Care seeker email", selectedJob.seeker_email || "—"],
                   ["Provider", selectedJob.provider_name || "—"],
+                  ["Provider email", selectedJob.provider_email || "—"],
                   [
                     "Status",
                     <AdminStatusTag key="status" value={selectedJob.status} />,
@@ -346,7 +345,7 @@ function Jobs() {
                     className="flex items-start justify-between gap-4 border-b border-gray-50 pb-2"
                   >
                     <span className="text-[#A6A6A7]">{label}</span>
-                    <span className="max-w-[60%] text-right font-semibold text-[#0E2F43]">
+                    <span className="max-w-[60%] break-words text-right font-semibold text-[#0E2F43]">
                       {value}
                     </span>
                   </div>
@@ -399,7 +398,7 @@ function Jobs() {
                         }
                         required={selectedJob.payment_status !== "paid"}
                         placeholder="Amount to add"
-                        className="mt-1.5 w-full rounded-lg border border-[#D0D5DD] px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0E2F43]"
+                        className="mt-1.5 w-full rounded-lg border border-[#D0D5DD] bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#0E2F43]"
                       />
                       <span className="mt-1 block font-normal text-slate-400">
                         Required unless this booking already has an online
