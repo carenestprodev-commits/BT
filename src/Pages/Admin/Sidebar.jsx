@@ -16,7 +16,10 @@ import {
 const userLinks = [
   { to: "/admin/users", label: "All Users", end: true },
   { to: "/admin/users/providers", label: "Care Providers" },
-  { to: "/admin/profile-verification/care-providers", label: "Verify Providers" },
+  {
+    to: "/admin/profile-verification/care-providers",
+    label: "Verify Providers",
+  },
   { to: "/admin/profile-verification/care-seekers", label: "Verify Seekers" },
 ];
 
@@ -39,6 +42,40 @@ const jobLinks = [
   { to: "/admin/jobs/reviews", label: "Reviews" },
 ];
 
+const organisationLinks = [
+  {
+    to: "/admin/organisations",
+    label: "Overview",
+    end: true,
+    preserveSearch: true,
+  },
+  {
+    to: "/admin/organisations/employees",
+    label: "Employees",
+    preserveSearch: true,
+  },
+  {
+    to: "/admin/organisations/care-rules",
+    label: "Care rules",
+    preserveSearch: true,
+  },
+  {
+    to: "/admin/organisations/covered-services",
+    label: "Covered services",
+    preserveSearch: true,
+  },
+  {
+    to: "/admin/organisations/spending-history",
+    label: "Spending history",
+    preserveSearch: true,
+  },
+  {
+    to: "/admin/organisations/billing",
+    label: "Billing",
+    preserveSearch: true,
+  },
+];
+
 function Sidebar({ mobileOpen = false, onClose = () => {} }) {
   const { pathname } = useLocation();
   const usersActive =
@@ -48,10 +85,14 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
     pathname.startsWith("/admin/earnings") ||
     pathname.startsWith("/admin/subscription");
   const jobsActive =
-    pathname.startsWith("/admin/jobs") || pathname.startsWith("/admin/activities");
+    pathname.startsWith("/admin/jobs") ||
+    pathname.startsWith("/admin/activities");
+  const organisationsActive = pathname.startsWith("/admin/organisations");
   const [openUsers, setOpenUsers] = useState(usersActive);
   const [openPayments, setOpenPayments] = useState(paymentsActive);
   const [openJobs, setOpenJobs] = useState(jobsActive);
+  const [openOrganisations, setOpenOrganisations] =
+    useState(organisationsActive);
 
   const rootClass = mobileOpen
     ? "fixed inset-y-0 left-0 z-50 flex min-h-[100dvh] w-[268px] flex-col bg-[#0E3347] text-white shadow-2xl md:hidden"
@@ -84,7 +125,9 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
         <Icon className="h-[21px] w-[21px]" strokeWidth={1.6} />
         <span className="flex-1 text-left">{label}</span>
         <ChevronDown
-          className={"h-4 w-4 transition-transform " + (open ? "" : "-rotate-90")}
+          className={
+            "h-4 w-4 transition-transform " + (open ? "" : "-rotate-90")
+          }
           strokeWidth={1.8}
         />
       </button>
@@ -93,7 +136,11 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
           {links.map((link, index) => (
             <li key={link.label + index}>
               <NavLink
-                to={link.to}
+                to={
+                  link.preserveSearch
+                    ? { pathname: link.to, search: location.search }
+                    : link.to
+                }
                 end={link.end ?? true}
                 onClick={closeOnMobile}
                 className={childLinkClass}
@@ -131,19 +178,38 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
 
       <nav className="flex-1 pt-2" aria-label="Admin navigation">
         <ul>
-          {group("Users", UsersRound, openUsers, setOpenUsers, usersActive, userLinks)}
-          {group("Payments", CreditCard, openPayments, setOpenPayments, paymentsActive, paymentLinks)}
+          {group(
+            "Users",
+            UsersRound,
+            openUsers,
+            setOpenUsers,
+            usersActive,
+            userLinks,
+          )}
+          {group(
+            "Payments",
+            CreditCard,
+            openPayments,
+            setOpenPayments,
+            paymentsActive,
+            paymentLinks,
+          )}
           {group("Jobs", Boxes, openJobs, setOpenJobs, jobsActive, jobLinks)}
+          {group(
+            "Organisations",
+            Building2,
+            openOrganisations,
+            setOpenOrganisations,
+            organisationsActive,
+            organisationLinks,
+          )}
 
           <li>
-            <NavLink to="/admin/organisations" onClick={closeOnMobile} className={({ isActive }) => rootLinkClass(isActive)}>
-              <Building2 className="h-[21px] w-[21px]" strokeWidth={1.6} />
-              <span>Organisations</span>
-            </NavLink>
-          </li>
-
-          <li>
-            <NavLink to="/admin/token-blacklist" onClick={closeOnMobile} className={({ isActive }) => rootLinkClass(isActive)}>
+            <NavLink
+              to="/admin/token-blacklist"
+              onClick={closeOnMobile}
+              className={({ isActive }) => rootLinkClass(isActive)}
+            >
               <ShieldCheck className="h-[21px] w-[21px]" strokeWidth={1.6} />
               <span>Token Blacklist</span>
             </NavLink>
@@ -165,7 +231,10 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
               onClick={closeOnMobile}
               className={({ isActive }) => rootLinkClass(isActive)}
             >
-              <MessageSquareText className="h-[21px] w-[21px]" strokeWidth={1.6} />
+              <MessageSquareText
+                className="h-[21px] w-[21px]"
+                strokeWidth={1.6}
+              />
               <span>Notifications &amp; Messages</span>
             </NavLink>
           </li>
@@ -177,7 +246,9 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
           <UserRound className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-xs font-semibold text-white">Administrator</p>
+          <p className="truncate text-xs font-semibold text-white">
+            Administrator
+          </p>
           <p className="mt-0.5 text-[10px] text-[#9eb4c2]">Staff account</p>
         </div>
       </div>

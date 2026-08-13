@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Building2,
   Copy,
@@ -13,6 +13,7 @@ import { BASE_URL } from "../../Redux/config";
 import { fetchWithAuth } from "../../lib/fetchWithAuth";
 import AdminPagination from "../../Components/Admin/AdminPagination";
 import { useAdminCollection } from "../../hooks/useAdminCollection";
+import { useSearchParams } from "react-router-dom";
 
 const SERVICES = [
   ["childcare", "Child care"],
@@ -20,6 +21,33 @@ const SERVICES = [
   ["tutoring", "Tutoring"],
   ["housekeeping", "Housekeeping"],
 ];
+
+const SECTION_META = {
+  overview: {
+    label: "Overview",
+    description: "Review organisation budgets, usage and programme status.",
+  },
+  employees: {
+    label: "Employees",
+    description: "Approve employees and manage their care allowances.",
+  },
+  careRules: {
+    label: "Care rules",
+    description: "Set budgets, allowances, billing terms and programme dates.",
+  },
+  coveredServices: {
+    label: "Covered services",
+    description: "Choose which care services employees can use with credits.",
+  },
+  spendingHistory: {
+    label: "Spending history",
+    description: "Review care credit usage and remaining balances.",
+  },
+  billing: {
+    label: "Billing",
+    description: "Issue invoices and track payment status.",
+  },
+};
 
 const money = (value) =>
   new Intl.NumberFormat("en-NG", {
@@ -47,7 +75,10 @@ function Status({ value }) {
   );
 }
 
-function Organisations() {
+function Organisations({ section = "overview" }) {
+  const sectionMeta = SECTION_META[section] || SECTION_META.overview;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const organisationId = searchParams.get("organisation");
   const [selected, setSelected] = useState(null);
   const [members, setMembers] = useState([]);
   const [ledger, setLedger] = useState([]);
@@ -63,7 +94,6 @@ function Organisations() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [activeTab, setActiveTab] = useState("members");
   const [notice, setNotice] = useState("");
 
   const collection = useAdminCollection({
@@ -86,7 +116,7 @@ function Organisations() {
     error: collectionError,
   } = collection;
 
-  const loadDetail = async (organisation, resetTab = true) => {
+  const loadDetail = useCallback(async (organisation) => {
     setDetailLoading(true);
     try {
       const [
@@ -119,12 +149,34 @@ function Organisations() {
         ledger: { page: nextLedger.page, count: nextLedger.count },
         invoices: { page: nextInvoices.page, count: nextInvoices.count },
       });
-      if (resetTab) setActiveTab("members");
     } catch (loadError) {
       setError(loadError.message || "Could not load organisation.");
     } finally {
       setDetailLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    if (!organisationId) {
+      setSelected(null);
+      return;
+    }
+    const organisation = items.find(
+      (item) => String(item.id) === String(organisationId),
+    );
+    if (organisation && String(selected?.id) !== String(organisation.id)) {
+      loadDetail(organisation);
+    }
+  }, [items, loadDetail, organisationId, selected?.id]);
+
+  const selectOrganisation = (organisation) => {
+    setSearchParams(
+      (current) => {
+        current.set("organisation", String(organisation.id));
+        return current;
+      },
+      { replace: true },
+    );
   };
 
   const loadDetailPage = async (kind, nextPage) => {
@@ -144,7 +196,7 @@ function Organisations() {
   };
 
   const refreshDetail = async () => {
-    if (selected) await loadDetail(selected, false);
+    if (selected) await loadDetail(selected);
     await collection.reload();
   };
 
@@ -217,16 +269,35 @@ function Organisations() {
     setNotice(`Invoice marked ${status}`);
   };
 
-  let tabContent = (
-    <Invoices rows={invoices} onIssue={issueInvoice} onAction={invoiceAction} />
-  );
-  if (activeTab === "members")
-    tabContent = <Members rows={members} onAction={updateMember} />;
-  if (activeTab === "rules")
-    tabContent = <Rules organisation={selected} onSaved={refreshDetail} />;
-  if (activeTab === "services")
-    tabContent = <Services organisation={selected} onSaved={refreshDetail} />;
-  if (activeTab === "ledger") tabContent = <Ledger rows={ledger} />;
+  const detailKey = {
+    employees: "members",
+    spendingHistory: "ledger",
+    billing: "invoices",
+  }[section];
+  let sectionContent = <OrganisationOverview organisation={selected} />;
+  if (section === "employees") {
+    sectionContent = <Members rows={members} onAction={updateMember} />;
+  }
+  if (section === "careRules") {
+    sectionContent = <Rules organisation={selected} onSaved={refreshDetail} />;
+  }
+  if (section === "coveredServices") {
+    sectionContent = (
+      <Services organisation={selected} onSaved={refreshDetail} />
+    );
+  }
+  if (section === "spendingHistory") {
+    sectionContent = <Ledger rows={ledger} />;
+  }
+  if (section === "billing") {
+    sectionContent = (
+      <Invoices
+        rows={invoices}
+        onIssue={issueInvoice}
+        onAction={invoiceAction}
+      />
+    );
+  }
 
   return (
     <div className="min-h-full bg-[#f3f7fb] p-4 font-sfpro text-[#1d3447] sm:p-6">
@@ -237,11 +308,10 @@ function Organisations() {
               Care credits
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-[#123047]">
-              Organisations
+              {sectionMeta.label}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Set monthly care budgets, approve employees and review sponsored
-              care.
+              {sectionMeta.description}
             </p>
           </div>
           <button
@@ -326,7 +396,7 @@ function Organisations() {
                 {items.map((organisation) => (
                   <button
                     key={organisation.id}
-                    onClick={() => loadDetail(organisation)}
+                    onClick={() => selectOrganisation(organisation)}
                     className={`w-full px-4 py-4 text-left transition hover:bg-[#f6fafc] ${selected?.id === organisation.id ? "bg-[#ecf7fa]" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -438,35 +508,18 @@ function Organisations() {
                     />
                   </div>
                 </div>
-                <div className="flex overflow-x-auto border-b border-[#e7eef3] px-5">
-                  {[
-                    ["members", "Members"],
-                    ["rules", "Rules"],
-                    ["services", "Services"],
-                    ["ledger", "Ledger"],
-                    ["invoices", "Invoices"],
-                  ].map(([key, label]) => (
-                    <button
-                      key={key}
-                      onClick={() => setActiveTab(key)}
-                      className={`border-b-2 px-4 py-3 text-sm font-semibold transition ${activeTab === key ? "border-[#0f708a] text-[#0f708a]" : "border-transparent text-slate-500 hover:text-slate-800"}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
                 <div className="p-5">
-                  {tabContent}
-                  {detailPages[activeTab] && (
+                  {sectionContent}
+                  {detailKey && detailPages[detailKey] && (
                     <AdminPagination
-                      page={detailPages[activeTab].page}
-                      count={detailPages[activeTab].count}
+                      page={detailPages[detailKey].page}
+                      count={detailPages[detailKey].count}
                       pageSize={10}
                       totalPages={Math.max(
                         1,
-                        Math.ceil(detailPages[activeTab].count / 10),
+                        Math.ceil(detailPages[detailKey].count / 10),
                       )}
-                      onPage={(nextPage) => loadDetailPage(activeTab, nextPage)}
+                      onPage={(nextPage) => loadDetailPage(detailKey, nextPage)}
                     />
                   )}
                 </div>
@@ -480,6 +533,13 @@ function Organisations() {
           onClose={() => setShowCreate(false)}
           onCreated={async (organisation) => {
             setShowCreate(false);
+            setSearchParams(
+              (current) => {
+                current.set("organisation", String(organisation.id));
+                return current;
+              },
+              { replace: true },
+            );
             await collection.reload();
             await loadDetail(organisation);
           }}
@@ -513,6 +573,37 @@ function Empty({ title, body }) {
       <Landmark className="h-7 w-7 text-[#8da7b8]" />
       <p className="mt-3 font-semibold text-[#234258]">{title}</p>
       <p className="mt-1 max-w-xs text-sm text-slate-500">{body}</p>
+    </div>
+  );
+}
+
+function OrganisationOverview({ organisation }) {
+  return (
+    <div className="max-w-2xl">
+      <p className="text-sm leading-6 text-slate-600">
+        Use the Organisations menu in the sidebar to manage this programme. You
+        can approve employees, set care rules, choose covered services, review
+        spending and manage billing.
+      </p>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="border-l-2 border-[#42b9d8] pl-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Enrollment code
+          </p>
+          <p className="mt-1 font-mono text-sm font-semibold text-[#234258]">
+            {organisation.enrollment_code}
+          </p>
+        </div>
+        <div className="border-l-2 border-[#42b9d8] pl-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Programme dates
+          </p>
+          <p className="mt-1 text-sm font-semibold text-[#234258]">
+            {organisation.starts_on}{" "}
+            {organisation.ends_on ? `to ${organisation.ends_on}` : "onwards"}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

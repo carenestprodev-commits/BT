@@ -486,7 +486,27 @@ export const router = createBrowserRouter([
       { path: "users/providers", element: <Users initialStat="providers" /> },
       { path: "users/seekers", element: <Users initialStat="seekers" /> },
       { path: "activities", element: <Activities /> },
-      { path: "organisations", element: <Organisations /> },
+      { path: "organisations", element: <Organisations section="overview" /> },
+      {
+        path: "organisations/employees",
+        element: <Organisations section="employees" />,
+      },
+      {
+        path: "organisations/care-rules",
+        element: <Organisations section="careRules" />,
+      },
+      {
+        path: "organisations/covered-services",
+        element: <Organisations section="coveredServices" />,
+      },
+      {
+        path: "organisations/spending-history",
+        element: <Organisations section="spendingHistory" />,
+      },
+      {
+        path: "organisations/billing",
+        element: <Organisations section="billing" />,
+      },
       { path: "jobs", element: <Jobs /> },
       { path: "jobs/requests", element: <JobRequests /> },
       { path: "jobs/conversations", element: <MessageAdmin /> },
