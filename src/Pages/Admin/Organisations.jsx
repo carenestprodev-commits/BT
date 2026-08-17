@@ -179,6 +179,16 @@ function Organisations({ section = "overview" }) {
     );
   };
 
+  const clearOrganisation = () => {
+    setSearchParams(
+      (current) => {
+        current.delete("organisation");
+        return current;
+      },
+      { replace: true },
+    );
+  };
+
   const loadDetailPage = async (kind, nextPage) => {
     const response = await api(
       `${selected.id}/${kind}/?page=${nextPage}&page_size=10`,
@@ -340,8 +350,9 @@ function Organisations({ section = "overview" }) {
           </div>
         )}
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(360px,0.82fr)_minmax(0,1.7fr)]">
-          <section className="min-w-0 border border-[#dce7ee] bg-white">
+        <div className="space-y-5">
+          {!selected && section === "overview" && (
+          <section className="min-w-0 bg-white shadow-[0_8px_30px_rgba(28,66,88,0.04)]">
             <div className="border-b border-[#e7eef3] p-4">
               <label className="flex items-center gap-2 rounded-lg border border-[#ccdce6] px-3 py-2">
                 <Search className="h-4 w-4 text-slate-400" />
@@ -351,18 +362,18 @@ function Organisations({ section = "overview" }) {
                     collection.setPage(1);
                     setQuery(event.target.value);
                   }}
-                  placeholder="Search name, code or acronym"
+                  placeholder="Search organisations"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
                 />
               </label>
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <select
                   value={statusFilter}
                   onChange={(event) => {
                     collection.setPage(1);
                     setStatusFilter(event.target.value);
                   }}
-                  className="rounded-lg border border-[#ccdce6] bg-white px-2 py-2 text-xs text-slate-600"
+                  className="w-full rounded-lg border border-[#ccdce6] bg-white px-3 py-2.5 text-sm text-slate-600 sm:w-auto"
                 >
                   <option value="All">All programmes</option>
                   <option value="active">Active</option>
@@ -375,7 +386,7 @@ function Organisations({ section = "overview" }) {
                     collection.setPage(1);
                     setInvoiceFilter(event.target.value);
                   }}
-                  className="rounded-lg border border-[#ccdce6] bg-white px-2 py-2 text-xs text-slate-600"
+                  className="w-full rounded-lg border border-[#ccdce6] bg-white px-3 py-2.5 text-sm text-slate-600 sm:w-auto"
                 >
                   <option value="All">All invoices</option>
                   <option value="issued">Issued</option>
@@ -436,78 +447,50 @@ function Organisations({ section = "overview" }) {
               onPage={setPage}
             />
           </section>
+          )}
 
-          <section className="min-w-0 border border-[#dce7ee] bg-white">
-            {detailLoading ? (
-              <Loading label="Loading organisation" />
-            ) : !selected ? (
-              <Empty
-                title="Select an organisation"
-                body="Choose an organisation to manage budgets, services, members and invoices."
+          {!selected && section !== "overview" && (
+            <section className="bg-white px-5 py-6 shadow-[0_8px_30px_rgba(28,66,88,0.04)] sm:px-8 sm:py-8">
+              <OrganisationPicker
+                items={items}
+                value={organisationId || ""}
+                onChange={(id) => {
+                  const organisation = items.find(
+                    (item) => String(item.id) === String(id),
+                  );
+                  if (organisation) selectOrganisation(organisation);
+                }}
               />
-            ) : (
+              {loading ? (
+                <Loading label="Loading organisations" />
+              ) : (
+                <Empty
+                  title="Choose an organisation"
+                  body={`Select an organisation to view ${sectionMeta.label.toLowerCase()}.`}
+                />
+              )}
+            </section>
+          )}
+
+          {selected && (
+            <section className="min-w-0 bg-white shadow-[0_8px_30px_rgba(28,66,88,0.04)]">
+              {detailLoading ? (
+                <Loading label="Loading organisation" />
+              ) : (
               <>
-                <div className="border-b border-[#e7eef3] px-5 py-5">
-                  <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-5 w-5 text-[#1686a5]" />
-                        <h3 className="text-xl font-semibold tracking-[-0.02em]">
-                          {selected.name}
-                        </h3>
-                        <Status value={selected.status} />
-                      </div>
-                      <p className="mt-2 text-sm text-slate-500">
-                        Default employee allowance:{" "}
-                        {money(selected.default_allowance)}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={copyCode}
-                        disabled={!selected.code_active}
-                        className="inline-flex items-center gap-2 rounded-lg border border-[#ccdce6] px-3 py-2 text-xs font-semibold text-[#234258] disabled:opacity-50"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        {selected.enrollment_code}
-                      </button>
-                      <button
-                        onClick={() => codeAction("regenerate")}
-                        className="rounded-lg border border-[#ccdce6] p-2 text-[#3b6077]"
-                        title="Regenerate code"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => codeAction("revoke")}
-                        className="rounded-lg border border-[#ccdce6] px-3 py-2 text-xs font-semibold text-[#9a4c3f]"
-                      >
-                        Revoke
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-6 grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-4">
-                    <Metric
-                      label="Monthly cap"
-                      value={money(selected.monthly_cap)}
-                    />
-                    <Metric
-                      label="Used"
-                      value={money(selected.consumed_amount)}
-                    />
-                    <Metric
-                      label="Available"
-                      value={money(
-                        Number(selected.monthly_cap) -
-                          Number(selected.consumed_amount),
-                      )}
-                    />
-                    <Metric
-                      label="Active members"
-                      value={selected.active_members}
-                    />
-                  </div>
-                </div>
+                <OrganisationContext
+                  organisation={selected}
+                  items={items}
+                  onChange={(id) => {
+                    const organisation = items.find(
+                      (item) => String(item.id) === String(id),
+                    );
+                    if (organisation) selectOrganisation(organisation);
+                  }}
+                  onBack={clearOrganisation}
+                  onCopy={copyCode}
+                  onCodeAction={codeAction}
+                />
                 <div className="p-5">
                   {sectionContent}
                   {detailKey && detailPages[detailKey] && (
@@ -524,8 +507,9 @@ function Organisations({ section = "overview" }) {
                   )}
                 </div>
               </>
-            )}
-          </section>
+              )}
+            </section>
+          )}
         </div>
       </div>
       {showCreate && (
@@ -573,6 +557,115 @@ function Empty({ title, body }) {
       <Landmark className="h-7 w-7 text-[#8da7b8]" />
       <p className="mt-3 font-semibold text-[#234258]">{title}</p>
       <p className="mt-1 max-w-xs text-sm text-slate-500">{body}</p>
+    </div>
+  );
+}
+
+function OrganisationPicker({ items, value, onChange }) {
+  return (
+    <div className="mx-auto max-w-xl text-center">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1686a5]">
+        Organisation workspace
+      </p>
+      <h3 className="mt-2 text-xl font-semibold tracking-[-0.02em] text-[#123047]">
+        Choose an organisation
+      </h3>
+      <p className="mt-2 text-sm text-slate-500">
+        Select the organisation you want to manage from this section.
+      </p>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-5 w-full rounded-lg border border-[#ccdce6] bg-white px-3 py-3 text-left text-sm text-[#234258] outline-none focus:border-[#1686a5]"
+      >
+        <option value="">Select an organisation</option>
+        {items.map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.name} · {item.enrollment_code}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function OrganisationContext({
+  organisation,
+  items,
+  onChange,
+  onBack,
+  onCopy,
+  onCodeAction,
+}) {
+  return (
+    <div className="border-b border-[#e7eef3] px-5 py-5 sm:px-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <button
+            onClick={onBack}
+            className="mb-4 text-xs font-semibold text-[#1686a5] hover:text-[#0c6278]"
+          >
+            ← All organisations
+          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Building2 className="h-5 w-5 text-[#1686a5]" />
+            <h3 className="text-xl font-semibold tracking-[-0.02em]">
+              {organisation.name}
+            </h3>
+            <Status value={organisation.status} />
+          </div>
+          <p className="mt-2 text-sm text-slate-500">
+            Default employee allowance: {money(organisation.default_allowance)}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={organisation.id}
+            onChange={(event) => onChange(event.target.value)}
+            className="max-w-full rounded-lg border border-[#ccdce6] bg-white px-3 py-2 text-sm text-[#234258] outline-none focus:border-[#1686a5]"
+            aria-label="Switch organisation"
+          >
+            {items.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={onCopy}
+            disabled={!organisation.code_active}
+            className="inline-flex items-center gap-2 rounded-lg border border-[#ccdce6] px-3 py-2 text-xs font-semibold text-[#234258] disabled:opacity-50"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {organisation.enrollment_code}
+          </button>
+          <button
+            onClick={() => onCodeAction("regenerate")}
+            className="rounded-lg border border-[#ccdce6] p-2 text-[#3b6077]"
+            title="Regenerate code"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => onCodeAction("revoke")}
+            className="rounded-lg border border-[#ccdce6] px-3 py-2 text-xs font-semibold text-[#9a4c3f]"
+          >
+            Revoke
+          </button>
+        </div>
+      </div>
+      <div className="mt-6 grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-4">
+        <Metric label="Monthly cap" value={money(organisation.monthly_cap)} />
+        <Metric label="Used" value={money(organisation.consumed_amount)} />
+        <Metric
+          label="Available"
+          value={money(
+            Number(organisation.monthly_cap) -
+              Number(organisation.consumed_amount),
+          )}
+        />
+        <Metric label="Active employees" value={organisation.active_members} />
+      </div>
     </div>
   );
 }

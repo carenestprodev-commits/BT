@@ -77,7 +77,7 @@ const organisationLinks = [
 ];
 
 function Sidebar({ mobileOpen = false, onClose = () => {} }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const usersActive =
     pathname.startsWith("/admin/users") ||
     pathname.startsWith("/admin/profile-verification");
@@ -138,7 +138,7 @@ function Sidebar({ mobileOpen = false, onClose = () => {} }) {
               <NavLink
                 to={
                   link.preserveSearch
-                    ? { pathname: link.to, search: location.search }
+                    ? { pathname: link.to, search }
                     : link.to
                 }
                 end={link.end ?? true}
