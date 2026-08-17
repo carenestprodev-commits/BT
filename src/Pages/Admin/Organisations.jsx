@@ -340,7 +340,9 @@ function Organisations({ section = "overview" }) {
           </div>
         )}
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(360px,0.82fr)_minmax(0,1.7fr)]">
+        <div
+          className={`grid gap-5 ${selected ? "xl:grid-cols-[minmax(360px,0.82fr)_minmax(0,1.7fr)]" : ""}`}
+        >
           <section className="min-w-0 border border-[#dce7ee] bg-white">
             <div className="border-b border-[#e7eef3] p-4">
               <label className="flex items-center gap-2 rounded-lg border border-[#ccdce6] px-3 py-2">
@@ -437,15 +439,11 @@ function Organisations({ section = "overview" }) {
             />
           </section>
 
-          <section className="min-w-0 border border-[#dce7ee] bg-white">
-            {detailLoading ? (
-              <Loading label="Loading organisation" />
-            ) : !selected ? (
-              <Empty
-                title="Select an organisation"
-                body="Choose an organisation to manage budgets, services, members and invoices."
-              />
-            ) : (
+          {selected && (
+            <section className="min-w-0 border border-[#dce7ee] bg-white">
+              {detailLoading ? (
+                <Loading label="Loading organisation" />
+              ) : (
               <>
                 <div className="border-b border-[#e7eef3] px-5 py-5">
                   <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
@@ -524,8 +522,9 @@ function Organisations({ section = "overview" }) {
                   )}
                 </div>
               </>
-            )}
-          </section>
+              )}
+            </section>
+          )}
         </div>
       </div>
       {showCreate && (
