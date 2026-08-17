@@ -19,6 +19,7 @@ import {
 } from "../../../constants/formOptions"; // ADD THIS LINE
 import PhoneNumberInput from "../../../Components/PhoneNumberInput";
 import { isValidPhoneNumber } from "../../../utils/phoneValidation";
+import OrganisationBenefitSection from "./OrganisationBenefitSection";
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 function Settings() {
@@ -1222,6 +1223,8 @@ function Settings() {
                       />
                     </div>
                   </div>
+
+                  <OrganisationBenefitSection />
                 </div>
 
                 {hasChanges && (

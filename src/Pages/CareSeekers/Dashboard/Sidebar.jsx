@@ -15,6 +15,7 @@ import Triangle from "../../../../public/triangle.svg";
 import Message from "../../../../public/receipt-text.svg";
 import { fetchWithAuth } from "../../../lib/fetchWithAuth.js";
 import { useNotifications } from "../../../Context/NotificationContext";
+import MobileBottomNav from "../../../Components/CareSeekers/MobileBottomNav";
 
 /* ---------------- NAV ITEMS ---------------- */
 
@@ -44,7 +45,7 @@ const navItems = [
 
 /* ---------------- COMPONENT ---------------- */
 
-function Sidebar({ active = "Home", onNav }) {
+function Sidebar({ active = "Home", onNav, mobileBottomNav = false, hideMobileBottomNav = false }) {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
 
@@ -192,7 +193,7 @@ function Sidebar({ active = "Home", onNav }) {
   return (
     <>
       {/* ================= MOBILE HAMBURGER BUTTON ================= */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between font-sfpro">
+      <div className={`${mobileBottomNav || hideMobileBottomNav ? "hidden" : "md:hidden"} fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between font-sfpro`}>
         <div className="flex items-center gap-2">
           <img src={CareLogo} alt="CareNestPro Logo" className="h-8" />
           <span className="text-base font-semibold text-[#0e2f43]">
@@ -417,6 +418,7 @@ function Sidebar({ active = "Home", onNav }) {
 
       {/* Logout Modal */}
       <LogoutModal />
+      {mobileBottomNav && !hideMobileBottomNav && <MobileBottomNav active={active} />}
     </>
   );
 }

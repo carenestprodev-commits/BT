@@ -163,7 +163,7 @@ const MobileConversationsList = ({
   }, [conversations, search]);
 
   return (
-    <div className="w-full bg-white flex flex-col h-full pt-16">
+    <div className="w-full bg-white flex flex-col h-full">
       <div className="px-4 py-4 border-b border-gray-100">
         <div className="flex items-center mb-4">
           <button
@@ -324,10 +324,10 @@ const MobileChatView = ({
   handleCallPress,
 }) => {
   return (
-    <div className="flex flex-col bg-white h-full overflow-hidden pt-16">
-      <div className="flex items-center px-4 py-3 border-b border-gray-100 bg-white flex-shrink-0">
+    <div className="flex flex-col bg-white h-full overflow-hidden">
+      <div className="flex items-center pl-2 pr-0 py-3 bg-[#f3fbfe] flex-shrink-0">
         <button
-          className="mr-3 text-gray-600 hover:text-gray-800 text-xl"
+          className="mr-2 text-[#667085] text-2xl"
           onClick={() => setShowChatOnMobile(false)}
         >
           ←
@@ -339,20 +339,21 @@ const MobileChatView = ({
                 currentConversation.other_participant?.profile_image_url,
               )}
               alt="avatar"
-              className="w-10 h-10 rounded-full mr-3 object-cover"
+              className="w-9 h-9 rounded-full mr-2 object-cover"
             />
-            <div className="flex-1 flex items-center gap-1">
-              <span className="font-semibold text-gray-900 text-base">
+            <div className="flex-1 flex items-center gap-1 min-w-0">
+              <span className="font-medium text-[#667085] text-[18px] truncate">
                 {formatDisplayName(
                   currentConversation.other_participant?.full_name,
                 ) ||
                   currentConversation.other_participant?.email ||
                   "Unknown User"}
               </span>
+              <span className="text-[#0d99c9] text-[17px]">◆</span>
             </div>
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-2 items-center">
               <button
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                className={`inline-flex items-center justify-center rounded-full p-2 text-[#1b6d96] ${
                   isCallLive
                     ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                     : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
@@ -364,10 +365,9 @@ const MobileChatView = ({
                 <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                 </svg>
-                <span>Call</span>
               </button>
               <button
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                className={`inline-flex items-center justify-center rounded-full p-2 text-[#1b6d96] ${
                   isCallLive
                     ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                     : "bg-[#e6f7fd] text-[#0d99c9] hover:bg-[#d7f0fa]"
@@ -379,11 +379,10 @@ const MobileChatView = ({
                 <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                 </svg>
-                <span>Video</span>
               </button>
               {/* Three-dot menu for mobile */}
               {showMenu && currentConversation?.booking && (
-                <div className="relative">
+                  <div className="relative hidden">
                   <button
                     className="text-gray-400 hover:text-gray-600 p-1"
                     onClick={() => setMenuOpen((v) => !v)}
@@ -442,11 +441,18 @@ const MobileChatView = ({
         )}
       </div>
 
+      {currentConversation?.booking && (
+        <MobileActivityBanner
+          endAt={scheduledEndAt}
+          onStart={() => startActivityIfVerified(bookingId)}
+          onEnd={() => endActivityWithCode(bookingId)}
+        />
+      )}
+
       <div
         ref={chatBodyRef}
-        className="flex-1 px-4 py-6 overflow-y-auto bg-white pb-24"
+        className="flex-1 px-4 py-4 overflow-y-auto bg-white"
       >
-        <ActivityCountdown endAt={scheduledEndAt} />
         {!currentConversation ? (
           <div className="flex items-center justify-center h-full text-gray-400">
             Select a conversation
@@ -461,8 +467,8 @@ const MobileChatView = ({
           </div>
         ) : (
           <>
-            <div className="flex justify-center mb-6">
-              <span className="text-xs text-gray-500 px-3 py-1">
+              <div className="flex justify-center mb-5">
+                <span className="rounded-md bg-[#f7f7f7] px-3 py-1 text-xs text-[#999]">
                 {displayMessages[0]?.date || ""}
               </span>
             </div>
@@ -473,8 +479,8 @@ const MobileChatView = ({
               return (
                 <div key={msg.id || `${msg.timestamp || "msg"}-${i}`}>
                   {showDateSeparator && (
-                    <div className="flex justify-center my-6">
-                      <span className="text-xs text-gray-500 px-3 py-1">
+                    <div className="flex justify-center my-5">
+                      <span className="rounded-md bg-[#f7f7f7] px-3 py-1 text-xs text-[#999]">
                         {msg.date}
                       </span>
                     </div>
@@ -500,7 +506,7 @@ const MobileChatView = ({
         )}
       </div>
 
-      <div className="px-2 sm:px-4 py-2 sm:py-3 border-t border-gray-100 bg-white flex items-end gap-2 sm:gap-3 flex-shrink-0 safe-area-inset-bottom">
+      <div className="px-3 sm:px-4 py-3 border-t border-[#f1f1f1] bg-white flex items-center gap-3 flex-shrink-0 safe-area-inset-bottom">
         <input
           ref={inputRef}
           type="text"
@@ -509,19 +515,19 @@ const MobileChatView = ({
           onKeyPress={handleKeyPress}
           placeholder="Write your message"
           disabled={!currentConversation || sendingMessage}
-          className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-full bg-gray-50 text-gray-700 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#00A8E8] focus:ring-opacity-50 disabled:opacity-50 transition"
+          className="flex-1 px-3 sm:px-4 py-3 rounded-[10px] bg-[#fafafa] text-gray-700 text-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-[#b6dfea] disabled:opacity-50 transition"
         />
         <button
           onClick={handleSendMessage}
           disabled={!currentConversation || sendingMessage || !input.trim()}
-          className="bg-[#00A8E8] rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center disabled:opacity-50 hover:bg-[#0091cc] transition-colors flex-shrink-0"
+          className="bg-[#eaf7fc] text-[#0d99c9] rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center disabled:opacity-50 hover:bg-[#dff1f8] transition-colors flex-shrink-0"
           aria-label="Send message"
         >
           {sendingMessage ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
             <svg
-              className="w-5 h-5 sm:w-6 sm:h-6 text-white"
+              className="w-5 h-5 sm:w-6 sm:h-6"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -533,6 +539,47 @@ const MobileChatView = ({
     </div>
   );
 };
+
+function MobileActivityBanner({ endAt, onStart, onEnd }) {
+  const [now, setNow] = useState(Date.now());
+  const active = Boolean(endAt);
+
+  useEffect(() => {
+    if (!endAt) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [endAt]);
+
+  const remaining = Math.max(0, new Date(endAt || 0).getTime() - now);
+  const totalSeconds = Math.floor(remaining / 1000);
+  const clock = [
+    Math.floor(totalSeconds / 3600),
+    Math.floor((totalSeconds % 3600) / 60),
+    totalSeconds % 60,
+  ].map((value) => String(value).padStart(2, "0")).join(":");
+
+  return (
+    <div className="flex items-center gap-3 rounded-b-[14px] bg-[#ddf3d7] px-5 py-3">
+      <div className="min-w-0 flex-1 text-[#00a51e]">
+        {active ? (
+          <>
+            <p className="text-[13px]">Activity in progress</p>
+            <p className="text-[23px] font-bold tracking-[0.08em]">{clock}</p>
+          </>
+        ) : (
+          <>
+            <p className="text-[14px] font-bold">Ready to begin?</p>
+            <p className="mt-0.5 text-[13px] leading-[1.25]">Start activity when you’re satisfied with<br />the care provider.</p>
+          </>
+        )}
+      </div>
+      <button type="button" onClick={active ? onEnd : onStart} className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-md px-3 text-[12px] font-bold text-white ${active ? "bg-[#d5241d]" : "bg-[#00a51e]"}`}>
+        <span className="grid h-5 w-5 place-items-center rounded-full bg-white/90 text-current">{active ? "■" : "▶"}</span>
+        {active ? "End Activity" : "Start Activity"}
+      </button>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Message Component
@@ -1017,7 +1064,7 @@ function Message() {
 
   return (
     <div className="flex h-screen bg-white overflow-hidden font-sfpro">
-      <Sidebar active="Message" />
+      <Sidebar active="Message" hideMobileBottomNav />
       <div className="flex-1 font-sfpro md:ml-64 flex h-screen min-h-0">
         {/* ══════════════ MOBILE VIEW ══════════════ */}
         {isMobile ? (

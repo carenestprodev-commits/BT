@@ -1,316 +1,229 @@
-/* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
-import { FaCheckCircle } from "react-icons/fa";
-import Sidebar from "./Sidebar";
-import pattern from "../../../../public/pattern.svg";
-import CurrencyNaira from "../../../../public/NiCurrency.svg";
-import folder from "../../../../public/folder.svg";
-import calender from "../../../../public/calender.svg";
-import provider from "../../../../public/provider.png";
-import { Link } from "react-router-dom";
+import { FaBell, FaUserCircle } from "react-icons/fa";
+import { MdArrowForward, MdPeopleAlt, MdWallet } from "react-icons/md";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchSeekerDashboard } from "../../../Redux/SeekerDashboardHome";
-import { fetchSeekerActiveRequests } from "../../../Redux/SeekerRequest";
-import { fetchUserProfile } from "../../../Redux/Auth";
-import { useUserProfileRefreshOnFocus } from "../../../hooks/useUserProfileRefresh";
+
+import Sidebar from "./Sidebar";
 import SubscriptionModal from "./SubscriptionModal";
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { formatDisplayName } from "../../../utils/formatDisplayName";
 import LiveCareSessionCard from "../../../Components/LiveCareSessionCard";
+import ApplicationCard from "../../../Components/CareSeekers/ApplicationCard";
+import ApplicationDetailsModal from "../../../Components/CareSeekers/ApplicationDetailsModal";
+import {
+  acceptApplication,
+  removeApplication,
+  rejectApplication,
+} from "../../../Components/CareSeekers/applicationApi";
+import { fetchUserProfile } from "../../../Redux/Auth";
+import { fetchSeekerDashboard } from "../../../Redux/SeekerDashboardHome";
+import { fetchSeekerPendingRequests } from "../../../Redux/SeekerRequest";
+import { formatDisplayName } from "../../../utils/formatDisplayName";
+import { useUserProfileRefreshOnFocus } from "../../../hooks/useUserProfileRefresh";
+
+const readLocalUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "{}") || {};
+  } catch {
+    return {};
+  }
+};
+
+const money = (value) =>
+  new Intl.NumberFormat("en-NG", { maximumFractionDigits: 0 }).format(Number(value) || 0);
 
 function Home() {
   const dispatch = useDispatch();
-  const {
-    greeting_name,
-    new_care_provider_requests,
-    total_amount_spent,
-    active_session,
-    active_sessions,
-    loading,
-  } = useSelector((state) => state.seekerDashboard || {});
-
-  // Check subscription status and show modal if not subscribed
+  const navigate = useNavigate();
+  const authUser = useSelector((state) => state.auth?.user);
+  const dashboard = useSelector((state) => state.seekerDashboard || {});
+  const requestsState = useSelector((state) => state.seekerRequests || {});
+  const [activeTab, setActiveTab] = useState("applications");
+  const [selectedEntry, setSelectedEntry] = useState(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-
-  const [activeTab, setActiveTab] = useState("verify"); // default to verify tab
-  const [searchParams] = useSearchParams();
-  // ... rest of your useState declarations
-
-  /* -------------------- EFFECTS -------------------- */
-
-  // ✅ Set active tab from URL query parameter
-  useEffect(() => {
-    const tabParam = searchParams.get("tab");
-    if (tabParam === "verify") {
-      setActiveTab("verify");
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      // ... existing code
-    };
-    fetchProfile();
-  }, []);
 
   useEffect(() => {
     dispatch(fetchSeekerDashboard());
-    dispatch(fetchSeekerActiveRequests());
-    // ✅ CRITICAL FIX: Fetch fresh user profile on mount to get latest is_verified status
+    dispatch(fetchSeekerPendingRequests());
     dispatch(fetchUserProfile());
-
-    // Show subscription modal if user is not subscribed
-    try {
-      const userRaw = localStorage.getItem("user");
-      if (userRaw) {
-        const user = JSON.parse(userRaw);
-        if (user && user.is_subscribed === false) {
-          setShowSubscriptionModal(true);
-        }
-      }
-    } catch {
-      // ignore parse errors
-    }
+    if (readLocalUser().is_subscribed === false) setShowSubscriptionModal(true);
   }, [dispatch]);
 
-  // ✅ AUTO-REFRESH: Refresh profile when tab regains focus
   useUserProfileRefreshOnFocus();
 
-  const greetingName =
-    greeting_name ||
-    (() => {
-      try {
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        return user?.first_name || user?.name || user?.username || "";
-      } catch {
-        return "";
-      }
-    })();
-  const requestsCount = new_care_provider_requests ?? 0;
-  const totalSpent = total_amount_spent ?? 0.0;
-  const activeRequests = useSelector(
-    (state) => state.seekerRequests?.active || [],
-  );
-  const firstActive =
-    activeRequests && activeRequests.length > 0 ? activeRequests[0] : null;
+  const user = authUser || readLocalUser();
+  const name = formatDisplayName(dashboard.greeting_name || user.full_name || user.first_name || user.name) || "there";
+  const avatar = user.profile_image_url || user.image_url || user.profile_image || "/avatar_user.png";
+  const requests = Array.isArray(requestsState.pending) ? requestsState.pending : [];
+  const entries = requests.flatMap((request) => (request.applications || []).map((application) => ({ request, application })));
+
+  const rejectApplicationRequest = async (entry) => {
+    if (!entry?.application?.id) return;
+    await rejectApplication(entry.application.id);
+    setSelectedEntry(null);
+    dispatch(fetchSeekerPendingRequests());
+  };
+
+  const acceptApplicationRequest = async (entry) => {
+    if (!entry?.application?.id) return;
+    await acceptApplication(entry.application.id);
+    setSelectedEntry(null);
+    dispatch(fetchSeekerPendingRequests());
+    navigate(`/careseekers/dashboard/pending_details/${entry.request.id}`);
+  };
+
+  const removeApplicationRequest = async (entry) => {
+    if (!entry?.application?.id) return;
+    await removeApplication(entry.application.id);
+    dispatch(fetchSeekerPendingRequests());
+  };
 
   return (
-    <div className="flex min-h-screen font-sfpro pb-24 md:pb-0">
-      <Sidebar active="Home" />
-      <div
-        className={`flex-1 bg-white px-6 pt-20 pb-5 md:pt-5 md:py-5 font-sfpro md:ml-64 ${
-          showSubscriptionModal ? "blur-sm pointer-events-none" : ""
-        }`}
-      >
-        {/* Ensure sidebar highlights Home when this component is used inside dashboard layout */}
-        {/* Greeting */}
-        <div className="flex items-center space-x-2 mb-4">
-          <FaCheckCircle className="text-[#00b894] text-lg" />
-          <p className="text-black text-2xl">
-            Hello,{" "}
-            <span className="font-semibold">
-              {formatDisplayName(greetingName) || greetingName}
-            </span>
-          </p>
-        </div>
-
-        {/* Care Provider Request & Spending Card */}
-        <div
-          className="bg-[#dff0f9] bg-opacity-40 rounded-xl p-6 relative overflow-hidden z-0"
-          style={{
-            backgroundImage: `url(${pattern})`,
-            backgroundSize: "auto 100%",
-          }}
-        >
-          <div className="flex items-center">
-            {/* Left: New Requests */}
-            <div className="text-[#0093d1] w-1/2">
-              <div className="text-[40px] font-semibold leading-none">
-                {loading ? "..." : requestsCount}
-              </div>
-              <p className="text-[13px] mt-1">New Care Providers request</p>
-            </div>
-
-            {/* Right: Amount Spent */}
-            <div className="flex-1 text-right">
-              <div className="flex items-center justify-end text-[#0093d1] text-[28px] font-semibold leading-none">
-                <img src={CurrencyNaira} alt="Naira" className="w-7 h-7 mr-2" />
-                <span>{loading ? "..." : Number(totalSpent).toFixed(2)}</span>
-              </div>
-              <p className="text-[13px] mt-1 text-[#0093d1]">
-                Total Amount Spent
-              </p>
-            </div>
-          </div>
-
-          <Link to="/careseekers/dashboard/message">
-            <button className="w-full mt-5 bg-[#0093d1] text-white rounded-md py-3 text-[15px] font-medium">
-              View Details
-            </button>
-          </Link>
-        </div>
-
-        {active_sessions && active_sessions.length > 0 ? (
-          active_sessions.map((session) => (
-            <LiveCareSessionCard
-              key={session.booking_id}
-              bookingId={session.booking_id}
-              counterpartName={session.counterpart_name}
-              counterpartProfileImageUrl={session.counterpart_profile_image}
-              counterpartId={session.counterpart_id}
-              serviceCategory={session.service_category}
-              startTimeIso={session.start_time}
-              hourlyRate={session.hourly_rate}
-              currencySymbol={session.display_currency_symbol}
-              conversationId={session.conversation_id}
-              userType="seeker"
-            />
-          ))
-        ) : (
-          active_session && (
-            <LiveCareSessionCard
-              bookingId={active_session.booking_id}
-              counterpartName={active_session.counterpart_name}
-              counterpartProfileImageUrl={active_session.counterpart_profile_image}
-              counterpartId={active_session.counterpart_id}
-              serviceCategory={active_session.service_category}
-              startTimeIso={active_session.start_time}
-              hourlyRate={active_session.hourly_rate}
-              currencySymbol={active_session.display_currency_symbol}
-              conversationId={active_session.conversation_id}
-              userType="seeker"
-            />
-          )
-        )}
-
-        {/* Verify Identity */}
-        <div className="bg-white rounded-xl p-4 mt-5 flex items-center justify-between border border-gray-100 shadow-sm">
-          <div className="flex items-center space-x-3">
-            <img src={folder} alt="Folder Icon" className="h-15 w-15" />
+    <div className="min-h-screen bg-white font-sfpro tracking-normal">
+      <Sidebar active="Home" mobileBottomNav />
+      <main className={`mx-auto max-w-[1120px] px-5 pb-28 pt-8 md:ml-64 md:px-10 md:pb-10 md:pt-10 ${showSubscriptionModal ? "pointer-events-none blur-sm" : ""}`}>
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={avatar} alt={name} className="h-14 w-14 rounded-full object-cover" />
             <div>
-              <h3 className="text-2xl font-medium text-gray-800">
-                Verify Your Identity
-              </h3>
-              <p className="text-[13px] text-gray-500">
-                Upload a verifiable government ID
-              </p>
+              <h1 className="flex items-center gap-1 text-[22px] font-bold text-[#111]">
+                Hello {name}<span className="text-[20px]">👋🏽</span>
+              </h1>
+              <p className="text-[16px] text-[#8b8f94]">We’re here to make care easier for you</p>
             </div>
           </div>
-          <Link to="/careseekers/dashboard/settings?tab=verify">
-            <button className="bg-[#0093d1] text-white text-[14px] font-medium px-6 py-2 rounded-md">
-              Verify ID
-            </button>
-          </Link>
-        </div>
+          <button type="button" className="relative grid h-14 w-14 place-items-center rounded-full bg-[#fafafa] text-2xl text-[#111]" aria-label="Notifications" onClick={() => navigate("/careseekers/dashboard/notifications")}>
+            <FaBell />
+            <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-[#ed1c24]" />
+          </button>
+        </header>
 
-        {/* What would you like to do */}
-        <h2 className="mt-8 mb-3 text-[15px] font-medium text-gray-800">
-          What would you like to do today
-        </h2>
+        <section className="relative mt-9 overflow-hidden rounded-[20px] bg-gradient-to-br from-[#e7f6e8] via-[#d9f1d9] to-[#bce3bd] px-5 py-6 md:px-8">
+          <div className="absolute -right-10 -top-20 h-52 w-52 rounded-full bg-white/25" />
+          <span className="absolute right-5 top-3 text-xl tracking-[5px] text-[#63c86c]">•••</span>
+          <span className="absolute right-7 top-12 text-2xl text-[#63c86c]">✦</span>
+          <div className="relative flex items-center gap-3 md:gap-5">
+            <div className="grid h-24 w-24 shrink-0 place-items-center rounded-full border-2 border-dashed border-[#00a51e] md:h-28 md:w-28">
+              <div className="grid h-16 w-16 place-items-center rounded-full bg-[#e9f8e8] text-5xl text-[#00a51e] md:h-20 md:w-20">
+                <FaUserCircle />
+              </div>
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-[15px] font-bold text-[#00a51e] md:text-[16px]">Complete your profile</h2>
+              <p className="mt-1 text-[13px] leading-[1.25] text-[#00a51e] md:text-[15px]">Set Up Your Profile to Access Trusted Caregivers</p>
+              <Link to="/careseekers/dashboard/personal-information" className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#009c20] px-4 py-2 text-[14px] font-semibold text-white md:mt-4 md:px-5 md:text-[15px]">
+                Complete profile <MdArrowForward />
+              </Link>
+            </div>
+          </div>
+        </section>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Book a Service Card */}
-          <Link to="/careseekers/dashboard/careproviders">
-            <div className="bg-[#f3f9fc] rounded-xl px-4 py-6 sm:py-10 flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 shadow-sm border border-gray-100 hover:shadow-lg transition">
-              <div className="p-2 rounded-md flex-shrink-0 flex items-center justify-center">
-                <img
-                  src={calender}
-                  alt="Calendar Icon"
-                  className="h-12 w-12 sm:h-15 sm:w-15"
+        <h2 className="mt-10 text-[22px] font-medium text-[#111]">Overview</h2>
+        <section className="mt-4 grid grid-cols-2 gap-4">
+          <OverviewCard icon={<MdPeopleAlt />} value={dashboard.loading ? "…" : dashboard.new_care_provider_requests ?? 0} label="New provider requests" action="View all requests" onClick={() => navigate("/careseekers/dashboard/requests")} tone="green" />
+          <OverviewCard icon={<MdWallet />} value={dashboard.loading ? "…" : `₦${money(dashboard.total_amount_spent)}`} label="Total amount spent" action="View spending history" onClick={() => navigate("/careseekers/dashboard/requests")} tone="blue" />
+        </section>
+
+        <Link to="/careseekers/bookservice" className="mt-10 flex min-h-[138px] items-center justify-between overflow-hidden rounded-[20px] bg-gradient-to-r from-[#0d99c9] to-[#0794d6] px-6 text-white">
+          <div>
+            <h2 className="text-[22px] font-medium">Create care request</h2>
+            <p className="mt-1 max-w-[300px] text-[17px] leading-[1.35]">Create a request to get matched with trusted caregiver</p>
+          </div>
+          <span className="grid h-20 w-20 shrink-0 place-items-center rounded-full border-[7px] border-white/20 bg-white text-5xl font-light text-[#0d99c9]">+</span>
+        </Link>
+
+        {(dashboard.active_sessions?.length ? dashboard.active_sessions : dashboard.active_session ? [dashboard.active_session] : []).map((session) => (
+          <LiveCareSessionCard
+            key={session.booking_id}
+            bookingId={session.booking_id}
+            counterpartName={session.counterpart_name}
+            counterpartProfileImageUrl={session.counterpart_profile_image}
+            counterpartId={session.counterpart_id}
+            serviceCategory={session.service_category}
+            startTimeIso={session.start_time}
+            hourlyRate={session.hourly_rate}
+            currencySymbol={session.display_currency_symbol}
+            conversationId={session.conversation_id}
+            userType="seeker"
+          />
+        ))}
+
+        <section className="mt-10">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex rounded-xl bg-[#f4f4f4] p-1">
+              <TabButton active={activeTab === "applications"} onClick={() => setActiveTab("applications")}>Applications</TabButton>
+              <TabButton active={activeTab === "requests"} onClick={() => setActiveTab("requests")}>Your Requests</TabButton>
+            </div>
+            <button type="button" className="text-[16px] font-medium text-[#0d99c9]" onClick={() => navigate("/careseekers/dashboard/applications")}>View all</button>
+          </div>
+
+          <div className="mt-5 space-y-4">
+            {activeTab === "applications" ? (
+              entries.length ? entries.slice(0, 2).map((entry) => (
+                <ApplicationCard
+                  key={entry.application.id}
+                  application={entry.application}
+                  request={entry.request}
+                  onReject={() => rejectApplicationRequest(entry)}
+                  onRemove={() => removeApplicationRequest(entry)}
+                  onViewDetails={() => setSelectedEntry(entry)}
                 />
-              </div>
-              <div>
-                <h4 className="text-xl sm:text-2xl font-medium text-gray-800 mb-[2px]">
-                  Book a Service
-                </h4>
-                <p className="text-[13px] text-gray-500 leading-snug">
-                  Find Your Perfect Care provider
-                </p>
-              </div>
-            </div>
-          </Link>
-
-          {/* Become a Care Provider Card */}
-          <Link to="/careproviders/signup">
-            <div className="bg-[#f2faf8] rounded-xl px-4 py-6 sm:py-10 flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 shadow-sm border border-gray-100 hover:shadow-lg transition">
-              <div className="p-2 rounded-md flex-shrink-0 flex items-center justify-center">
-                <img
-                  src={provider}
-                  alt="Provider Icon"
-                  className="h-12 w-12 sm:h-15 sm:w-15"
-                />
-              </div>
-              <div>
-                <h4 className="text-xl sm:text-2xl font-medium text-gray-800 mb-[2px]">
-                  Become a Care provider
-                </h4>
-                <p className="text-[13px] text-gray-500 leading-snug">
-                  Apply to Care for Families
-                </p>
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Appointment */}
-        <h2 className="mt-8 mb-3 text-[15px] font-medium text-gray-800 ">
-          What would you like to do today
-        </h2>
-
-        <div className="bg-[#f5f5f5] rounded-md flex items-center overflow-hidden py-3 hover:shadow-lg transition">
-          {/* Date Column */}
-          <div className="w-14 flex flex-col items-center justify-center py-3 border-r-[5px] border-[#0d99c9] rounded-l-lg">
-            {/* If we have an active request, show its day and date (fallbacks provided) */}
-            <p className="text-xs text-gray-500">
-              {firstActive
-                ? typeof firstActive.day === "string"
-                  ? firstActive.day.split(" ")[0] || firstActive.day
-                  : firstActive.day
-                : "Wed"}
-            </p>
-            <p className="text-base font-semibold text-gray-700">
-              {firstActive
-                ? (firstActive.date ??
-                  (firstActive.day && firstActive.day.split(" ")[1]) ??
-                  "")
-                : "12"}
-            </p>
+              )) : <EmptyState text={requestsState.loading ? "Loading applications…" : "No applications yet"} />
+            ) : (
+              requests.length ? requests.slice(0, 4).map((request) => (
+                <button key={request.id} type="button" onClick={() => navigate(`/careseekers/dashboard/pending_details/${request.id}`)} className="flex w-full items-center justify-between rounded-[14px] border border-[#e8edf0] bg-white p-4 text-left">
+                  <div>
+                    <span className="rounded-full bg-[#e8f7eb] px-3 py-1 text-xs text-[#00a51e]">{request.display_status || "Open"}</span>
+                    <h3 className="mt-3 text-[17px] font-semibold text-[#111]">{request.title}</h3>
+                    <p className="mt-1 text-sm text-[#8b8f94]">{request.location || "Location not specified"}</p>
+                  </div>
+                  <MdArrowForward className="text-2xl text-[#0d99c9]" />
+                </button>
+              )) : <EmptyState text="No care requests yet" />
+            )}
           </div>
+        </section>
+      </main>
 
-          {/* Vertical Blue Line */}
-          <div className="w-[2px] h-full bg-[#0093d1] " />
-
-          {/* Content */}
-          <div className="flex items-center px-4 py-3 space-x-3 flex-1">
-            <img
-              src={
-                firstActive
-                  ? firstActive.avatar
-                  : "https://randomuser.me/api/portraits/women/1.jpg"
-              }
-              alt="Avatar"
-              className="w-10 h-10 rounded-full object-cover"
-            />
-            <div className="flex flex-col">
-              <p className="text-lg font-medium text-gray-800 leading-tight">
-                {firstActive
-                  ? firstActive.title
-                  : "Child care with Aleem Sarah"}
-              </p>
-              <p className="text-sm text-gray-500">
-                {firstActive ? firstActive.time : "06:45 AM - 13:00 PM"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Subscription Modal */}
-      {showSubscriptionModal && (
-        <SubscriptionModal onClose={() => setShowSubscriptionModal(false)} />
+      {selectedEntry && (
+        <ApplicationDetailsModal
+          entry={selectedEntry}
+          onClose={() => setSelectedEntry(null)}
+          onReject={() => {
+            setSelectedEntry(null);
+            dispatch(fetchSeekerPendingRequests());
+          }}
+          onAccept={() => acceptApplicationRequest(selectedEntry)}
+        />
       )}
+      {showSubscriptionModal && <SubscriptionModal onClose={() => setShowSubscriptionModal(false)} />}
     </div>
   );
+}
+
+function OverviewCard({ icon, value, label, action, onClick, tone }) {
+  const palette = tone === "green" ? { text: "text-[#00a51e]", bg: "bg-[#effaf0]", icon: "bg-[#daf2dd]" } : { text: "text-[#0d99c9]", bg: "bg-[#f0f8fd]", icon: "bg-[#dff2fa]" };
+  return (
+    <div className={`rounded-[18px] p-3 ${palette.bg}`}>
+      <div className="flex items-center gap-3">
+        <span className={`grid h-14 w-14 place-items-center rounded-xl text-2xl ${palette.icon} ${palette.text}`}>{icon}</span>
+        <div className="min-w-0">
+          <p className={`truncate text-[25px] font-bold ${palette.text}`}>{value}</p>
+          <p className="text-[14px] text-[#111]">{label}</p>
+        </div>
+      </div>
+      <button type="button" onClick={onClick} className={`mt-3 flex w-full items-center justify-between rounded-lg px-3 py-2 text-[14px] ${palette.icon} ${palette.text}`}>
+        {action}<MdArrowForward />
+      </button>
+    </div>
+  );
+}
+
+function TabButton({ active, onClick, children }) {
+  return <button type="button" onClick={onClick} className={`rounded-[10px] px-4 py-2 text-[15px] ${active ? "bg-white font-semibold text-[#0e2f43] shadow-sm" : "text-[#9b9b9b]"}`}>{children}</button>;
+}
+
+function EmptyState({ text }) {
+  return <div className="rounded-[14px] bg-[#fafafa] px-5 py-10 text-center text-sm text-[#8b8f94]"><FaUserCircle className="mx-auto mb-2 text-3xl text-[#d6dadd]" />{text}</div>;
 }
 
 export default Home;

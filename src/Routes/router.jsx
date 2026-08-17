@@ -24,6 +24,7 @@ import RealtimeKitCallRoom from "../Pages/RealtimeKitCallRoom";
 import RequestDetails from "../Pages/CareSeekers/Dashboard/RequestDetails";
 import PersonalInformationProvider from "../Pages/CareProviders/Dashboard/PersonalInformation";
 import DashboardHome from "../Pages/CareSeekers/Dashboard/Home";
+import AllApplications from "../Pages/CareSeekers/Dashboard/AllApplications";
 import PendingDetails from "../Pages/CareSeekers/Dashboard/PendingDetails";
 
 import HomePage from "../Pages/CareProviders/Dashboard/HomePage";
@@ -204,6 +205,14 @@ export const router = createBrowserRouter([
     element: (
       <RoleProtectedRoute allowedRole="seeker">
         <Requests />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
+    path: "/careseekers/dashboard/applications",
+    element: (
+      <RoleProtectedRoute allowedRole="seeker">
+        <AllApplications />
       </RoleProtectedRoute>
     ),
   },
@@ -486,7 +495,27 @@ export const router = createBrowserRouter([
       { path: "users/providers", element: <Users initialStat="providers" /> },
       { path: "users/seekers", element: <Users initialStat="seekers" /> },
       { path: "activities", element: <Activities /> },
-      { path: "organisations", element: <Organisations /> },
+      { path: "organisations", element: <Organisations section="overview" /> },
+      {
+        path: "organisations/employees",
+        element: <Organisations section="employees" />,
+      },
+      {
+        path: "organisations/care-rules",
+        element: <Organisations section="careRules" />,
+      },
+      {
+        path: "organisations/covered-services",
+        element: <Organisations section="coveredServices" />,
+      },
+      {
+        path: "organisations/spending-history",
+        element: <Organisations section="spendingHistory" />,
+      },
+      {
+        path: "organisations/billing",
+        element: <Organisations section="billing" />,
+      },
       { path: "jobs", element: <Jobs /> },
       { path: "jobs/requests", element: <JobRequests /> },
       { path: "jobs/conversations", element: <MessageAdmin /> },
