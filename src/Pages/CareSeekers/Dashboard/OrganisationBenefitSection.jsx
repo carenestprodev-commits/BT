@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BASE_URL, getAuthHeaders } from "../../../Redux/config";
 import { fetchWithAuth } from "../../../lib/fetchWithAuth";
 
@@ -17,6 +17,7 @@ function OrganisationBenefitSection() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const lastSubmittedCode = useRef("");
 
   useEffect(() => {
     let active = true;
@@ -48,14 +49,16 @@ function OrganisationBenefitSection() {
     };
   }, []);
 
-  const joinOrganisation = async (event) => {
-    event.preventDefault();
+  const joinOrganisation = async (valueOrEvent) => {
+    if (valueOrEvent?.preventDefault) valueOrEvent.preventDefault();
     setError("");
     setSuccess("");
 
-    const code = organisationCode.trim().toUpperCase();
-    if (!code) {
-      setError("Enter your organisation code.");
+    const code = (typeof valueOrEvent === "string" ? valueOrEvent : organisationCode)
+      .trim()
+      .toUpperCase();
+    if (code.length !== 6) {
+      setError("Enter your 6-character organisation code.");
       return;
     }
 
@@ -90,35 +93,55 @@ function OrganisationBenefitSection() {
 
   return (
     <section className="border-t border-gray-100 pt-6">
-      <h3 className="text-lg font-semibold text-gray-800">Organisation benefit</h3>
+      <h3 className="text-lg font-semibold text-gray-800">Organisation benefit (Optional)</h3>
       <p className="mt-1 text-sm text-gray-500">
         Add the code shared by your organisation to request access to its care credits.
       </p>
 
       <form className="mt-5" onSubmit={joinOrganisation}>
-        <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="organisation-code">
-          Organisation code
-        </label>
-        <div className="flex gap-3">
+        <div className="relative">
           <input
             id="organisation-code"
             value={organisationCode}
-            onChange={(event) => setOrganisationCode(event.target.value.toUpperCase())}
+            onChange={(event) => {
+              const value = event.target.value
+                .toUpperCase()
+                .replace(/[^A-Z0-9]/g, "")
+                .slice(0, 6);
+              setOrganisationCode(value);
+              if (
+                value.length === 6 &&
+                !membership &&
+                !joining &&
+                !loading &&
+                lastSubmittedCode.current !== value
+              ) {
+                lastSubmittedCode.current = value;
+                joinOrganisation(value);
+              }
+            }}
             disabled={Boolean(membership) || joining || loading}
             placeholder="e.g. ABC123"
-            className="min-w-0 flex-1 rounded-lg border border-gray-200 px-4 py-3 uppercase text-gray-800 outline-none focus:border-gray-400"
+            maxLength={6}
+            aria-label="Organisation code"
+            className="w-full rounded-lg border border-gray-200 px-4 py-3 uppercase text-gray-800 outline-none focus:border-gray-400 disabled:bg-gray-50"
           />
-          <button
-            type="submit"
-            disabled={Boolean(membership) || joining || loading}
-            className="rounded-lg bg-[#1C4532] px-5 py-3 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {joining ? "Adding..." : "Add code"}
-          </button>
+          {joining && (
+            <span
+              className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-gray-200 border-t-[#1C4532]"
+              role="status"
+              aria-label="Adding organisation code"
+            />
+          )}
         </div>
       </form>
 
-      {loading && <p className="mt-3 text-sm text-gray-500">Checking organisation benefit...</p>}
+      {loading && (
+        <div className="mt-3 flex items-center gap-2 text-sm text-gray-500" role="status">
+          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-500" />
+          Checking organisation benefit...
+        </div>
+      )}
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
       {success && <p className="mt-3 text-sm text-green-700">{success}</p>}
 

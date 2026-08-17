@@ -24,6 +24,7 @@ import RealtimeKitCallRoom from "../Pages/RealtimeKitCallRoom";
 import RequestDetails from "../Pages/CareSeekers/Dashboard/RequestDetails";
 import PersonalInformationProvider from "../Pages/CareProviders/Dashboard/PersonalInformation";
 import DashboardHome from "../Pages/CareSeekers/Dashboard/Home";
+import AllApplications from "../Pages/CareSeekers/Dashboard/AllApplications";
 import PendingDetails from "../Pages/CareSeekers/Dashboard/PendingDetails";
 
 import HomePage from "../Pages/CareProviders/Dashboard/HomePage";
@@ -204,6 +205,14 @@ export const router = createBrowserRouter([
     element: (
       <RoleProtectedRoute allowedRole="seeker">
         <Requests />
+      </RoleProtectedRoute>
+    ),
+  },
+  {
+    path: "/careseekers/dashboard/applications",
+    element: (
+      <RoleProtectedRoute allowedRole="seeker">
+        <AllApplications />
       </RoleProtectedRoute>
     ),
   },

@@ -35,7 +35,6 @@ import {
 } from "../../../utils/countryHelper";
 import VerificationCheckModal from "../../../Components/VerificationCheckModal";
 import { containsPhoneNumber } from "../../../utils/phoneUtils";
-import ActivityCountdown from "../../../Components/ActivityCountdown";
 
 const resolveImage = (url) => {
   if (!url)
@@ -92,6 +91,37 @@ const buildCallRoute = (bookingId, mode, title) => {
   }
   return `/careseekers/dashboard/message/${bookingId}/call?${params.toString()}`;
 };
+
+function ActivityBanner({ endAt, onStart, onEnd }) {
+  const [now, setNow] = useState(Date.now());
+  const active = Boolean(endAt);
+
+  useEffect(() => {
+    if (!endAt) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [endAt]);
+
+  const remaining = Math.max(0, new Date(endAt || 0).getTime() - now);
+  const totalSeconds = Math.floor(remaining / 1000);
+  const clock = [
+    Math.floor(totalSeconds / 3600),
+    Math.floor((totalSeconds % 3600) / 60),
+    totalSeconds % 60,
+  ].map((value) => String(value).padStart(2, "0")).join(":");
+
+  return (
+    <div className="flex items-center gap-3 rounded-b-[14px] bg-[#ddf3d7] px-5 py-3">
+      <div className="min-w-0 flex-1 text-[#00a51e]">
+        {active ? <><p className="text-[13px]">Activity in progress</p><p className="text-[23px] font-bold tracking-[0.08em]">{clock}</p></> : <><p className="text-[14px] font-bold">Ready to begin?</p><p className="mt-0.5 text-[13px] leading-[1.25]">Start activity when you’re satisfied with<br />the care provider.</p></>}
+      </div>
+      <button type="button" onClick={active ? onEnd : onStart} className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-md px-3 text-[12px] font-bold text-white ${active ? "bg-[#d5241d]" : "bg-[#00a51e]"}`}>
+        <span className="grid h-5 w-5 place-items-center rounded-full bg-white/90 text-current">{active ? "■" : "▶"}</span>
+        {active ? "End Activity" : "Start Activity"}
+      </button>
+    </div>
+  );
+}
 
 function MessageDetails() {
   const extractErrorMessage = (value, fallback = "Request failed.") => {
@@ -490,7 +520,7 @@ function MessageDetails() {
   if (!currentConversation && !conversationsLoading) {
     return (
       <div className="flex min-h-screen bg-white font-sfpro">
-        <Sidebar active="Message" />
+        <Sidebar active="Message" hideMobileBottomNav />
         <div className="flex-1 font-sfpro px-8 py-8 md:ml-64 flex items-center justify-center">
           <div className="text-center">
             <p className="text-gray-500 mb-4">No conversation found</p>
@@ -508,12 +538,12 @@ function MessageDetails() {
 
   return (
     <div className="flex min-h-screen bg-white font-sfpro">
-      <Sidebar active="Message" />
-      <div className="flex-1 font-sfpro md:ml-64 flex flex-col h-[calc(100vh-3.5rem)] md:h-screen mt-14 md:mt-0 overflow-hidden">
+      <Sidebar active="Message" hideMobileBottomNav />
+      <div className="flex-1 font-sfpro md:ml-64 flex flex-col h-screen overflow-hidden">
         {/* Header */}
-        <div className="sticky top-0 z-20 md:z-40 flex items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0 gap-2 sm:gap-4">
+        <div className="sticky top-0 z-20 md:z-40 flex items-center pl-2 pr-0 sm:pl-3 md:px-6 py-3 sm:py-4 md:py-6 border-b border-gray-100 bg-[#f3fafc] relative flex-shrink-0 gap-2 sm:gap-4">
           <button
-            className="mr-4 text-gray-500 hover:text-gray-700 text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
+            className="mr-3 text-gray-500 hover:text-gray-700 text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
             onClick={() => navigate("/careseekers/dashboard/message")}
             aria-label="Back to messages"
           >
@@ -555,7 +585,7 @@ function MessageDetails() {
           )}
 
           {/* Call and Video icons */}
-          <div className="flex gap-3 sm:gap-4 items-center mr-2 sm:mr-4">
+          <div className="flex gap-3 sm:gap-4 items-center mr-0 sm:mr-2">
             <button
               className="text-[#0d99c9] hover:text-[#007bb0] text-lg sm:text-xl focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded transition"
               aria-label="Call provider"
@@ -582,7 +612,7 @@ function MessageDetails() {
 
           {/* Three-dot menu */}
           {currentConversation?.booking && (
-            <div className="relative">
+            <div className="relative hidden">
               <button
                 className="text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 rounded p-1 transition"
                 onClick={() => setMenuOpen((v) => !v)}
@@ -656,12 +686,19 @@ function MessageDetails() {
           )}
         </div>
 
+        {currentConversation?.booking && (
+          <ActivityBanner
+            endAt={scheduledEndAt}
+            onStart={startActivityIfVerified}
+            onEnd={() => handleMenuAction("end")}
+          />
+        )}
+
         {/* Chat Body */}
         <div
           ref={chatBodyRef}
           className="flex-1 px-3 sm:px-4 md:px-8 py-4 sm:py-6 overflow-y-auto bg-white"
         >
-          <ActivityCountdown endAt={scheduledEndAt} />
           {conversationsLoading ? (
             <div className="flex items-center justify-center h-full text-gray-400">
               Loading conversation...
@@ -678,7 +715,7 @@ function MessageDetails() {
             <>
               {displayMessages.length > 0 && (
                 <div className="flex justify-center mb-6">
-                  <span className="text-xs text-gray-400 bg-[#f5f5f5] px-4 py-1 rounded-full">
+                  <span className="rounded-md bg-[#f7f7f7] px-3 py-1 text-xs text-[#999]">
                     {displayMessages[0]?.date || ""}
                   </span>
                 </div>
@@ -717,13 +754,13 @@ function MessageDetails() {
                 : "Select a conversation first"
             }
             disabled={!currentConversation || sendingMessage}
-            className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 border-gray-200 bg-[#f7fafd] text-gray-700 text-sm sm:text-base focus:outline-none focus:border-[#0d99c9] focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="flex-1 rounded-[10px] border-0 bg-[#fafafa] px-3 py-3 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#b6dfea] disabled:opacity-50 disabled:cursor-not-allowed transition sm:px-4 sm:text-base"
             aria-label="Message input field"
           />
           <button
             onClick={handleSendMessage}
             disabled={!currentConversation || sendingMessage || !input.trim()}
-            className="bg-[#0d99c9] hover:bg-[#007bb0] rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-[#0d99c9] focus:ring-offset-2 transition"
+            className="bg-[#eaf7fc] text-[#0d99c9] hover:bg-[#dff1f8] rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 focus:outline-none focus:ring-1 focus:ring-[#0d99c9] transition"
             aria-label="Send message"
             title="Send message (Enter)"
           >
@@ -733,7 +770,7 @@ function MessageDetails() {
               <svg
                 width="20"
                 height="20"
-                fill="white"
+                fill="currentColor"
                 viewBox="0 0 24 24"
                 aria-hidden="true"
               >

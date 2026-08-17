@@ -175,14 +175,16 @@ function Requests() {
                     navigate("/careseekers/dashboard/request_details/" + req.id)
                   }
                 >
-                  <img
-                    src={resolveImage(
-                      req.avatar,
-                      req.provider?.user?.full_name || req.name,
-                    )}
-                    alt="avatar"
-                    className="w-12 h-12 rounded-full mr-4"
-                  />
+                  {Number(req.provider?.id) > 0 ? (
+                    <img
+                      src={resolveImage(
+                        req.avatar,
+                        req.provider?.user?.full_name || req.name,
+                      )}
+                      alt="avatar"
+                      className="w-12 h-12 rounded-full mr-4"
+                    />
+                  ) : null}
                   <div>
                     <div className="font-semibold text-gray-800">
                       {req.name}

@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import {
+  ArrowLeft2,
+  Calendar,
+  Card,
+  MessageText1,
+  Verify,
+} from "iconsax-react";
 import Sidebar from "./Sidebar";
 import {
   fetchPendingRequestById,
@@ -27,6 +34,270 @@ import {
   startActivity,
 } from "../../../Redux/StartActivity";
 import ActivityCountdown from "../../../Components/ActivityCountdown";
+
+const formatActivityDate = (value) => {
+  if (!value) return "Date to be confirmed";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+const formatActivityTime = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+};
+
+const postedLabel = (value) => {
+  if (!value) return "Posted recently";
+  return /^posted\b/i.test(value) ? value : `Posted ${value}`;
+};
+
+function ActivitySchedule({ activities = [] }) {
+  if (!activities.length) return null;
+
+  return (
+    <section className="mt-8">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-[#142f40]">
+            Activity schedule
+          </h3>
+          <p className="mt-1 text-sm text-[#71808a]">
+            {activities.length} {activities.length === 1 ? "session" : "sessions"}
+          </p>
+        </div>
+        <Calendar size="22" color="#0d99c9" variant="Linear" />
+      </div>
+
+      <div className="mt-4 overflow-hidden rounded-[18px] bg-white ring-1 ring-[#dcecf1]">
+        {activities.map((activity, index) => {
+          const start = activity.scheduled_start_at || activity.scheduled_date;
+          const actualStart = activity.actual_start_time;
+          const actualEnd = activity.actual_end_time;
+          return (
+            <div
+              key={activity.id || `${start}-${index}`}
+              className="grid grid-cols-[26px_minmax(0,1fr)] gap-3 border-b border-[#edf2f4] px-3.5 py-3.5 last:border-b-0 sm:grid-cols-[30px_minmax(0,1fr)] sm:gap-4 sm:px-5 sm:py-4"
+            >
+              <div className="flex flex-col items-center">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#e6f6fb] text-xs font-semibold text-[#0d99c9]">
+                  {index + 1}
+                </span>
+                {index < activities.length - 1 && (
+                  <span className="mt-2 h-full min-h-5 w-px bg-[#cfe7ee]" />
+                )}
+              </div>
+
+              <div className="min-w-0">
+                <p className="font-medium text-[#18384b]">
+                  {formatActivityDate(start)}
+                </p>
+                <p className="mt-1 text-sm text-[#5f7180]">
+                  {formatActivityTime(start)} — {formatActivityTime(activity.scheduled_end_at)}
+                  {activity.scheduled_hours != null && (
+                    <span className="text-[#93a0a8]"> · {activity.scheduled_hours}h</span>
+                  )}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#87949c]">
+                  <span>
+                    {actualStart && actualEnd
+                      ? `Worked ${formatActivityTime(actualStart)} — ${formatActivityTime(actualEnd)}`
+                      : "Not started"}
+                  </span>
+                  <span>Overtime {activity.overtime_hours || "0.00"}h</span>
+                </div>
+              </div>
+
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function RequestContext({ source, posted, description, skills, sections }) {
+  const detailRows = [
+    ...sections.careRows,
+    ...sections.scheduleRows,
+    ...sections.locationRows,
+    ...(source.message_to_provider
+      ? [`Message to care provider: ${source.message_to_provider}`]
+      : []),
+  ].filter(Boolean);
+
+  return (
+    <section className="mt-8 rounded-[20px] bg-white p-4 ring-1 ring-[#e7eef1] sm:rounded-[24px] sm:p-6 md:p-8">
+      <div className="max-w-3xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0d99c9]">
+          Your care request
+        </p>
+        <h2 className="mt-2 text-xl font-semibold text-[#142f40]">What you need</h2>
+        <div className="mt-4 space-y-3 text-[15px] leading-7 text-[#596b75]">
+          {description.length ? (
+            description.map((paragraph, index) => <p key={index}>{paragraph}</p>)
+          ) : (
+            <p>No request summary was provided.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-7 grid gap-3 border-t border-[#edf2f4] pt-6 sm:grid-cols-3">
+        <RequestFact label="Posted" value={postedLabel(posted)} />
+        <RequestFact label="Location" value={source.location || "Not specified"} />
+        <RequestFact
+          label="Care type"
+          value={source.service_category || "Care service"}
+        />
+      </div>
+
+      {skills.length > 0 && (
+        <div className="mt-7 border-t border-[#edf2f4] pt-6">
+          <p className="text-sm font-semibold text-[#18384b]">Relevant skills</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {skills.map((skill, index) => (
+              <span
+                key={`${skill}-${index}`}
+                className="rounded-full bg-[#f1f7f9] px-3 py-1.5 text-sm text-[#536974]"
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {detailRows.length > 0 && (
+        <details className="mt-7 border-t border-[#edf2f4] pt-5">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-[#18384b]">
+            View full request details
+          </summary>
+          <div className="mt-4 grid gap-2 text-sm leading-6 text-[#687983]">
+            {detailRows.map((row, index) => (
+              <p key={`${row}-${index}`}>{row}</p>
+            ))}
+          </div>
+        </details>
+      )}
+    </section>
+  );
+}
+
+function RequestFact({ label, value }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#9aa7ad]">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-medium text-[#365363]">{value}</p>
+    </div>
+  );
+}
+
+function MatchedProviderPanel({
+  matchedBooking,
+  provider,
+  scheduledEndAt,
+  openingApplicationId,
+  startingActivity,
+  endingActivity,
+  onMessage,
+  onMakePayment,
+  onStartActivity,
+  onEndActivity,
+}) {
+  const isEnded = matchedBooking.has_ended_activity;
+  const isActive = matchedBooking.is_activity_in_progress && !isEnded;
+  const statusText = isActive
+    ? "Activity is in progress."
+    : isEnded
+      ? "Activity ended. Ready for payment."
+      : "Hired. Ready to begin activity.";
+
+  return (
+    <section className="overflow-hidden rounded-[24px] bg-[#f2fafc] p-4 ring-1 ring-[#ccecf4] sm:rounded-[28px] sm:p-5 md:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-2 rounded-full bg-[#d9f5e8] px-4 py-2 text-sm font-semibold text-[#078844]">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#08b95c]" />
+          Matched care provider
+        </span>
+      </div>
+
+      <div className="mt-5 flex items-center gap-3 sm:mt-7 sm:gap-4">
+        <img
+          src={resolveImage(provider.profile_image_url, provider.full_name, 96)}
+          alt={provider.full_name || "Care provider"}
+          className="h-16 w-16 shrink-0 rounded-[18px] object-cover ring-4 ring-white sm:h-20 sm:w-20 sm:rounded-[22px] md:h-24 md:w-24"
+        />
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="truncate text-xl font-semibold tracking-[-0.02em] text-[#122a3a] sm:text-2xl md:text-[28px]">
+              {provider.full_name || "Care provider"}
+            </h2>
+            {provider.is_verified && (
+              <Verify size="24" color="#0d99c9" variant="Bold" />
+            )}
+          </div>
+          <p className="mt-1 text-sm text-[#61737d] sm:text-base">{statusText}</p>
+        </div>
+      </div>
+
+      {!isEnded && scheduledEndAt && (
+        <div className="mt-5">
+          <ActivityCountdown endAt={scheduledEndAt} />
+        </div>
+      )}
+
+      <ActivitySchedule activities={matchedBooking.scheduled_activities || []} />
+
+      <div className={`mt-6 grid gap-2 sm:mt-8 sm:gap-3 ${isEnded ? "sm:grid-cols-2" : ""}`}>
+        <button
+          type="button"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[16px] border-2 border-[#0d99c9] bg-transparent px-4 text-sm font-semibold text-[#0d99c9] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-14 sm:px-5 sm:text-base"
+          disabled={openingApplicationId === matchedBooking.id}
+          onClick={onMessage}
+        >
+          <MessageText1 size="22" color="currentColor" variant="Linear" />
+          {openingApplicationId === matchedBooking.id ? "Opening..." : "Message"}
+        </button>
+
+        {isEnded ? (
+          <button
+            type="button"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[16px] bg-[#06c755] px-4 text-sm font-semibold text-white transition hover:bg-[#05ae4b] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-14 sm:px-5 sm:text-base"
+            disabled={openingApplicationId === matchedBooking.id}
+            onClick={onMakePayment}
+          >
+            <Card size="22" color="currentColor" variant="Linear" />
+            Make payment
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="inline-flex min-h-12 items-center justify-center rounded-[16px] bg-[#0d99c9] px-4 text-sm font-semibold text-white transition hover:bg-[#087fa8] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-14 sm:px-5 sm:text-base"
+            disabled={isActive ? endingActivity : startingActivity}
+            onClick={isActive ? onEndActivity : onStartActivity}
+          >
+            {isActive
+              ? endingActivity
+                ? "Ending activity..."
+                : "End activity"
+              : startingActivity
+                ? "Starting activity..."
+                : "Start activity"}
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
 
 function PendingDetails() {
   const navigate = useNavigate();
@@ -122,9 +393,19 @@ function PendingDetails() {
   const matchedBooking = source?.matched_booking || null;
   const isMatched = !!matchedBooking;
 
-  const description =
-    source?.description ?? (source?.summary ? [source.summary] : []);
-  const skills = source?.skills_and_expertise ?? source?.skills ?? [];
+  const rawDescription = source?.description ?? source?.summary ?? "";
+  const description = Array.isArray(rawDescription)
+    ? rawDescription.filter(Boolean)
+    : rawDescription
+      ? [rawDescription]
+      : [];
+  const rawSkills = source?.skills_and_expertise ?? source?.skills ?? [];
+  const skills = Array.isArray(rawSkills)
+    ? rawSkills.filter(Boolean)
+    : String(rawSkills || "")
+        .split(",")
+        .map((skill) => skill.trim())
+        .filter(Boolean);
   const title = source?.title ?? source?.summary ?? "";
   const posted = source?.posted_ago || source?.posted || "";
   const applications = source?.applications || [];
@@ -253,28 +534,67 @@ function PendingDetails() {
         );
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sfpro">
+    <div className="flex min-h-screen bg-[#f9fcfd] font-sfpro">
       <Sidebar active="Requests" />
 
       <div className="flex-1 md:ml-64">
-        {/* Sticky sub-header */}
-        <div className="sticky top-[57px] md:top-0 z-30 bg-white border-b border-gray-100 px-6 py-4 flex items-center gap-3">
+        <div className="sticky top-[57px] md:top-0 z-30 flex items-center gap-3 border-b border-[#edf2f4] bg-white px-5 py-4 md:px-8">
           <button
-            className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none"
+            type="button"
+            className="grid h-10 w-10 place-items-center rounded-full bg-[#f3f6f7] text-[#17394c] transition hover:bg-[#e8f1f4]"
             onClick={() => navigate(-1)}
             aria-label="Go back"
           >
-            &larr;
+            <ArrowLeft2 size="22" color="currentColor" variant="Linear" />
           </button>
-          <h2 className="text-lg font-normal text-gray-500">Details</h2>
+          <h1 className="text-xl font-semibold tracking-[-0.02em] text-[#122f42]">
+            Job Detail
+          </h1>
         </div>
 
-        {/* Scrollable body */}
-        <div className="px-6 py-6 md:px-8 overflow-y-auto">
-          {/* Loading / empty state */}
-          {!source && <p className="text-sm text-gray-400">Loading details&hellip;</p>}
+        <div className="min-h-[calc(100vh-73px)] overflow-y-auto px-4 py-5 sm:px-5 sm:py-7 md:px-10 md:py-10">
+          {!source && <p className="text-sm text-[#71808a]">Loading details&hellip;</p>}
 
-          {source && (
+          {source && isMatched && provider && (
+            <div className="mx-auto max-w-[1120px]">
+              <header className="mb-6 flex items-center gap-3 sm:mb-8 sm:gap-4 md:mb-10">
+                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#e7e9ed] text-lg font-semibold text-[#5f6872] sm:h-16 sm:w-16 sm:text-xl">
+                  CN
+                </div>
+                <div className="min-w-0">
+                  <h2 className="truncate text-2xl font-medium tracking-[-0.03em] text-[#15202a] sm:text-3xl md:text-[42px]">
+                    {title || "Care request"}
+                  </h2>
+                  <p className="mt-1 text-base text-[#8d969c]">
+                    {postedLabel(posted)}
+                  </p>
+                </div>
+              </header>
+
+              <MatchedProviderPanel
+                matchedBooking={matchedBooking}
+                provider={provider}
+                scheduledEndAt={scheduledEndAt}
+                openingApplicationId={openingApplicationId}
+                startingActivity={startingActivity}
+                endingActivity={endingActivity}
+                onMessage={handleMessageMatchedProvider}
+                onMakePayment={openPaymentReview}
+                onStartActivity={startMatchedActivity}
+                onEndActivity={endMatchedActivity}
+              />
+
+              <RequestContext
+                source={source}
+                posted={posted}
+                description={description}
+                skills={skills}
+                sections={sections}
+              />
+            </div>
+          )}
+
+          {source && !isMatched && (
             <div className="max-w-4xl">
               <h1 className="text-lg font-bold text-gray-900 mb-2">{title}</h1>
               {posted ? (
@@ -488,7 +808,7 @@ function PendingDetails() {
           )}
 
           {/* Edit / Read-only controls */}
-          <div className="mt-6 max-w-3xl">
+          {!isMatched && <div className="mt-6 max-w-3xl">
             {!editMode ? (
               /* Buttons side by side */
               <div className="flex gap-3">
@@ -600,7 +920,7 @@ function PendingDetails() {
                 </div>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Payment success banner */}
           {paymentSuccess && (

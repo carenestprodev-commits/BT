@@ -57,6 +57,18 @@ export const normalizeApplications = (applications) =>
       item.provider_image_url ||
       item.providerImageUrl ||
       providerImage(item.provider),
+    providerDistanceKm:
+      item.provider_distance_km ?? item.providerDistanceKm ?? null,
+    providerProfileTitle:
+      item.provider_profile_title || item.provider?.profile_title || "",
+    providerAbout: item.provider_about || item.provider?.about_me || "",
+    providerCity: item.provider_city || item.provider?.city || "",
+    providerState: item.provider_state || item.provider?.state || "",
+    providerCountry: item.provider_country || item.provider?.country || "",
+    providerYearsExperience:
+      item.provider_years_of_experience ?? item.provider?.years_of_experience ?? 0,
+    providerAverageRating:
+      item.provider_average_rating ?? item.provider?.average_rating ?? 0,
     isVerified: Boolean(item.is_verified ?? item.provider?.is_verified),
     isEngaged: Boolean(item.is_engaged ?? item.provider?.user?.is_engaged),
     createdAt: item.created_at || item.createdAt || "",
@@ -108,6 +120,7 @@ export function projectSeekerClosedRequest(item) {
 export function projectSeekerPendingRequest(item) {
   return {
     ...item,
+    serviceCategory: item.service_category || item.serviceCategory || "",
     posted: item.posted_ago || item.posted || "Posted just now",
     title: item.title || item.summary || "",
     desc: item.summary || item.message_to_provider || "",
