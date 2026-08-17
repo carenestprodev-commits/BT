@@ -450,24 +450,49 @@ function Organisations({ section = "overview" }) {
           )}
 
           {!selected && section !== "overview" && (
-            <section className="bg-white px-5 py-6 shadow-[0_8px_30px_rgba(28,66,88,0.04)] sm:px-8 sm:py-8">
-              <OrganisationPicker
-                items={items}
-                value={organisationId || ""}
-                onChange={(id) => {
-                  const organisation = items.find(
-                    (item) => String(item.id) === String(id),
-                  );
-                  if (organisation) selectOrganisation(organisation);
-                }}
-              />
+            <section className="bg-white px-5 py-5 shadow-[0_8px_30px_rgba(28,66,88,0.04)] sm:px-8">
               {loading ? (
                 <Loading label="Loading organisations" />
+              ) : items.length === 0 ? (
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-[#234258]">
+                      No organisations yet
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Create an organisation before managing this section.
+                    </p>
+                  </div>
+                </div>
               ) : (
-                <Empty
-                  title="Choose an organisation"
-                  body={`Select an organisation to view ${sectionMeta.label.toLowerCase()}.`}
-                />
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1686a5]">
+                      Organisation
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Select an organisation to continue.
+                    </p>
+                  </div>
+                  <select
+                    value={organisationId || ""}
+                    onChange={(event) => {
+                      const organisation = items.find(
+                        (item) => String(item.id) === String(event.target.value),
+                      );
+                      if (organisation) selectOrganisation(organisation);
+                    }}
+                    className="w-full rounded-lg border border-[#ccdce6] bg-white px-3 py-2.5 text-sm text-[#234258] outline-none focus:border-[#1686a5] sm:max-w-sm"
+                    aria-label="Select organisation"
+                  >
+                    <option value="">Select an organisation</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} · {item.enrollment_code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
             </section>
           )}
@@ -557,34 +582,6 @@ function Empty({ title, body }) {
       <Landmark className="h-7 w-7 text-[#8da7b8]" />
       <p className="mt-3 font-semibold text-[#234258]">{title}</p>
       <p className="mt-1 max-w-xs text-sm text-slate-500">{body}</p>
-    </div>
-  );
-}
-
-function OrganisationPicker({ items, value, onChange }) {
-  return (
-    <div className="mx-auto max-w-xl text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1686a5]">
-        Organisation workspace
-      </p>
-      <h3 className="mt-2 text-xl font-semibold tracking-[-0.02em] text-[#123047]">
-        Choose an organisation
-      </h3>
-      <p className="mt-2 text-sm text-slate-500">
-        Select the organisation you want to manage from this section.
-      </p>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-5 w-full rounded-lg border border-[#ccdce6] bg-white px-3 py-3 text-left text-sm text-[#234258] outline-none focus:border-[#1686a5]"
-      >
-        <option value="">Select an organisation</option>
-        {items.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.name} · {item.enrollment_code}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }
