@@ -1,11 +1,59 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { FaTimes, FaDownload, FaCheckCircle } from 'react-icons/fa';
 import dayjs from 'dayjs';
+import { fetchWithAuth } from '../../lib/fetchWithAuth';
 
-const DataExportModal = ({ isOpen, onClose, data, selectedIds, activeStat }) => {
+const normalizeExportRows = (rows) => (Array.isArray(rows) ? rows : []).map((row) => ({
+  ...row,
+  name: row.name ?? row.full_name ?? '',
+  userType: row.userType ?? row.user_type ?? '',
+  phone: row.phone ?? row.phone_number ?? '',
+  onboard: row.onboard ?? row.date_joined ?? '',
+  onboardDate: row.onboardDate ?? row.date_joined ?? row.onboard ?? '',
+  lastLogin: row.lastLogin ?? row.last_login ?? '',
+  is_verified: row.is_verified ?? row.verification_status === 'verified',
+  country: row.country ?? row.location_details?.country ?? '',
+  city: row.city ?? row.location_details?.city ?? '',
+}));
+
+const DataExportModal = ({ isOpen, onClose, data, exportUrl, selectedIds, activeStat }) => {
   const [format, setFormat] = useState('csv');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [isPreparing, setIsPreparing] = useState(false);
+  const [sourceData, setSourceData] = useState(() => normalizeExportRows(data));
+  const [loadError, setLoadError] = useState('');
+  const [sourceLoading, setSourceLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!exportUrl) {
+      setSourceData(normalizeExportRows(data));
+      setLoadError('');
+      setSourceLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadError('');
+    setSourceLoading(true);
+    fetchWithAuth(exportUrl)
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload?.detail || 'Unable to prepare export.');
+        if (!cancelled) {
+          setSourceData(normalizeExportRows(Array.isArray(payload) ? payload : payload.results || []));
+          setSourceLoading(false);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setLoadError(error.message || 'Unable to prepare export.');
+          setSourceLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [data, exportUrl, isOpen]);
   
   const columns = [
     { id: 'name', label: 'Name', default: true },
@@ -16,7 +64,7 @@ const DataExportModal = ({ isOpen, onClose, data, selectedIds, activeStat }) => 
     { id: 'lastLogin', label: 'Last Login', default: false },
     { id: 'is_verified', label: 'Verification Status', default: true },
     { id: 'subscriptionStatus', label: 'Subscription', default: false },
-    { id: 'country', label: 'Country', default: false },
+    { id: 'country', label: 'Country', default: true },
     { id: 'city', label: 'City', default: false },
   ];
 
@@ -25,7 +73,7 @@ const DataExportModal = ({ isOpen, onClose, data, selectedIds, activeStat }) => 
   );
 
   const exportData = useMemo(() => {
-    let filtered = [...data];
+    let filtered = [...sourceData];
     
     // Filter by selected IDs if any
     if (selectedIds && selectedIds.length > 0) {
@@ -41,7 +89,7 @@ const DataExportModal = ({ isOpen, onClose, data, selectedIds, activeStat }) => 
       });
     }
     if (dateRange.end) {
-      const end = dayjs(dateRange.end);
+        const end = dayjs(dateRange.end).endOf('day');
       filtered = filtered.filter(item => {
         const itemDate = dayjs(item.onboardDate || item.date_joined || item.onboard);
         return itemDate.isValid() && itemDate.valueOf() <= end.valueOf();
@@ -49,7 +97,7 @@ const DataExportModal = ({ isOpen, onClose, data, selectedIds, activeStat }) => 
     }
     
     return filtered;
-  }, [data, selectedIds, dateRange]);
+  }, [sourceData, selectedIds, dateRange]);
 
   const toggleColumn = (id) => {
     setSelectedColumns(prev => 
@@ -60,19 +108,11 @@ const DataExportModal = ({ isOpen, onClose, data, selectedIds, activeStat }) => 
   const handleExport = () => {
     setIsPreparing(true);
     
-    // Simulate preparation for premium feel
-    setTimeout(() => {
-      const filename = `carenest_${activeStat}_export_${dayjs().format('YYYY-MM-DD')}`;
-      
-      if (format === 'csv') {
-        downloadCSV(exportData, filename);
-      } else {
-        downloadJSON(exportData, filename);
-      }
-      
-      setIsPreparing(false);
-      onClose();
-    }, 800);
+    const filename = `carenest_${activeStat}_export_${dayjs().format('YYYY-MM-DD')}`;
+    if (format === 'csv') downloadCSV(exportData, filename);
+    else downloadJSON(exportData, filename);
+    setIsPreparing(false);
+    onClose();
   };
 
   const downloadCSV = (rows, filename) => {
@@ -84,7 +124,7 @@ const DataExportModal = ({ isOpen, onClose, data, selectedIds, activeStat }) => 
       ...rows.map(row => selectedCols.map(col => {
         let val = row[col.id];
         if (col.id === 'is_verified') val = val ? 'Verified' : 'Pending';
-        return `"${String(val || '').replace(/"/g, '""')}"`;
+        return `"${String(val ?? '').replace(/"/g, '""')}"`;
       }))
     ].map(e => e.join(",")).join("\n");
 
@@ -135,6 +175,8 @@ const DataExportModal = ({ isOpen, onClose, data, selectedIds, activeStat }) => 
             <FaTimes size={20} />
           </button>
         </div>
+
+        {loadError && <p className="mb-4 text-sm text-red-600">{loadError}</p>}
 
         <div className="space-y-6">
           {/* Format Selection */}
@@ -212,10 +254,10 @@ const DataExportModal = ({ isOpen, onClose, data, selectedIds, activeStat }) => 
           </button>
           <button
             onClick={handleExport}
-            disabled={isPreparing || exportData.length === 0}
+            disabled={isPreparing || sourceLoading || exportData.length === 0}
             className="flex-[2] px-4 py-2.5 bg-[#0b93c6] text-white rounded-md font-medium shadow-sm hover:bg-[#0a82b0] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isPreparing ? (
+            {isPreparing || sourceLoading ? (
               <span className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 Preparing...
