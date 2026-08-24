@@ -18,6 +18,7 @@ const STATUS_OPTIONS = [
 const COMPLETION_SOURCES = ["active", "rejected"];
 
 const formatDate = (value) => (value ? dayjs(value).format("DD-MM-YYYY") : "—");
+const formatDateTime = (value) => (value ? dayjs(value).format("DD-MM-YYYY, h:mm A") : "—");
 
 function Jobs() {
   const [query, setQuery] = useState("");
@@ -318,8 +319,11 @@ function Jobs() {
                   ["Job request", selectedJob.job_request_title || "—"],
                   ["Care seeker", selectedJob.seeker_name || "—"],
                   ["Care seeker email", selectedJob.seeker_email || "—"],
+                  ["Care seeker phone", selectedJob.seeker_phone || "—"],
                   ["Provider", selectedJob.provider_name || "—"],
                   ["Provider email", selectedJob.provider_email || "—"],
+                  ["Provider phone", selectedJob.provider_phone || "—"],
+                  ["Job summary", selectedJob.job_summary || "—"],
                   [
                     "Status",
                     <AdminStatusTag key="status" value={selectedJob.status} />,
@@ -337,8 +341,8 @@ function Jobs() {
                       value={selectedJob.payment_status}
                     />,
                   ],
-                  ["Hired at", formatDate(selectedJob.hired_at)],
-                  ["Completed at", formatDate(selectedJob.completed_at)],
+                  ["Hired at", formatDateTime(selectedJob.hired_at)],
+                  ["Completed at", formatDateTime(selectedJob.completed_at)],
                 ].map(([label, value]) => (
                   <div
                     key={label}
@@ -351,6 +355,105 @@ function Jobs() {
                   </div>
                 ))}
               </div>
+              <section className="mt-7 border-t border-[#EAECF0] pt-5">
+                <h3 className="text-sm font-semibold text-[#0E2F43]">
+                  Activity
+                </h3>
+                <div className="mt-3 space-y-3 text-sm">
+                  {[
+                    [
+                      "Activity state",
+                      selectedJob.is_activity_in_progress
+                        ? "In progress"
+                        : selectedJob.has_ended_activity
+                          ? "Ended"
+                          : "Not started",
+                    ],
+                    ["End code", selectedJob.provider_end_code || "—"],
+                    ["Care type", selectedJob.service_category_label || "—"],
+                    ["Job type", selectedJob.job_type || "—"],
+                    [
+                      "Location",
+                      [
+                        selectedJob.location_details?.city,
+                        selectedJob.location_details?.state,
+                        selectedJob.location_details?.country,
+                      ]
+                        .filter(Boolean)
+                        .join(", ") || "—",
+                    ],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="flex items-start justify-between gap-4 border-b border-gray-50 pb-2"
+                    >
+                      <span className="text-[#A6A6A7]">{label}</span>
+                      <span className="max-w-[60%] break-words text-right font-semibold text-[#0E2F43]">
+                        {value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {selectedJob.scheduled_activities?.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Schedule
+                    </p>
+                    {selectedJob.scheduled_activities.map((activity) => (
+                      <div
+                        key={activity.id}
+                        className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                      >
+                        <div className="flex justify-between gap-3 font-semibold text-slate-700">
+                          <span>{activity.source_label || activity.source}</span>
+                          <span>{activity.status_label || activity.status}</span>
+                        </div>
+                        <div className="mt-1">
+                          {formatDate(activity.scheduled_date)} · {activity.scheduled_start_time || "—"} – {activity.scheduled_end_time || "—"}
+                        </div>
+                        <div className="mt-1">
+                          Actual: {formatDateTime(activity.actual_start_time)} – {formatDateTime(activity.actual_end_time)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+              {selectedJob.settlement && (
+                <section className="mt-7 border-t border-[#EAECF0] pt-5">
+                  <h3 className="text-sm font-semibold text-[#0E2F43]">
+                    Settlement
+                  </h3>
+                  <div className="mt-3 space-y-3 text-sm">
+                    {[
+                      [
+                        "Settlement status",
+                        selectedJob.settlement.status_label || selectedJob.settlement.status,
+                      ],
+                      [
+                        "Billing basis",
+                        selectedJob.settlement.billing_basis_label || selectedJob.settlement.billing_basis,
+                      ],
+                      ["Billable hours", selectedJob.settlement.billable_hours],
+                      ["Work subtotal", selectedJob.settlement.work_subtotal],
+                      ["Platform fee", selectedJob.settlement.platform_fee],
+                      ["Provider earnings", selectedJob.settlement.provider_earnings],
+                      ["Total amount", selectedJob.settlement.total_amount],
+                      ["Gateway reference", selectedJob.settlement.gateway_reference],
+                    ].map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="flex items-start justify-between gap-4 border-b border-gray-50 pb-2"
+                      >
+                        <span className="text-[#A6A6A7]">{label}</span>
+                        <span className="max-w-[60%] break-words text-right font-semibold text-[#0E2F43]">
+                          {value ?? "—"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
               <form
                 onSubmit={saveStatus}
                 className="mt-7 border-t border-[#EAECF0] pt-5"

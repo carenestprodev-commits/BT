@@ -21,7 +21,6 @@ import MessageTemplatesModal from "../../Components/Admin/MessageTemplatesModal"
 import UserTimelineModal from "../../Components/Admin/UserTimelineModal";
 import ProfileCompletionChecklist from "../../Components/Admin/ProfileCompletionChecklist";
 import AdminPagination from "../../Components/Admin/AdminPagination";
-import { useClientPagination } from "../../hooks/useAdminCollection";
 import CubeIcon from "../../../public/3dcube.svg?react";
 import CubeIconGreen from "../../../public/3dcubeGreen.svg?react";
 import CubeIconPink from "../../../public/3dcubePink.svg?react";
@@ -619,7 +618,7 @@ const buildAdminSections = (user) => [
 
 function Users({ initialStat = "all" }) {
   const dispatch = useDispatch();
-  const { stats, users } = useSelector(
+  const { stats, users, userCount = 0, usersLoading = false, usersError = null } = useSelector(
     (s) => s.adminUsers || { stats: {}, users: [] },
   );
   const currentUserId = useSelector((s) => s.auth?.user?.id);
@@ -633,6 +632,9 @@ function Users({ initialStat = "all" }) {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [deleteRow, setDeleteRow] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const pageSize = 20;
 
   // New states for physical documents workflow
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
@@ -688,24 +690,48 @@ function Users({ initialStat = "all" }) {
     setActiveStat(initialStat);
   }, [initialStat]);
 
-  // Fetch appropriate user list when activeStat changes
   useEffect(() => {
-    switch (activeStat) {
-      case "providers":
-        dispatch(fetchProviders());
-        break;
-      case "seekers":
-        dispatch(fetchSeekers());
-        break;
-      case "signups":
-        dispatch(fetchNewSignups());
-        break;
-      case "all":
-      default:
-        dispatch(fetchAllUsers());
-        break;
-    }
-  }, [activeStat, dispatch]);
+    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeStat, debouncedQuery, locationFilter, accountStatusFilter, profileStatusFilters, sortBy.key, sortBy.dir]);
+
+  useEffect(() => {
+    const params = {
+      page: currentPage,
+      page_size: pageSize,
+      search: debouncedQuery,
+      account_status:
+        accountStatusFilter === "All"
+          ? ""
+          : accountStatusFilter.toLowerCase(),
+      location: locationFilter === "All" ? "" : locationFilter,
+      profile_status: profileStatusFilters,
+      ordering: `${sortBy.dir === "desc" ? "-" : ""}${sortBy.key}`,
+    };
+    const action =
+      activeStat === "providers"
+        ? fetchProviders
+        : activeStat === "seekers"
+          ? fetchSeekers
+          : activeStat === "signups"
+            ? fetchNewSignups
+            : fetchAllUsers;
+    dispatch(action(params));
+  }, [
+    activeStat,
+    currentPage,
+    debouncedQuery,
+    locationFilter,
+    accountStatusFilter,
+    profileStatusFilters,
+    sortBy.key,
+    sortBy.dir,
+    dispatch,
+  ]);
 
   const { currentUser, currentUserLoading, currentUserError } = useSelector(
     (s) => s.adminUsers || { currentUser: null },
@@ -774,8 +800,8 @@ function Users({ initialStat = "all" }) {
       is_online: Boolean(u.is_online),
       requestHistory: 0,
       requestsMade: 0,
-      country: "",
-      city: "",
+      country: u.country || u.location_details?.country || "",
+      city: u.city || u.location_details?.city || "",
       nationality: "",
       location: formatLocation(u.location_details),
       accountStatus: u.is_active ? "Active" : "Suspended",
@@ -885,73 +911,7 @@ function Users({ initialStat = "all" }) {
     setCurrentPage(1);
   };
 
-  const filtered = useMemo(() => {
-    let data = [...rows];
-
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      data = data.filter(
-        (r) =>
-          r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q),
-      );
-    }
-    if (locationFilter !== "All") {
-      data = data.filter((r) =>
-        String(r.location || "")
-          .toLowerCase()
-          .includes(locationFilter.toLowerCase()),
-      );
-    }
-    if (accountStatusFilter !== "All") {
-      data = data.filter((r) => r.accountStatus === accountStatusFilter);
-    }
-    if (profileStatusFilters.length > 0) {
-      data = data.filter((r) => {
-        return profileStatusFilters.some((f) => {
-          if (f === "Complete") return r.is_profile_complete;
-          if (f === "Incomplete") return !r.is_profile_complete;
-          if (f === "Verified") return isVerifiedRow(r);
-          if (f === "NotVerified") return !isVerifiedRow(r);
-          if (f === "DocumentsReceived") {
-            return (
-              r.documents_received ||
-              r.verification_status === "documents_received"
-            );
-          }
-          if (f === "NoPhoto") return !r.has_profile_picture;
-          return true;
-        });
-      });
-    }
-
-    data.sort((a, b) => {
-      const k = sortBy.key;
-      let av = a[k];
-      let bv = b[k];
-      if (k === "onboard" || k === "lastLogin" || k === "lastUpdated") {
-        const dateField =
-          k === "onboard"
-            ? "onboardDate"
-            : k === "lastLogin"
-              ? "lastLoginDate"
-              : "lastUpdatedDate";
-        av = a[dateField] ? dayjs(a[dateField]).valueOf() : 0;
-        bv = b[dateField] ? dayjs(b[dateField]).valueOf() : 0;
-      }
-      if (av < bv) return sortBy.dir === "asc" ? -1 : 1;
-      if (av > bv) return sortBy.dir === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return data;
-  }, [
-    rows,
-    query,
-    locationFilter,
-    accountStatusFilter,
-    sortBy,
-    profileStatusFilters,
-  ]);
+  const filtered = useMemo(() => rows, [rows]);
 
   const dashboardStats = useMemo(() => {
     const providersFromRows = rows.filter(
@@ -970,22 +930,12 @@ function Users({ initialStat = "all" }) {
   }, [rows, stats]);
 
   const profileStats = useMemo(() => {
-    const source = rows;
-    const verified = source.filter((row) => isVerifiedRow(row)).length;
-    const incomplete = source.filter((row) => !row.is_profile_complete).length;
-    const awaitingVerification = source.filter(
-      (row) =>
-        (row.verification_status === "documents_received" ||
-          row.documents_received) &&
-        !isVerifiedRow(row),
-    ).length;
-
     return {
-      verified,
-      incomplete,
-      awaitingVerification,
+      verified: Number(stats?.verified_users ?? 0),
+      incomplete: Number(stats?.incomplete_profiles ?? 0),
+      awaitingVerification: Number(stats?.profiles_awaiting_verification ?? 0),
     };
-  }, [rows]);
+  }, [stats]);
 
   const statsConfig = [
     {
@@ -1041,31 +991,34 @@ function Users({ initialStat = "all" }) {
     },
   ];
 
-  const visibleCount = filtered.length;
-
-  const {
-    page: currentPage,
-    setPage: setCurrentPage,
-    pageSize,
-    totalPages,
-    visibleRows: paginated,
-  } = useClientPagination(filtered, {
-    pageSize: 20,
-    resetKey: JSON.stringify([
-      activeStat,
-      query,
-      locationFilter,
-      accountStatusFilter,
-      sortBy,
-      profileStatusFilters,
-    ]),
-  });
+  const visibleCount = userCount;
+  const totalPages = Math.max(1, Math.ceil(userCount / pageSize));
+  const paginated = filtered;
+  const exportUrl = useMemo(() => {
+    const params = new URLSearchParams({
+      type: activeStat,
+      search: debouncedQuery,
+      account_status: accountStatusFilter === "All" ? "" : accountStatusFilter.toLowerCase(),
+      location: locationFilter === "All" ? "" : locationFilter,
+      profile_status: profileStatusFilters.join(","),
+      ordering: `${sortBy.dir === "desc" ? "-" : ""}${sortBy.key}`,
+    });
+    return `${BASE_URL}/api/admin/users/export/?${params}`;
+  }, [
+    activeStat,
+    debouncedQuery,
+    accountStatusFilter,
+    locationFilter,
+    profileStatusFilters,
+    sortBy.key,
+    sortBy.dir,
+  ]);
 
   useEffect(() => {
     setSelectedIds([]);
   }, [
     activeStat,
-    query,
+    debouncedQuery,
     locationFilter,
     accountStatusFilter,
     sortBy.key,
@@ -1279,18 +1232,18 @@ function Users({ initialStat = "all" }) {
                     <div className="space-y-3">
                       <label className="block text-xs font-medium text-slate-500">
                         Location
-                        <select
-                          value={locationFilter}
-                          onChange={(e) => setLocationFilter(e.target.value)}
+                        <input
+                          list="admin-location-options"
+                          value={locationFilter === "All" ? "" : locationFilter}
+                          onChange={(e) => setLocationFilter(e.target.value || "All")}
+                          placeholder="City, state or country"
                           className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0b93c6] focus:ring-2 focus:ring-[#0b93c6]/10"
-                        >
-                          <option value="All">All locations</option>
+                        />
+                        <datalist id="admin-location-options">
                           {locationOptions.map((location) => (
-                            <option key={location} value={location}>
-                              {location}
-                            </option>
+                            <option key={location} value={location} />
                           ))}
-                        </select>
+                        </datalist>
                       </label>
 
                       <label className="block text-xs font-medium text-slate-500">
@@ -3037,7 +2990,19 @@ function Users({ initialStat = "all" }) {
                 </tr>
               </thead>
               <tbody>
-                {paginated.map((r) => (
+                {usersLoading ? (
+                  <tr>
+                    <td colSpan={9} className="p-6 text-center text-slate-500">
+                      Loading users…
+                    </td>
+                  </tr>
+                ) : usersError ? (
+                  <tr>
+                    <td colSpan={9} className="p-6 text-center text-red-600">
+                      Unable to load users. Try again.
+                    </td>
+                  </tr>
+                ) : paginated.map((r) => (
                   <tr
                     key={r.id}
                     onClick={() => openUserDetail(r)}
@@ -3170,7 +3135,7 @@ function Users({ initialStat = "all" }) {
                     </td>
                   </tr>
                 ))}
-                {paginated.length === 0 && (
+                {!usersLoading && !usersError && paginated.length === 0 && (
                   <tr>
                     <td colSpan={9} className="p-6 text-center text-slate-400">
                       No results
@@ -3181,11 +3146,11 @@ function Users({ initialStat = "all" }) {
             </table>
           </div>
 
-          {filtered.length > 0 && (
+          {userCount > 0 && (
             <div className="mt-3">
               <AdminPagination
                 page={currentPage}
-                count={filtered.length}
+                count={userCount}
                 pageSize={pageSize}
                 totalPages={totalPages}
                 onPage={setCurrentPage}
@@ -3204,6 +3169,7 @@ function Users({ initialStat = "all" }) {
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
         data={filtered}
+        exportUrl={exportUrl}
         selectedIds={selectedIds}
         activeStat={activeStat}
       />

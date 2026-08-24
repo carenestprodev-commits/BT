@@ -2,6 +2,35 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL } from "./config";
 import { fetchWithAuth } from "../lib/fetchWithAuth.js";
 
+const fetchUserCollection = async (path, params = {}) => {
+  const query = new URLSearchParams(
+    Object.entries({ page: 1, page_size: 20, ...params }).reduce(
+      (result, [key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          result[key] = Array.isArray(value) ? value.join(",") : String(value);
+        }
+        return result;
+      },
+      {},
+    ),
+  );
+  const res = await fetchWithAuth(`${BASE_URL}${path}?${query}`);
+  const data = await res.json();
+  if (!res.ok) throw data;
+  if (Array.isArray(data)) {
+    return { results: data, count: data.length, page: 1, page_size: data.length };
+  }
+  return {
+    results: Array.isArray(data.results) ? data.results : [],
+    count: Number(data.count || 0),
+    page: Number(data.page || params.page || 1),
+    page_size: Number(data.page_size || params.page_size || 20),
+  };
+};
+
+const collectionError = (error) =>
+  error && typeof error === "object" ? error : { error: "Network error" };
+
 export const fetchAdminStats = createAsyncThunk(
   "adminUsers/fetchAdminStats",
   async (_, { rejectWithValue }) => {
@@ -10,84 +39,52 @@ export const fetchAdminStats = createAsyncThunk(
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
       return data;
-    } catch {
-      return rejectWithValue({ error: "Network error" });
+    } catch (error) {
+      return rejectWithValue(collectionError(error));
     }
   },
 );
 
 export const fetchAllUsers = createAsyncThunk(
   "adminUsers/fetchAllUsers",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const access =
-        localStorage.getItem("accessToken") || localStorage.getItem("access");
-      const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/all/`, {
-        headers,
-      });
-      const data = await res.json();
-      if (!res.ok) return rejectWithValue(data);
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return rejectWithValue({ error: "Network error" });
+      return await fetchUserCollection("/api/admin/users/all/", params);
+    } catch (error) {
+      return rejectWithValue(collectionError(error));
     }
   },
 );
 
 export const fetchProviders = createAsyncThunk(
   "adminUsers/fetchProviders",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const access =
-        localStorage.getItem("accessToken") || localStorage.getItem("access");
-      const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/providers/`, {
-        headers,
-      });
-      const data = await res.json();
-      if (!res.ok) return rejectWithValue(data);
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return rejectWithValue({ error: "Network error" });
+      return await fetchUserCollection("/api/admin/users/providers/", params);
+    } catch (error) {
+      return rejectWithValue(collectionError(error));
     }
   },
 );
 
 export const fetchSeekers = createAsyncThunk(
   "adminUsers/fetchSeekers",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const access =
-        localStorage.getItem("accessToken") || localStorage.getItem("access");
-      const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/seekers/`, {
-        headers,
-      });
-      const data = await res.json();
-      if (!res.ok) return rejectWithValue(data);
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return rejectWithValue({ error: "Network error" });
+      return await fetchUserCollection("/api/admin/users/seekers/", params);
+    } catch (error) {
+      return rejectWithValue(collectionError(error));
     }
   },
 );
 
 export const fetchNewSignups = createAsyncThunk(
   "adminUsers/fetchNewSignups",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const access =
-        localStorage.getItem("accessToken") || localStorage.getItem("access");
-      const headers = access ? { Authorization: `Bearer ${access}` } : {};
-      const res = await fetchWithAuth(`${BASE_URL}/api/admin/users/new-signups/`, {
-        headers,
-      });
-      const data = await res.json();
-      if (!res.ok) return rejectWithValue(data);
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return rejectWithValue({ error: "Network error" });
+      return await fetchUserCollection("/api/admin/users/new-signups/", params);
+    } catch (error) {
+      return rejectWithValue(collectionError(error));
     }
   },
 );
@@ -522,6 +519,13 @@ export const approveUser = createAsyncThunk(
   },
 );
 
+const applyUserCollection = (state, payload) => {
+  state.users = payload?.results || [];
+  state.userCount = Number(payload?.count || 0);
+  state.userPage = Number(payload?.page || 1);
+  state.userPageSize = Number(payload?.page_size || 20);
+};
+
 const slice = createSlice({
   name: "adminUsers",
   initialState: {
@@ -530,8 +534,14 @@ const slice = createSlice({
       total_providers: 0,
       total_seekers: 0,
       new_sign_ups: 0,
+      verified_users: 0,
+      incomplete_profiles: 0,
+      profiles_awaiting_verification: 0,
     },
     users: [],
+    userCount: 0,
+    userPage: 1,
+    userPageSize: 20,
     currentUser: null,
     loading: false,
     error: null,
@@ -550,18 +560,27 @@ const slice = createSlice({
     documentsLoading: false,
     documentsError: null,
     lastFetchType: null, // Track which fetch was last initiated
+    latestUserRequestId: null,
   },
   reducers: {
     clearAdminUsers(state) {
       state.users = [];
+      state.userCount = 0;
+      state.userPage = 1;
       state.stats = {
         total_users: 0,
         total_providers: 0,
         total_seekers: 0,
         new_sign_ups: 0,
+        verified_users: 0,
+        incomplete_profiles: 0,
+        profiles_awaiting_verification: 0,
       };
       state.loading = false;
       state.error = null;
+      state.usersLoading = false;
+      state.usersError = null;
+      state.latestUserRequestId = null;
     },
     clearCurrentUser(state) {
       state.currentUser = null;
@@ -584,20 +603,20 @@ const slice = createSlice({
         state.error = action.payload || action.error;
       })
 
-      .addCase(fetchAllUsers.pending, (state) => {
+      .addCase(fetchAllUsers.pending, (state, action) => {
         state.usersLoading = true;
         state.usersError = null;
         state.lastFetchType = "all";
+        state.latestUserRequestId = action.meta.requestId;
       })
       .addCase(fetchAllUsers.fulfilled, (state, action) => {
-        // Only update if this is still the expected fetch type
-        if (state.lastFetchType === "all") {
+        if (state.lastFetchType === "all" && state.latestUserRequestId === action.meta.requestId) {
           state.usersLoading = false;
-          state.users = action.payload;
+          applyUserCollection(state, action.payload);
         }
       })
       .addCase(fetchAllUsers.rejected, (state, action) => {
-        if (state.lastFetchType === "all") {
+        if (state.lastFetchType === "all" && state.latestUserRequestId === action.meta.requestId) {
           state.usersLoading = false;
           state.usersError = action.payload || action.error;
         }
@@ -680,60 +699,63 @@ const slice = createSlice({
       })
 
       // Handlers for fetchProviders
-      .addCase(fetchProviders.pending, (state) => {
+      .addCase(fetchProviders.pending, (state, action) => {
         state.usersLoading = true;
         state.usersError = null;
         state.lastFetchType = "providers";
+        state.latestUserRequestId = action.meta.requestId;
       })
       .addCase(fetchProviders.fulfilled, (state, action) => {
         // Only update if this is still the expected fetch type
-        if (state.lastFetchType === "providers") {
+        if (state.lastFetchType === "providers" && state.latestUserRequestId === action.meta.requestId) {
           state.usersLoading = false;
-          state.users = action.payload;
+          applyUserCollection(state, action.payload);
         }
       })
       .addCase(fetchProviders.rejected, (state, action) => {
-        if (state.lastFetchType === "providers") {
+        if (state.lastFetchType === "providers" && state.latestUserRequestId === action.meta.requestId) {
           state.usersLoading = false;
           state.usersError = action.payload || action.error;
         }
       })
 
       // Handlers for fetchSeekers
-      .addCase(fetchSeekers.pending, (state) => {
+      .addCase(fetchSeekers.pending, (state, action) => {
         state.usersLoading = true;
         state.usersError = null;
         state.lastFetchType = "seekers";
+        state.latestUserRequestId = action.meta.requestId;
       })
       .addCase(fetchSeekers.fulfilled, (state, action) => {
         // Only update if this is still the expected fetch type
-        if (state.lastFetchType === "seekers") {
+        if (state.lastFetchType === "seekers" && state.latestUserRequestId === action.meta.requestId) {
           state.usersLoading = false;
-          state.users = action.payload;
+          applyUserCollection(state, action.payload);
         }
       })
       .addCase(fetchSeekers.rejected, (state, action) => {
-        if (state.lastFetchType === "seekers") {
+        if (state.lastFetchType === "seekers" && state.latestUserRequestId === action.meta.requestId) {
           state.usersLoading = false;
           state.usersError = action.payload || action.error;
         }
       })
 
       // Handlers for fetchNewSignups
-      .addCase(fetchNewSignups.pending, (state) => {
+      .addCase(fetchNewSignups.pending, (state, action) => {
         state.usersLoading = true;
         state.usersError = null;
         state.lastFetchType = "signups";
+        state.latestUserRequestId = action.meta.requestId;
       })
       .addCase(fetchNewSignups.fulfilled, (state, action) => {
         // Only update if this is still the expected fetch type
-        if (state.lastFetchType === "signups") {
+        if (state.lastFetchType === "signups" && state.latestUserRequestId === action.meta.requestId) {
           state.usersLoading = false;
-          state.users = action.payload;
+          applyUserCollection(state, action.payload);
         }
       })
       .addCase(fetchNewSignups.rejected, (state, action) => {
-        if (state.lastFetchType === "signups") {
+        if (state.lastFetchType === "signups" && state.latestUserRequestId === action.meta.requestId) {
           state.usersLoading = false;
           state.usersError = action.payload || action.error;
         }
