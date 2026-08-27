@@ -24,14 +24,10 @@ const userLinks = [
 ];
 
 const paymentLinks = [
-  { to: "/admin/earnings", label: "Payout" },
-  { to: "/admin/earnings/fees", label: "Providers fees" },
-  { to: "/admin/subscription/plans", label: "Providers subscription plans" },
-  { to: "/admin/subscription", label: "Provider subscriptions" },
-  { to: "/admin/earnings/transactions", label: "Transactions" },
-  { to: "/admin/subscription/users", label: "User subscriptions" },
+  { to: "/admin/earnings", label: "Payments" },
+  { to: "/admin/subscription", label: "Subscriptions" },
   { to: "/admin/earnings/wallet-transactions", label: "Wallet transactions" },
-  { to: "/admin/earnings/wallet", label: "Wallet" },
+  { to: "/admin/earnings/wallet", label: "Wallets" },
 ];
 
 const jobLinks = [
