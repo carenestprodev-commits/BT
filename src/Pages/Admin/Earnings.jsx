@@ -5,6 +5,8 @@ import { useDispatch, useSelector } from "react-redux";
 import AdminPagination from "../../Components/Admin/AdminPagination";
 import { useClientPagination } from "../../hooks/useAdminCollection";
 import { fetchEarningsStats, fetchSeekerTransactions } from "../../Redux/AdminEarning";
+import { BASE_URL } from "../../Redux/config";
+import { fetchWithAuth } from "../../lib/fetchWithAuth";
 
 const money = (value) => `₦${Number(value || 0).toLocaleString()}`;
 const statusStyle = { successful: "bg-emerald-50 text-emerald-700", pending: "bg-amber-50 text-amber-700", failed: "bg-rose-50 text-rose-700" };
@@ -15,6 +17,8 @@ export default function Earnings() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [selected, setSelected] = useState(null);
+  const [rechecking, setRechecking] = useState(false);
+  const [recheckError, setRecheckError] = useState("");
 
   useEffect(() => { dispatch(fetchEarningsStats()); dispatch(fetchSeekerTransactions()); }, [dispatch]);
   const rows = useMemo(() => (transactions || []).filter((item) => {
@@ -28,6 +32,23 @@ export default function Earnings() {
     const csv = data.map((line) => line.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     const anchor = document.createElement("a"); anchor.href = url; anchor.download = "payments.csv"; anchor.click(); URL.revokeObjectURL(url);
+  };
+
+  const recheck = async () => {
+    setRechecking(true);
+    setRecheckError("");
+    try {
+      const response = await fetchWithAuth(`${BASE_URL}/api/admin/earnings/transactions/${encodeURIComponent(selected.transaction_id)}/recheck/`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || data.error || "Transaction recheck failed.");
+      setSelected(data.transaction);
+      dispatch(fetchEarningsStats());
+      dispatch(fetchSeekerTransactions());
+    } catch (error) {
+      setRecheckError(error.message);
+    } finally {
+      setRechecking(false);
+    }
   };
 
   return <div className="min-h-full bg-[#f3f7fb] p-4 text-slate-900 sm:p-6">
@@ -44,6 +65,6 @@ export default function Earnings() {
       <tbody>{visibleRows.map((row) => <tr key={row.id} onClick={() => setSelected(row)} className="cursor-pointer border-t border-slate-100 hover:bg-cyan-50/40"><td className="px-4 py-3 font-medium text-[#0E2F43]">{row.transaction_id}</td><td className="px-4 py-3"><div>{row.user_name || "—"}</div><div className="text-xs text-slate-500">{row.user_email}</div></td><td className="px-4 py-3">{row.purpose}{row.booking_id ? <div className="text-xs text-slate-500">Booking #{row.booking_id}</div> : null}</td><td className="px-4 py-3 capitalize">{row.payment_gateway}</td><td className="px-4 py-3 font-medium">{money(row.amount)}</td><td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${statusStyle[row.status] || "bg-slate-100"}`}>{row.status}</span></td><td className="px-4 py-3">{dayjs(row.created_at).format("DD MMM YYYY, HH:mm")}</td></tr>)}{!seekerLoading && !visibleRows.length && <tr><td colSpan="7" className="px-4 py-12 text-center text-slate-500">No payments found.</td></tr>}</tbody>
     </table></div>
     <AdminPagination page={page} count={rows.length} totalPages={totalPages} pageSize={pageSize} onPage={setPage} />
-    {selected && <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/30" onClick={() => setSelected(null)}><aside className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-xl" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><p className="text-xs uppercase tracking-wide text-slate-500">Payment reconciliation</p><h2 className="mt-1 break-all text-lg font-semibold">{selected.transaction_id}</h2></div><button onClick={() => setSelected(null)} className="text-2xl text-slate-400">×</button></div><dl className="mt-7 space-y-4 text-sm">{[["Status", selected.status], ["Amount", money(selected.amount)], ["Customer", selected.user_name], ["Email", selected.user_email], ["Role", selected.user_role], ["Purpose", selected.purpose], ["Plan", selected.plan_name], ["Booking", selected.booking_id ? `#${selected.booking_id}` : null], ["Gateway", selected.payment_gateway], ["Checkout URL", selected.checkout_url], ["Created", dayjs(selected.created_at).format("DD MMM YYYY, HH:mm:ss")], ["Last updated", dayjs(selected.updated_at).format("DD MMM YYYY, HH:mm:ss")]].map(([label, value]) => <div key={label} className="flex items-start justify-between gap-5 border-b border-slate-100 pb-3"><dt className="text-slate-500">{label}</dt><dd className="max-w-[65%] break-all text-right font-medium capitalize">{value || "—"}</dd></div>)}</dl></aside></div>}
+    {selected && <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/30" onClick={() => setSelected(null)}><aside className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-xl" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><p className="text-xs uppercase tracking-wide text-slate-500">Payment reconciliation</p><h2 className="mt-1 break-all text-lg font-semibold">{selected.transaction_id}</h2></div><button onClick={() => setSelected(null)} className="text-2xl text-slate-400">×</button></div><dl className="mt-7 space-y-4 text-sm">{[["Status", selected.status], ["Amount", money(selected.amount)], ["Customer", selected.user_name], ["Email", selected.user_email], ["Role", selected.user_role], ["Purpose", selected.purpose], ["Plan", selected.plan_name], ["Booking", selected.booking_id ? `#${selected.booking_id}` : null], ["Gateway", selected.payment_gateway], ["Checkout URL", selected.checkout_url], ["Created", dayjs(selected.created_at).format("DD MMM YYYY, HH:mm:ss")], ["Last updated", dayjs(selected.updated_at).format("DD MMM YYYY, HH:mm:ss")]].map(([label, value]) => <div key={label} className="flex items-start justify-between gap-5 border-b border-slate-100 pb-3"><dt className="text-slate-500">{label}</dt><dd className="max-w-[65%] break-all text-right font-medium capitalize">{value || "—"}</dd></div>)}</dl><div className="mt-6"><button onClick={recheck} disabled={rechecking} className="w-full rounded-lg bg-[#0E2F43] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60">{rechecking ? `Checking ${selected.payment_gateway}…` : "Recheck transaction"}</button>{recheckError && <p className="mt-2 text-sm text-rose-600">{recheckError}</p>}</div></aside></div>}
   </div>;
 }
