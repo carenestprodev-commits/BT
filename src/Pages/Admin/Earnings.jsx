@@ -1,352 +1,49 @@
-import { useMemo, useState, useEffect } from "react";
-import { FaSearch, FaDownload, FaCalendarAlt, FaWallet } from "react-icons/fa";
+import { useEffect, useMemo, useState } from "react";
+import { Download, Search } from "lucide-react";
 import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
 import AdminPagination from "../../Components/Admin/AdminPagination";
 import { useClientPagination } from "../../hooks/useAdminCollection";
-import {
-  fetchEarningsStats,
-  fetchProviderEarnings,
-  fetchProviderEarningById,
-} from "../../Redux/AdminEarning";
+import { fetchEarningsStats, fetchSeekerTransactions } from "../../Redux/AdminEarning";
 
-function Earnings() {
+const money = (value) => `₦${Number(value || 0).toLocaleString()}`;
+const statusStyle = { successful: "bg-emerald-50 text-emerald-700", pending: "bg-amber-50 text-amber-700", failed: "bg-rose-50 text-rose-700" };
+
+export default function Earnings() {
   const dispatch = useDispatch();
-  const { stats, providerEarnings, currentProviderEarning, currentLoading } =
-    useSelector(
-      (s) =>
-        s.adminEarning || {
-          stats: {},
-          providerEarnings: [],
-          currentProviderEarning: null,
-          currentLoading: false,
-        },
-    );
-  const [rows, setRows] = useState([]);
-  const [activeStat, setActiveStat] = useState("careProviders");
-  const [detailRow, setDetailRow] = useState(null);
-  const [q, setQ] = useState("");
-  const [date, setDate] = useState("");
+  const { stats, seekerTransactions: transactions, seekerLoading } = useSelector((state) => state.adminEarning);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("");
+  const [selected, setSelected] = useState(null);
 
-  useEffect(() => {
-    dispatch(fetchEarningsStats());
-    dispatch(fetchProviderEarnings());
-  }, [dispatch]);
+  useEffect(() => { dispatch(fetchEarningsStats()); dispatch(fetchSeekerTransactions()); }, [dispatch]);
+  const rows = useMemo(() => (transactions || []).filter((item) => {
+    const text = `${item.transaction_id} ${item.user_name} ${item.user_email} ${item.booking_id || ""}`.toLowerCase();
+    return (!query || text.includes(query.toLowerCase())) && (!status || item.status === status);
+  }), [transactions, query, status]);
+  const { page, setPage, pageSize, totalPages, visibleRows } = useClientPagination(rows, { pageSize: 12, resetKey: `${query}|${status}` });
 
-  useEffect(() => {
-    setRows(
-      (providerEarnings || []).map((t) => ({
-        id: t.transaction_id,
-        user: t.user_name || "Unknown provider",
-        amount: t.amount,
-        time: t.time,
-        date: t.date,
-        bookingId: t.booking_id,
-      })),
-    );
-  }, [providerEarnings]);
+  const download = () => {
+    const data = [["Reference", "User", "Email", "Purpose", "Booking", "Gateway", "Status", "Amount", "Created"], ...rows.map((row) => [row.transaction_id, row.user_name, row.user_email, row.purpose, row.booking_id || "", row.payment_gateway, row.status, row.amount, row.created_at])];
+    const csv = data.map((line) => line.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = "payments.csv"; anchor.click(); URL.revokeObjectURL(url);
+  };
 
-  const filtered = useMemo(() => {
-    let data = [...rows];
-    if (q.trim()) {
-      const t = q.toLowerCase();
-      data = data.filter(
-        (r) =>
-          String(r.id).toLowerCase().includes(t) ||
-          r.user.toLowerCase().includes(t),
-      );
-    }
-    if (date) {
-      data = data.filter((r) => dayjs(r.date).isSame(dayjs(date), "day"));
-    }
-    return data;
-  }, [rows, q, date]);
-
-  const { page, setPage, pageSize, totalPages, visibleRows } =
-    useClientPagination(filtered, { pageSize: 8, resetKey: `${q}|${date}` });
-
-  function downloadCSV() {
-    const csv = [
-      [
-        "Transaction ID",
-        "Care Provider",
-        "Amount",
-        "Time",
-        "Date",
-        "Booking ID",
-      ],
-      ...filtered.map((r) => [
-        r.id,
-        r.user,
-        r.amount,
-        r.time,
-        r.date,
-        r.bookingId || "",
-      ]),
-    ]
-      .map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
-      )
-      .join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "earnings.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function downloadRowCSV(row) {
-    const csv = [
-      [
-        "Transaction ID",
-        "Care Provider",
-        "Amount",
-        "Time",
-        "Date",
-        "Booking ID",
-      ],
-      [row.id, row.user, row.amount, row.time, row.date, row.bookingId || ""],
-    ]
-      .map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
-      )
-      .join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${row.id}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  useEffect(() => {
-    if (currentProviderEarning) {
-      const t = currentProviderEarning;
-      setDetailRow({
-        id: t.transaction_id,
-        user: t.user_name || "Unknown provider",
-        amount: t.amount,
-        time: t.time,
-        date: t.date,
-        bookingId: t.booking_id,
-      });
-    }
-  }, [currentProviderEarning]);
-
-  return (
-    <div className="min-h-full bg-[#f3f7fb] p-4 text-slate-900 font-sfpro sm:p-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        {[
-          {
-            key: "careProviders",
-            label: "Care Provider Earnings",
-            value: stats?.care_provider_earnings ?? 0,
-          },
-          {
-            key: "platform",
-            label: "Platform Earnings",
-            value: stats?.platform_earnings ?? stats?.platform ?? 0,
-          },
-        ].map((s) => {
-          const active = activeStat === s.key;
-          return (
-            <div
-              key={s.key}
-              onClick={() => {
-                setActiveStat(active ? "careProviders" : s.key);
-              }}
-              className={`cursor-pointer rounded-xl border p-4 shadow-[0_2px_10px_rgba(15,47,67,0.04)] ${
-                active
-                  ? "border-[#0e2f43] bg-[#0e2f43] text-white"
-                  : "border-slate-200 bg-white text-slate-900"
-              } flex items-center gap-4`}
-            >
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                  active ? "bg-white/10" : "bg-slate-100"
-                }`}
-              >
-                <FaWallet className="text-[#0ea5d7]" />
-              </div>
-              <div>
-                <div className="text-sm opacity-80">{s.label}</div>
-                <div className="text-2xl font-semibold mt-2">
-                  {typeof s.value === "number"
-                    ? `₦${Number(s.value).toLocaleString()}`
-                    : s.value}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4">
-        <div className="flex-1 w-full">
-          <div className="flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-[0_1px_3px_rgba(15,47,67,0.05)]">
-            <FaSearch className="text-slate-400 mr-2" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="search care provider"
-              className="w-full bg-white text-sm text-slate-900 outline-none placeholder:text-slate-400"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 mt-3 md:mt-0">
-          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900">
-            <FaCalendarAlt className="text-slate-400" />
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="outline-none text-sm text-black bg-white"
-            />
-          </div>
-          <button
-            onClick={downloadCSV}
-            className="flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-[#0d99c9] transition hover:bg-cyan-50 active:scale-[0.98]"
-            aria-label="download"
-          >
-            <FaDownload className="text-slate-600" />
-          </button>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white text-slate-900 shadow-[0_4px_16px_rgba(15,47,67,0.04)]">
-        <table className="w-full text-sm">
-          <thead className="bg-[#f5f9fc] text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-3 py-2.5">
-                <input type="checkbox" />
-              </th>
-              <th className="px-3 py-2.5 text-left">Transaction ID</th>
-              <th className="px-3 py-2.5 text-left">Care Provider</th>
-              <th className="px-3 py-2.5 text-left">Amount</th>
-              <th className="px-3 py-2.5 text-left">Time</th>
-              <th className="px-3 py-2.5 text-left">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleRows.map((r) => (
-              <tr
-                key={r.id}
-                onClick={() => {
-                  setDetailRow({ id: r.id, user: "Loading..." });
-                  dispatch(fetchProviderEarningById(r.id));
-                }}
-                className="cursor-pointer border-b border-slate-100 last:border-b-0 hover:bg-cyan-50/40"
-              >
-                <td className="px-3 py-2.5">
-                  <input onClick={(e) => e.stopPropagation()} type="checkbox" />
-                </td>
-                <td className="px-3 py-2.5 font-semibold">{r.id}</td>
-                <td className="px-3 py-2.5">{r.user}</td>
-                <td className="px-3 py-2.5">
-                  ₦{Number(r.amount || 0).toLocaleString()}
-                </td>
-                <td className="px-3 py-2.5">{r.time}</td>
-                <td className="px-3 py-2.5">
-                  {r.date ? dayjs(r.date).format("DD-MM-YYYY") : "—"}
-                </td>
-              </tr>
-            ))}
-            {visibleRows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="p-6 text-center text-slate-400">
-                  No results
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      {filtered.length > 0 && (
-        <AdminPagination
-          page={page}
-          count={filtered.length}
-          pageSize={pageSize}
-          totalPages={totalPages}
-          onPage={setPage}
-        />
-      )}
-      {/* Details Modal */}
-      {detailRow && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-24">
-          <div
-            className="absolute inset-0 bg-black/30"
-            onClick={() => setDetailRow(null)}
-          />
-          <div className="relative z-50 flex max-h-[80vh] w-[340px] flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
-            <button
-              className="absolute right-3 top-3 text-slate-400 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center"
-              onClick={() => setDetailRow(null)}
-            >
-              ✕
-            </button>
-            <h3 className="text-lg font-medium mb-4">Details</h3>
-            <div className="flex-1 overflow-y-auto text-sm text-slate-700 space-y-3 pr-2">
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Transaction ID</span>
-                <span className="text-right">{detailRow.id}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Care provider</span>
-                <span className="text-right">{detailRow.user}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Amount</span>
-                <span className="text-right">
-                  ₦{Number(detailRow.amount || 0).toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-500">Time</span>
-                <span className="text-right">{detailRow.time}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="text-slate-500">Booking</span>
-                <span className="text-right">{detailRow.bookingId || "—"}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="text-slate-500">Date</span>
-                <span className="text-right">
-                  {detailRow.date
-                    ? dayjs(detailRow.date).format("DD-MM-YYYY")
-                    : "—"}
-                </span>
-              </div>
-            </div>
-            <div className="mt-4">
-              <button
-                className="w-full bg-[#0b93c6] text-white py-2 rounded-md mb-3"
-                onClick={() => downloadRowCSV(detailRow)}
-              >
-                Download
-              </button>
-              {currentLoading && (
-                <p className="mt-2 text-center text-xs text-slate-400">
-                  Loading latest details…
-                </p>
-              )}
-              <button
-                className="w-full border border-slate-200 text-slate-700 py-2 rounded-md"
-                onClick={() => setDetailRow(null)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+  return <div className="min-h-full bg-[#f3f7fb] p-4 text-slate-900 sm:p-6">
+    <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      {[["Successful payments", stats?.care_seekers_earnings], ["Provider wallet credits", stats?.care_provider_earnings], ["Recorded platform revenue", stats?.platform_earnings]].map(([label, value]) => <div key={label}><p className="text-xs uppercase tracking-wide text-slate-500">{label}</p><p className="mt-1 text-2xl font-semibold">{money(value)}</p></div>)}
     </div>
-  );
+    <div className="mb-4 flex flex-col gap-3 md:flex-row">
+      <label className="flex flex-1 items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-sm"><Search size={17} className="text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search reference, user, email or booking" className="w-full bg-transparent text-sm outline-none" /></label>
+      <select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-lg bg-white px-3 py-2 text-sm shadow-sm outline-none"><option value="">All statuses</option><option value="successful">Successful</option><option value="pending">Pending</option><option value="failed">Failed</option></select>
+      <button onClick={download} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0E2F43] px-4 py-2 text-sm font-medium text-white"><Download size={16} /> Export</button>
+    </div>
+    <div className="overflow-x-auto rounded-xl bg-white shadow-sm"><table className="w-full text-left text-sm">
+      <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr>{["Reference", "Customer", "Purpose", "Gateway", "Amount", "Status", "Created"].map((label) => <th key={label} className="px-4 py-3">{label}</th>)}</tr></thead>
+      <tbody>{visibleRows.map((row) => <tr key={row.id} onClick={() => setSelected(row)} className="cursor-pointer border-t border-slate-100 hover:bg-cyan-50/40"><td className="px-4 py-3 font-medium text-[#0E2F43]">{row.transaction_id}</td><td className="px-4 py-3"><div>{row.user_name || "—"}</div><div className="text-xs text-slate-500">{row.user_email}</div></td><td className="px-4 py-3">{row.purpose}{row.booking_id ? <div className="text-xs text-slate-500">Booking #{row.booking_id}</div> : null}</td><td className="px-4 py-3 capitalize">{row.payment_gateway}</td><td className="px-4 py-3 font-medium">{money(row.amount)}</td><td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${statusStyle[row.status] || "bg-slate-100"}`}>{row.status}</span></td><td className="px-4 py-3">{dayjs(row.created_at).format("DD MMM YYYY, HH:mm")}</td></tr>)}{!seekerLoading && !visibleRows.length && <tr><td colSpan="7" className="px-4 py-12 text-center text-slate-500">No payments found.</td></tr>}</tbody>
+    </table></div>
+    <AdminPagination page={page} count={rows.length} totalPages={totalPages} pageSize={pageSize} onPage={setPage} />
+    {selected && <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/30" onClick={() => setSelected(null)}><aside className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-xl" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><p className="text-xs uppercase tracking-wide text-slate-500">Payment reconciliation</p><h2 className="mt-1 break-all text-lg font-semibold">{selected.transaction_id}</h2></div><button onClick={() => setSelected(null)} className="text-2xl text-slate-400">×</button></div><dl className="mt-7 space-y-4 text-sm">{[["Status", selected.status], ["Amount", money(selected.amount)], ["Customer", selected.user_name], ["Email", selected.user_email], ["Role", selected.user_role], ["Purpose", selected.purpose], ["Plan", selected.plan_name], ["Booking", selected.booking_id ? `#${selected.booking_id}` : null], ["Gateway", selected.payment_gateway], ["Checkout URL", selected.checkout_url], ["Created", dayjs(selected.created_at).format("DD MMM YYYY, HH:mm:ss")], ["Last updated", dayjs(selected.updated_at).format("DD MMM YYYY, HH:mm:ss")]].map(([label, value]) => <div key={label} className="flex items-start justify-between gap-5 border-b border-slate-100 pb-3"><dt className="text-slate-500">{label}</dt><dd className="max-w-[65%] break-all text-right font-medium capitalize">{value || "—"}</dd></div>)}</dl></aside></div>}
+  </div>;
 }
-
-export default Earnings;

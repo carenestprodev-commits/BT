@@ -19,6 +19,15 @@ const COMPLETION_SOURCES = ["active", "rejected"];
 
 const formatDate = (value) => (value ? dayjs(value).format("DD-MM-YYYY") : "—");
 const formatDateTime = (value) => (value ? dayjs(value).format("DD-MM-YYYY, h:mm A") : "—");
+const formatMoney = (value, settlement) => {
+  if (value === null || value === undefined || value === "") return "—";
+  const currency = settlement?.currency_code || "NGN";
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+  }).format(Number(value));
+};
 
 function Jobs() {
   const [query, setQuery] = useState("");
@@ -426,6 +435,9 @@ function Jobs() {
                   </h3>
                   <div className="mt-3 space-y-3 text-sm">
                     {[
+                      ["Booking ID", `#${selectedJob.id}`],
+                      ["Booking status", selectedJob.status_label || selectedJob.status],
+                      ["Payment status", selectedJob.payment_status],
                       [
                         "Settlement status",
                         selectedJob.settlement.status_label || selectedJob.settlement.status,
@@ -434,12 +446,27 @@ function Jobs() {
                         "Billing basis",
                         selectedJob.settlement.billing_basis_label || selectedJob.settlement.billing_basis,
                       ],
+                      ["Scheduled hours", selectedJob.settlement.scheduled_hours],
+                      ["Overtime hours", selectedJob.settlement.overtime_hours],
+                      ["Extra hours", selectedJob.settlement.extra_hours],
                       ["Billable hours", selectedJob.settlement.billable_hours],
-                      ["Work subtotal", selectedJob.settlement.work_subtotal],
-                      ["Platform fee", selectedJob.settlement.platform_fee],
-                      ["Provider earnings", selectedJob.settlement.provider_earnings],
-                      ["Total amount", selectedJob.settlement.total_amount],
+                      ["Hourly rate", formatMoney(selectedJob.settlement.hourly_rate, selectedJob.settlement)],
+                      ["Work subtotal", formatMoney(selectedJob.settlement.work_subtotal, selectedJob.settlement)],
+                      ["Platform fee", formatMoney(selectedJob.settlement.platform_fee, selectedJob.settlement)],
+                      ["Verification fee", formatMoney(selectedJob.settlement.seeker_verification_fee, selectedJob.settlement)],
+                      ["Provider earnings", formatMoney(selectedJob.settlement.provider_earnings, selectedJob.settlement)],
+                      ["Settlement amount due", formatMoney(selectedJob.settlement.total_amount, selectedJob.settlement)],
                       ["Gateway reference", selectedJob.settlement.gateway_reference],
+                      ["Transaction status", selectedJob.settlement.transaction?.status],
+                      ["Amount sent to gateway", formatMoney(selectedJob.settlement.transaction?.amount, selectedJob.settlement)],
+                      ["Payment gateway", selectedJob.settlement.transaction?.payment_gateway],
+                      ["Transaction created", formatDateTime(selectedJob.settlement.transaction?.created_at)],
+                      ["Provider wallet credit", formatMoney(selectedJob.settlement.wallet_credit?.amount, selectedJob.settlement)],
+                      ["Wallet credit status", selectedJob.settlement.wallet_credit?.status],
+                      ["Wallet credit source", selectedJob.settlement.wallet_credit?.description],
+                      ["Credited by", selectedJob.settlement.wallet_credit?.created_by_email],
+                      ["Settlement closed", formatDateTime(selectedJob.settlement.closed_at)],
+                      ["Settlement paid", formatDateTime(selectedJob.settlement.paid_at)],
                     ].map(([label, value]) => (
                       <div
                         key={label}
