@@ -48,6 +48,8 @@ import AdminLoginPage from "../Pages/Admin/LoginPage";
 import Users from "../Pages/Admin/Users";
 import Activities from "../Pages/Admin/Activities";
 import Earnings from "../Pages/Admin/Earnings";
+import AdminWallet from "../Pages/Admin/Wallet";
+import AdminWalletTransactions from "../Pages/Admin/WalletTransactions";
 import Subscription from "../Pages/Admin/Subscription";
 import Support from "../Pages/Admin/Support";
 import ProfileVerificationSeeker from "../Pages/Admin/ProfileVerificationSeeker";
@@ -524,8 +526,11 @@ export const router = createBrowserRouter([
       { path: "earnings", element: <Earnings /> },
       { path: "earnings/fees", element: <Earnings /> },
       { path: "earnings/transactions", element: <Earnings /> },
-      { path: "earnings/wallet-transactions", element: <Earnings /> },
-      { path: "earnings/wallet", element: <Earnings /> },
+      {
+        path: "earnings/wallet-transactions",
+        element: <AdminWalletTransactions />,
+      },
+      { path: "earnings/wallet", element: <AdminWallet /> },
       { path: "subscription", element: <Subscription /> },
       { path: "subscription/plans", element: <Subscription /> },
       { path: "subscription/users", element: <Subscription /> },
