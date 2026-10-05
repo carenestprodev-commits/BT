@@ -37,6 +37,9 @@ export const registerAndCreateProfile = createAsyncThunk(
         return rejectWithValue(text);
       }
       const data = await res.json();
+      if (data?.error) {
+        return rejectWithValue(data.error);
+      }
       return data;
     } catch (err) {
       return rejectWithValue(err.message);

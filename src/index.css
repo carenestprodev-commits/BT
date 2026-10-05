@@ -44,10 +44,9 @@
     --admin-slate: #64748b;
     --admin-ink: #0f172a;
     --admin-line: #e2e8f0;
-    --admin-font-sans: "SF Pro Display", "Space Grotesk", sans-serif;
+    --admin-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
 
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 }

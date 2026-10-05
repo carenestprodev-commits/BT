@@ -86,6 +86,11 @@ const SignUpModal = ({ isOpen, onClose }) => {
       return;
     }
 
+    if (!acceptedTerms) {
+      alert("Please accept the Terms of Use and Privacy Policy to continue");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -105,11 +110,6 @@ const SignUpModal = ({ isOpen, onClose }) => {
       );
 
       const resAction = await dispatch(registerAndPublish(payload));
-
-      if (!acceptedTerms) {
-        alert("Please accept the Terms of Use and Privacy Policy to continue");
-        return;
-      }
 
       if (resAction.error) {
         alert(

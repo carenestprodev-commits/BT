@@ -60,7 +60,7 @@ export default function LoginPage() {
               </label>
               <input
                 type="email"
-                className={`input input-bordered h-[61px] rounded-[18px] ps-5 w-full bg-[#FFE4DF] border-none text-[16px] text-[#797D8C] font-medium ${
+                className={`input input-bordered h-[61px] rounded-[18px] ps-5 w-full bg-[#FFE4DF] border-none text-[16px] text-[#35465B] font-medium ${
                   errors.email ? "input-error" : ""
                 }`}
                 placeholder="you@example.com"
@@ -96,7 +96,7 @@ export default function LoginPage() {
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  className={`input input-bordered h-[61px] rounded-[18px] ps-5 text-[16px] text-[#797D8C] font-medium w-full bg-red-50 border-red-200 focus:border-orange-500 pr-10 ${
+                  className={`input input-bordered h-[61px] rounded-[18px] ps-5 text-[16px] text-[#35465B] font-medium w-full bg-red-50 border-red-200 focus:border-orange-500 pr-10 ${
                     errors.password ? "input-error" : ""
                   }`}
                   placeholder="••••••••"
@@ -129,7 +129,7 @@ export default function LoginPage() {
                 defaultChecked
                 className="checkbox rounded-[3px] h-[20px] w-[20px] bg-[#FFE4DF] border-none checked:bg-[#FFE4DF]"
               />
-              <p className="italic text-base text-[#7C97B6]">
+              <p className="italic text-base text-[#516F90]">
                 Remember Password
               </p>
             </div>
