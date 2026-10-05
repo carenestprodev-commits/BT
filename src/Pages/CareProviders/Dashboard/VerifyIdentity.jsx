@@ -3,26 +3,31 @@ import Sidebar from "./Sidebar";
 import UploadIcon from "../../../../public/upload.svg";
 import { useDispatch } from "react-redux";
 import { uploadVerificationId } from "../../../Redux/Verification";
-import { MAX_FILE_SIZE } from "../../../lib/constants";
 
 function VerifyIdentity() {
   const [selectedFileId, setSelectedFileId] = useState(null);
   const [selectedFileSelf, setSelectedFileSelf] = useState(null);
   const [selectedFileCertificate, setSelectedFileCertificate] = useState(null);
+  const [selectedFileMedical, setSelectedFileMedical] = useState(null);
   const fileInputRefId = useRef();
   const fileInputRefSelf = useRef();
   const fileInputRefCertificate = useRef();
+  const fileInputRefMedical = useRef();
+
+  // Backend verification uploads cap at 5MB (see core/upload.py).
+  const MAX_VERIFICATION_FILE_SIZE = 5 * 1024 * 1024;
 
   const handleFileChange = (e, target = "id") => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > MAX_FILE_SIZE) {
-      alert("File must be 10MB or smaller.");
+    if (file.size > MAX_VERIFICATION_FILE_SIZE) {
+      alert("File must be 5MB or smaller.");
       e.target.value = "";
       return;
     }
     if (target === "id") setSelectedFileId(file);
     else if (target === "self") setSelectedFileSelf(file);
+    else if (target === "medical") setSelectedFileMedical(file);
     else setSelectedFileCertificate(file);
   };
 
@@ -34,6 +39,11 @@ function VerifyIdentity() {
       if (target === "self") {
         setSelectedFileSelf(null);
         if (fileInputRefSelf.current) fileInputRefSelf.current.value = "";
+      } else if (target === "medical") {
+        setSelectedFileMedical(null);
+        if (fileInputRefMedical.current) {
+          fileInputRefMedical.current.value = "";
+        }
       } else {
         setSelectedFileCertificate(null);
         if (fileInputRefCertificate.current) {
@@ -52,7 +62,9 @@ function VerifyIdentity() {
         ? selectedFileId
         : target === "self"
           ? selectedFileSelf
-          : selectedFileCertificate;
+          : target === "medical"
+            ? selectedFileMedical
+            : selectedFileCertificate;
     if (!file) {
       alert("Please choose a file first");
       return;
@@ -67,7 +79,9 @@ function VerifyIdentity() {
               ? "id"
               : target === "self"
                 ? "image"
-                : "certificate",
+                : target === "medical"
+                  ? "medical"
+                  : "certificate",
         })
       );
       if (res && res.payload && res.payload.message) {
@@ -263,6 +277,58 @@ function VerifyIdentity() {
                   <button
                     className="bg-red-100 text-green-600 px-4 py-1 rounded font-medium hover:bg-red-200 disabled:opacity-50"
                     onClick={() => handleUpload("certificate")}
+                    disabled={uploading}
+                  >
+                    {uploading ? "Uploading..." : "Upload"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="max-w-xl mt-10">
+          <div className="mb-4 text-gray-700 font-medium">
+            Upload Medical Fitness Report (optional)
+          </div>
+          <div className="w-full mx-auto bg-white border border-gray-200 rounded-lg flex flex-col items-center justify-center py-16">
+            <img src={UploadIcon} alt="Upload Icon" className="mb-4 h-20" />
+            {!selectedFileMedical ? (
+              <>
+                <button
+                  className=" text-[#0d99c9] px-6 py-2 rounded text-2xl mb-3 hover:bg-[#007bb0] hover:text-white"
+                  onClick={() => fileInputRefMedical.current.click()}
+                >
+                  Upload File
+                </button>
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  style={{ display: "none" }}
+                  ref={fileInputRefMedical}
+                  onChange={(e) => handleFileChange(e, "medical")}
+                />
+                <div className="text-gray-400 text-sm text-center">
+                  Supported format: jpg, png, pdf
+                  <br />
+                  Optional — helps speed up your review
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <div className="text-[#0d99c9] font-semibold text-lg mb-2">
+                  {selectedFileMedical.name}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    className="bg-red-100 text-red-600 px-4 py-1 rounded font-medium hover:bg-red-200"
+                    onClick={() => handleRemoveFile("medical")}
+                  >
+                    Remove
+                  </button>
+                  <button
+                    className="bg-red-100 text-green-600 px-4 py-1 rounded font-medium hover:bg-red-200 disabled:opacity-50"
+                    onClick={() => handleUpload("medical")}
                     disabled={uploading}
                   >
                     {uploading ? "Uploading..." : "Upload"}

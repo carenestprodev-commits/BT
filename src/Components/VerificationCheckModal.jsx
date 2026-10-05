@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { IoMdClose } from "react-icons/io";
 import VerificationPaymentModal from "./VerificationPaymentModal";
 import { fetchWithAuth } from "../lib/fetchWithAuth.js";
 import { BASE_URL } from "../Redux/config";
@@ -17,12 +16,18 @@ export default function VerificationCheckModal({
   const [plan, setPlan] = useState(null);
   const [planLoading, setPlanLoading] = useState(false);
   const [planError, setPlanError] = useState(null);
-  const [showOutstanding, setShowOutstanding] = useState(false);
 
   const pendingProviderReview =
     userType === "provider" && !isVerified && isSubscribed;
 
   const loadPlan = useCallback(async () => {
+    // Seeker verification fee removed: no plan load needed.
+    if (userType === "seeker") {
+      setPlan(null);
+      setPlanLoading(false);
+      setPlanError(null);
+      return;
+    }
     setPlanLoading(true);
     setPlanError(null);
     try {
@@ -99,67 +104,34 @@ export default function VerificationCheckModal({
   }
 
   const handleMaybeLater = () => {
-    if (userType === "seeker") {
-      setShowOutstanding(true);
-      return;
-    }
     onCancel?.();
   };
 
-  return (
-    <>
+  if (userType === "seeker") {
+    return (
       <VerificationPaymentModal
         isOpen
-        plan={plan}
-        userType={userType}
+        plan={null}
+        userType="seeker"
         onClose={onCancel}
-        onMaybeLater={handleMaybeLater}
-        isLoading={planLoading}
-        loadError={planError}
-        onRetry={loadPlan}
+        onMaybeLater={onCancel}
+        isLoading={false}
+        buttonText="Continue to verification"
       />
-      {showOutstanding && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#263238]/55 p-4">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 text-[#0b2a3d] shadow-2xl">
-            <button
-              type="button"
-              onClick={() => setShowOutstanding(false)}
-              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700"
-              aria-label="Close outstanding verification notice"
-            >
-              <IoMdClose className="h-5 w-5" />
-            </button>
-            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 text-4xl text-amber-500">
-              !
-            </div>
-            <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">
-              Before You Continue
-            </h2>
-            <p className="mb-6 text-center text-sm text-gray-500">
-              You can continue using the platform for now, but your verification
-              fee remains outstanding.
-            </p>
-            <div className="mb-6 rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm text-gray-800">
-              This fee has not been waived or cancelled. It is expected to be
-              paid later.
-            </div>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="mb-3 w-full rounded-lg bg-[#0d99c9] py-3 font-semibold text-white"
-            >
-              Continue for Now
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowOutstanding(false)}
-              className="w-full rounded-lg border border-gray-300 bg-white py-3 font-semibold text-gray-700"
-            >
-              Pay &amp; Verify Now
-            </button>
-          </div>
-        </div>
-      )}
-    </>
+    );
+  }
+
+  return (
+    <VerificationPaymentModal
+      isOpen
+      plan={plan}
+      userType={userType}
+      onClose={onCancel}
+      onMaybeLater={handleMaybeLater}
+      isLoading={planLoading}
+      loadError={planError}
+      onRetry={loadPlan}
+      onDeductActivated={() => loadPlan()}
+    />
   );
 }
