@@ -112,6 +112,7 @@ export const uploadVerificationId = createAsyncThunk(
     // type: 'id' -> government id upload (existing behavior)
     // type: 'image' -> profile image upload (PATCH to upload_image endpoint)
     // type: 'certificate' -> provider training certificate upload
+    // type: 'medical' -> provider medical fitness report upload (optional)
     try {
       const access =
         localStorage.getItem("accessToken") || localStorage.getItem("access");
@@ -129,6 +130,8 @@ export const uploadVerificationId = createAsyncThunk(
         form.append("image", file);
       } else if (type === "certificate") {
         form.append("training_certificate", file);
+      } else if (type === "medical") {
+        form.append("medical_fitness_report", file);
       } else {
         // government id upload
         form.append("government_id", file);

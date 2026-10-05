@@ -64,20 +64,23 @@ export default function VerificationPaymentModal({
   maybeLaterText = "Maybe Later",
   showPaymentOptions = true,
   gateway = null,
+  onDeductActivated = null,
 }) {
   const [paymentOption, setPaymentOption] = useState("full");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
+  const [deductSuccess, setDeductSuccess] = useState(null);
 
   const total = useMemo(() => planAmount(plan), [plan]);
   const symbol = useMemo(() => planSymbol(plan), [plan]);
   const paymentGateway =
     gateway || (planCountry(plan) === "NG" ? "paystack" : "stripe");
-  const half = total / 2;
+  const isSeekerFree = userType === "seeker";
 
   useEffect(() => {
     if (!isOpen) return undefined;
     setPaymentOption("full");
+    setDeductSuccess(null);
     setIsProcessing(false);
     setPaymentError(null);
     return undefined;
@@ -101,8 +104,8 @@ export default function VerificationPaymentModal({
   if (!isOpen) return null;
 
   const handlePayment = async () => {
-    if (isProcessing || (!plan && showPaymentOptions)) return;
-    if (!showPaymentOptions) {
+    if (isProcessing || (!plan && showPaymentOptions && !isSeekerFree)) return;
+    if (!showPaymentOptions || isSeekerFree) {
       onClose?.();
       return;
     }
@@ -127,11 +130,30 @@ export default function VerificationPaymentModal({
         }),
       });
       const data = await response.json().catch(() => ({}));
+      // Seeker fee removed after this client shipped: treat as free.
+      if (response.status === 410 && data?.code === "seeker_verification_fee_removed") {
+        setIsProcessing(false);
+        onClose?.();
+        return;
+      }
       if (!response.ok) {
         throw new Error(getErrorMessage(data, "Payment initiation failed."));
       }
 
+      // Deduct option activates 20% deductions with no checkout URL.
+      // Require the ledger fields (not just any `detail` string) so a
+      // validation error shaped as {detail} can never look like success.
       const checkoutUrl = data.checkout_url || data.authorization_url;
+      if (
+        paymentOption === "deduct" &&
+        userType === "provider" &&
+        !checkoutUrl &&
+        (data.outstanding_amount !== undefined || data.payment_option === "deduct")
+      ) {
+        setDeductSuccess(data);
+        setIsProcessing(false);
+        return;
+      }
       if (!checkoutUrl) throw new Error("Payment link was not returned.");
       window.location.assign(checkoutUrl);
     } catch (error) {
@@ -214,6 +236,24 @@ export default function VerificationPaymentModal({
             Verification is being reviewed. We&apos;ll notify you when it is
             approved.
           </div>
+        ) : isSeekerFree ? (
+          <div className="mt-5 rounded-lg border border-[#bce8f5] bg-[#f0fbfe] p-3 text-center text-xs text-[#315667]">
+            Good news — care seekers no longer pay a verification fee. Complete
+            your profile and upload your documents to get verified.
+          </div>
+        ) : deductSuccess ? (
+          <div className="mt-5 rounded-lg border border-green-200 bg-green-50 p-4 text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
+              <FaCheck className="h-5 w-5" />
+            </div>
+            <p className="text-sm font-bold text-green-800">
+              20% deduction plan activated
+            </p>
+            <p className="mt-1 text-xs text-green-700">
+              20% of each earning will be deducted until your verification fee
+              is fully paid. Payouts remain available while deductions run.
+            </p>
+          </div>
         ) : (
           <>
             <div className="relative mt-5 overflow-hidden rounded-lg bg-[radial-gradient(circle_at_92%_100%,#b8e8f8,transparent_52%),linear-gradient(130deg,#effaff,#e7f7fc)] px-3 py-2.5 text-center sm:mt-6">
@@ -245,11 +285,11 @@ export default function VerificationPaymentModal({
               />
               {userType === "provider" && (
                 <PaymentOption
-                  selected={paymentOption === "half"}
-                  onClick={() => setPaymentOption("half")}
-                  title="Pay in installments"
-                  subtitle="Split into 2 payments"
-                  amount={`2 x ${money(half, symbol)}`}
+                  selected={paymentOption === "deduct"}
+                  onClick={() => setPaymentOption("deduct")}
+                  title="Pay from earnings"
+                  subtitle="20% deducted per earning until paid"
+                  amount={money(total, symbol)}
                 />
               )}
             </div>
@@ -263,22 +303,43 @@ export default function VerificationPaymentModal({
         )}
 
         <div className="mt-3.5 space-y-2.5 sm:mt-4">
-          <button
-            type="button"
-            onClick={handlePayment}
-            disabled={isLoading || Boolean(loadError) || isProcessing || (!plan && showPaymentOptions)}
-            className="w-full rounded-md bg-[#0d99c9] py-2.5 text-[12px] font-bold text-white transition hover:bg-[#087fa8] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:py-3 sm:text-sm"
-          >
-            {isProcessing ? "Processing..." : buttonText}
-          </button>
-          <button
-            type="button"
-            onClick={onMaybeLater || close}
-            disabled={isProcessing}
-            className="w-full rounded-md border border-[#d5d5d5] bg-white py-2.5 text-[12px] font-medium text-[#555] transition hover:bg-[#f8fafb] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:py-3 sm:text-sm"
-          >
-            {maybeLaterText}
-          </button>
+          {deductSuccess ? (
+            <button
+              type="button"
+              onClick={() => {
+                onDeductActivated?.(deductSuccess);
+                onClose?.();
+              }}
+              className="w-full rounded-md bg-[#0d99c9] py-2.5 text-[12px] font-bold text-white transition hover:bg-[#087fa8] active:scale-[0.99] sm:py-3 sm:text-sm"
+            >
+              Done
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={handlePayment}
+                disabled={isLoading || Boolean(loadError) || isProcessing || (!plan && showPaymentOptions && !isSeekerFree)}
+                className="w-full rounded-md bg-[#0d99c9] py-2.5 text-[12px] font-bold text-white transition hover:bg-[#087fa8] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:py-3 sm:text-sm"
+              >
+                {isProcessing
+                  ? "Processing..."
+                  : isSeekerFree
+                    ? "Continue to verification"
+                    : paymentOption === "deduct"
+                      ? "Activate 20% Deductions"
+                      : buttonText}
+              </button>
+              <button
+                type="button"
+                onClick={onMaybeLater || close}
+                disabled={isProcessing}
+                className="w-full rounded-md border border-[#d5d5d5] bg-white py-2.5 text-[12px] font-medium text-[#555] transition hover:bg-[#f8fafb] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:py-3 sm:text-sm"
+              >
+                {maybeLaterText}
+              </button>
+            </>
+          )}
         </div>
 
         <div className="mt-3 flex items-center justify-center gap-1 text-[10px] text-[#666] sm:mt-3.5 sm:text-[11px]">

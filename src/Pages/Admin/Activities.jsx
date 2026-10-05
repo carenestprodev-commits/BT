@@ -60,14 +60,11 @@ function Activities() {
         id: a.request_id,
         name: a.user_name || `User ${a.request_id}`,
         careType: a.care_type,
-        status:
-          a.status === "pending_approval"
-            ? "Pending"
-            : a.status === "ongoing_activity"
-              ? "Ongoing Activity"
-              : a.status === "fulfilled" || a.status === "completed"
-                ? "Fulfilled"
-                : a.status,
+        status: {
+          pending_approval: "Pending",
+          active: "Ongoing Activity",
+          completed: "Fulfilled",
+        }[a.status] || a.status_label || a.status,
         date: a.date_created ? dayjs(a.date_created).format("DD-MM-YYYY") : "",
       }));
       setRows(mapped);
@@ -82,12 +79,14 @@ function Activities() {
         id: a.request_id,
         name: a.requester || `User ${a.request_id}`,
         careType: a.care_type,
-        timeSlot: a.time_slot || "",
-        paymentRate: a.payment_rate || a.payment_rate || "",
+        timeSlot: a.time_slot || "Not specified",
+        paymentRate: a.payment_rate ?? a.agreed_rate ?? "",
         status: a.status || "",
         careProviderName: a.care_provider_name || "",
         careProviderPhone: a.care_provider_phone || "",
         careProviderEmail: a.care_provider_email || "",
+        currencyCode: a.settlement?.currency_code || defaultCurrency.currencyCode,
+        currencySymbol: a.settlement?.currency_symbol || defaultCurrency.currencySymbol,
       });
     }
   }, [currentActivity]);
@@ -496,7 +495,7 @@ function Activities() {
                   Care Provider&apos;s Name
                 </span>
                 <span className="text-right">
-                  {editRow.careProviderName || "Ezeonu Justina"}
+                  {editRow.careProviderName || "—"}
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b">
@@ -504,7 +503,7 @@ function Activities() {
                   Care Provider&apos;s Phone Number
                 </span>
                 <span className="text-right">
-                  {editRow.careProviderPhone || "+234123456789"}
+                  {editRow.careProviderPhone || "—"}
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b">
@@ -512,7 +511,7 @@ function Activities() {
                   Care Provider&apos;s Email
                 </span>
                 <span className="text-right">
-                  {editRow.careProviderEmail || "olivia@untitledui.com"}
+                  {editRow.careProviderEmail || "—"}
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b">
@@ -521,16 +520,16 @@ function Activities() {
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-500">Time Slot</span>
-                <span className="text-right">07:00 am - 09:30 pm</span>
+                <span className="text-right">{editRow.timeSlot || "—"}</span>
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-500">Payment Rate</span>
                 <span className="text-right">
                   {editRow.paymentRate
                     ? formatCurrencyAmount(
-                        editRow.paymentRate,
-                        defaultCurrency.currencyCode,
-                        defaultCurrency.currencySymbol,
+                      editRow.paymentRate,
+                        editRow.currencyCode || defaultCurrency.currencyCode,
+                        editRow.currencySymbol || defaultCurrency.currencySymbol,
                       )
                     : "N/A"}
                 </span>

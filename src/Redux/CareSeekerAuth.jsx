@@ -103,6 +103,9 @@ export const registerAndPublish = createAsyncThunk(
         return rejectWithValue(text);
       }
       const data = await res.json();
+      if (data?.error) {
+        return rejectWithValue(data.error);
+      }
       // Persist full API response to localStorage so calling code can access tokens/user immediately
       try {
         localStorage.setItem("seeker_register_response", JSON.stringify(data));
