@@ -69,9 +69,8 @@ function Sidebar({ active = "Home", onNav }) {
     const fetchProfileCompletion = async () => {
       try {
         const baseUrl = import.meta.env.VITE_API_BASE_URL;
-        // Use the correct endpoint path with provider context
         const response = await fetchWithAuth(
-          `${baseUrl}/api/provider/profile/completion/`,
+          `${baseUrl}/api/auth/profile-completion/`,
         );
 
         if (!response.ok) {
